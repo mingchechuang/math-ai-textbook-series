@@ -1,0 +1,11 @@
+{
+  "key": "44f5d8cb0d16b30b955b6226162929151d9bb425818e10e0178a2a7bd62b41f5",
+  "person": {
+    "id": "v5_editor_13",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 258,
+  "result": "1. **二值整數遮罩符合文字定義，卻不能直接供此函式使用。**  \n   原句：「`M^{(s)}\\\\in\\\\{0,1\\\\}^{B\\\\times T_s}`」及程式中的「`allowed = mask & (abs_delta <= float(window))`」  \n   原因：章稿將遮罩定義為二值，但未限定必須是布林 dtype。若呼叫者傳入 0/1 整數張量，`allowed` 可能仍是整數型別，後續傳給 `torch.where` 作條件會出錯；程式也沒有在入口給出明確的 dtype／值域錯誤。  \n   最小修法：明訂並檢查 `mask` 必須是 `torch.bool`，或驗證輸入僅含 0/1 後轉成 bool；為不符合條件的遮罩加測試。\n\n其餘修訂已處理前輪提出的有限超參數與最近位置 `0*inf` 問題。此處仍有一項公開資料契約與程式輸入條件不一致。\n\nVERDICT: REVISE"
+}

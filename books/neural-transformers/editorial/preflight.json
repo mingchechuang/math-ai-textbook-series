@@ -1,0 +1,52 @@
+[
+  {
+    "person": {
+      "id": "v5_editor_00",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "role": "author"
+    },
+    "result": "READY",
+    "identity_verification": "llm_agent事件中的provider/model驗證，原始事件保留"
+  },
+  {
+    "person": {
+      "id": "v5_editor_01",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "role": "reviewer"
+    },
+    "result": "READY",
+    "identity_verification": "llm_agent事件中的provider/model驗證，原始事件保留"
+  },
+  {
+    "person": {
+      "id": "v5_editor_02",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "role": "author"
+    },
+    "result": "READY",
+    "identity_verification": "llm_agent事件中的provider/model驗證，原始事件保留"
+  },
+  {
+    "person": {
+      "id": "v5_editor_03",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "role": "reviewer"
+    },
+    "result": "READY",
+    "identity_verification": "llm_agent事件中的provider/model驗證，原始事件保留"
+  },
+  {
+    "person": {
+      "id": "v5_editor_04",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "role": "author"
+    },
+    "result": "READY",
+    "identity_verification": "llm_agent事件中的provider/model驗證，原始事件保留"
+  }
+]

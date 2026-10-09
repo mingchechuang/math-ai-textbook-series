@@ -1,0 +1,11 @@
+{
+  "key": "b6bd74eb0c3bbb1799e907b01b1580f37e5f625fbfb04ae6b911b33511626062",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 170,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n**命題 4.1**：對於任意兩個概率分布 $P, Q$，若 $P(x)>0 \\implies Q(x)>0$，則 $D_{KL}(P \\| Q) \\geq 0$，且等號成立當且僅當 $P(x)=Q(x)$ 對所有 $x$ 成立。\n<<<NEW>>>\n**命題 4.1**：對於有限離散樣本空間上的概率分布 $P, Q$，若 $P(x)>0 \\implies Q(x)>0$，則 $D_{KL}(P \\| Q) \\geq 0$，且等號成立當且僅當 $P(x)=Q(x)$ 對所有 $x$ 成立。以下證明限於有限空間；可數無限空間需另行處理無限和。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    sum_nll = np.sum(valid_nll)\n    mean_nll = sum_nll / count\n    \n    # 防止 overflow\n    if mean_nll > 700: # ln(float_max) approx 709\n        return np.inf\n        \n    return float(np.exp(mean_nll))\n<<<NEW>>>\n    # 先按有效 token 數縮放，避免總和先行溢位\n    mean_nll = np.sum(valid_nll / count, dtype=np.float64)\n    if mean_nll > np.log(np.finfo(np.float64).max):\n        return np.inf  # float64 表示限制，不代表數學上的 PP 無限\n    return float(np.exp(mean_nll))\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n        terms[p_support] = p[p_support] * np.log(p[p_support] / q[p_support])\n<<<NEW>>>\n        safe = p_support & (q > 0)\n        terms[safe] = p[safe] * (np.log(p[safe]) - np.log(q[safe]))\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n2.  若 $P(x) > 0$ 且 $Q(x) = 0$，則 $D_{KL}(P \\| Q) = +\\infty$。\n<<<NEW>>>\n2.  若 $P(x) > 0$ 且 $Q(x) = 0$，則 $H(P,Q)=+\\infty$，且 $D_{KL}(P \\| Q)=+\\infty$。\n<<<END>>>\n<<<PATCH 05>>>\n<<<OLD>>>\n**直覺限制**：PP 等於「等效候選詞數量」僅在模型輸出均勻分布的特殊情況下精確成立。一般情況下，它是平均對數損失的指數，反映模型的整體預測困難度。若 $PP=100$，表示模型在平均意義上的預測困難度相當於在 100 個候選中隨機猜測。\n<<<NEW>>>\n**直覺限制**：一般情況下，PP 是有效位置上正確 token 機率之幾何平均的倒數。$PP=100$ 表示該幾何平均為 $1/100$；只有每步在 100 個候選間均勻預測的特殊情形，才可解讀為在 100 個等可能候選中猜測。\n<<<END>>>"
+}

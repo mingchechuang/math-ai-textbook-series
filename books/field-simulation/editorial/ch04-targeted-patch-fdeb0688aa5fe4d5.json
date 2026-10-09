@@ -1,0 +1,80 @@
+{
+  "key": "fdeb0688aa5fe4d5fc2f61cf791355320423b0edc055e3cb6a95fd03d6ce9e99",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 241,
+  "result": {
+    "patches": [
+      {
+        "chapter": 4,
+        "old": "**問題**：考慮 $D=0.01 \\, \\text{m}^2/\\text{s}$，$L=1.0 \\, \\text{m}$，齊次 Dirichlet 邊界，初始條件 $f(x) = \\sin(\\pi x/L)$。求 $c(x,t)$ 及 $t$ 時刻的總「能量」 $E(t) = \\int_0^L c^2 \\, dx$。",
+        "new": "**問題**：考慮 $D=0.01\\,\\mathrm{m^2/s}$、$L=1.0\\,\\mathrm m$，齊次 Dirichlet 邊界。令濃度尺度 $c_\\ast=1\\,\\mathrm{kg/m^3}$，初值為 $c(x,0)=c_\\ast\\sin(\\pi x/L)$。求濃度及其平方範數積分 $E(t)=\\int_0^Lc^2\\,dx$。此處 $E$ 不是熱力學能量；其 SI 單位為 $\\mathrm{kg^2/m^5}$。"
+      },
+      {
+        "chapter": 4,
+        "old": "初始條件已是 $n=1$ 模式，故 $b_1 = 1$，其餘 $b_n = 0$。解為：\n\n$$\nc(x,t) = \\sin(\\pi x) e^{-D \\pi^2 t}\n$$\n\n（因 $L=1$，$\\pi x/L = \\pi x$）\n\n總能量：\n\n$$\nE(t) = \\int_0^1 \\sin^2(\\pi x) e^{-2D \\pi^2 t} dx = e^{-2D \\pi^2 t} \\int_0^1 \\sin^2(\\pi x) dx\n$$\n\n已知 $\\int_0^1 \\sin^2(\\pi x) dx = 1/2$，故：\n\n$$\nE(t) = \\frac{1}{2} e^{-2D \\pi^2 t}\n$$",
+        "new": "初始條件只有第一模態，故 $b_1=c_\\ast$，其餘係數為零：\n\n$$\nc(x,t)=c_\\ast\\sin(\\pi x/L)e^{-D(\\pi/L)^2t}.\n$$\n\n對任意 $L$，利用 $\\int_0^L\\sin^2(\\pi x/L)\\,dx=L/2$，得到\n\n$$\nE(t)=\\frac{c_\\ast^2L}{2}e^{-2D(\\pi/L)^2t}.\n$$\n\n代入本題的 $L=1\\,\\mathrm m$ 與 $c_\\ast=1\\,\\mathrm{kg/m^3}$，下表所列 $E$ 的數值係數便是 $\\frac12e^{-2D(\\pi/L)^2t}$，每個數值均帶單位 $\\mathrm{kg^2/m^5}$。不應將 $\\pi x$ 中的 $x$ 理解為帶公尺單位、卻未除以參考長度的量。"
+      },
+      {
+        "chapter": 4,
+        "old": "| $t$ (s) | $2D\\pi^2 t$ | $E(t) = 0.5 e^{-2D\\pi^2 t}$ | 衰減比例 |",
+        "new": "| $t$ (s) | $2D(\\pi/L)^2t$ | $E(t)$（kg²/m⁵） | 衰減比例 |"
+      },
+      {
+        "chapter": 4,
+        "old": "- 時間尺度 $\\tau_E = 1/(2D\\pi^2) \\approx 5.07 \\, \\text{s}$ 是能量衰減至 $1/e$ 的時間。\n- 高頻模式衰減更快。若初始條件含 $n=2$ 模式，其能量衰減時間尺度為 $\\tau_E/4 \\approx 1.27 \\, \\text{s}$。",
+        "new": "- 第一模態平方範數的衰減時間尺度為 $\\tau_E=L^2/(2D\\pi^2)\\approx5.07\\,\\mathrm s$；此處已代入 $L=1\\,\\mathrm m$。\n- 若初值另含第二模態，其平方範數貢獻的衰減時間尺度為 $\\tau_E/4\\approx1.27\\,\\mathrm s$。"
+      },
+      {
+        "chapter": 4,
+        "old": "def compute_total_mass(c, dx):\n    \"\"\"每單位截面積的濃度積分；有因次單位 kg/m²。\"\"\"\n    return trapezoid_values(c, dx)\n\n\ndef compute_energy(c, dx):\n    \"\"\"平方範數積分，不直接等於熱力學能量。\"\"\"\n    return trapezoid_values(np.asarray(c)**2, dx)",
+        "new": "def compute_total_mass(c, dx):\n    \"\"\"回傳梯形積分，單位為 [c]·[dx]。\n\n    若 c 為 kg/m³ 且 dx 為 m，則為每單位截面積的 kg/m²。\n    \"\"\"\n    return trapezoid_values(c, dx)\n\n\ndef compute_energy(c, dx):\n    \"\"\"平方範數積分，單位為 [c]²·[dx]，不是熱力學能量。\"\"\"\n    return trapezoid_values(np.asarray(c)**2, dx)"
+      },
+      {
+        "chapter": 4,
+        "old": "**測試1：Dirichlet 邊界能量衰減**\n- 輸入：$D=0.01, L=1, f(x)=\\sin(\\pi x)$，$t_{end}=10$\n- 預期：$E(0)=0.5$，$E(10) \\approx 0.5 e^{-2 \\times 0.01 \\times \\pi^2 \\times 10} \\approx 0.06946$",
+        "new": "**測試1：Dirichlet 邊界平方範數衰減**\n- 輸入：$D=0.01\\,\\mathrm{m^2/s}$、$L=1\\,\\mathrm m$、$c(x,0)=(1\\,\\mathrm{kg/m^3})\\sin(\\pi x/L)$、$t_{end}=10\\,\\mathrm s$。\n- 預期：$E(0)=0.5\\,\\mathrm{kg^2/m^5}$，$E(10)\\approx0.06946\\,\\mathrm{kg^2/m^5}$；這是平方範數，不是以焦耳計的熱能。"
+      },
+      {
+        "chapter": 4,
+        "old": "1. **手算**：考慮 $D=0.05 \\, \\text{m}^2/\\text{s}$，$L=2.0 \\, \\text{m}$，齊次 Dirichlet 邊界，初始條件 $f(x) = 1 + \\sin(\\pi x/L)$。求 $c(x,t)$ 的完整表達式，並計算 $t=20 \\, \\text{s}$ 時的能量 $E(t) = \\int_0^L c^2 dx$。",
+        "new": "1. **手算**：考慮 $D=0.05\\,\\mathrm{m^2/s}$、$L=2.0\\,\\mathrm m$、齊次 Dirichlet 邊界，取濃度尺度 $c_\\ast=1\\,\\mathrm{kg/m^3}$，初值 $f(x)=c_\\ast[1+\\sin(\\pi x/L)]$。求 $c(x,t)$ 的完整表達式，並估算 $t=20\\,\\mathrm s$ 的平方範數 $E(t)=\\int_0^Lc^2dx$，註明單位。"
+      },
+      {
+        "chapter": 4,
+        "old": "初始條件 $f(x) = 1 + \\sin(\\pi x/L)$，$L=2$。",
+        "new": "初值為 $f(x)=c_\\ast[1+\\sin(\\pi x/L)]$，其中 $c_\\ast=1\\,\\mathrm{kg/m^3}$、$L=2\\,\\mathrm m$。以下正弦級數先展開括號內的無因次函數，最後再乘回 $c_\\ast$。"
+      },
+      {
+        "chapter": 4,
+        "old": "因此通解：\n\n$$\nc(x,t) = \\left(\\frac{4}{\\pi} + 1\\right) \\sin\\left(\\frac{\\pi x}{2}\\right) e^{-D (\\pi/2)^2 t} + \\sum_{n=3,5,\\dots} \\frac{4}{n\\pi} \\sin\\left(\\frac{n\\pi x}{2}\\right) e^{-D (n\\pi/2)^2 t}\n$$",
+        "new": "因此完整濃度解為\n\n$$\nc(x,t)=c_\\ast\\left[\\left(\\frac4\\pi+1\\right)\\sin\\left(\\frac{\\pi x}{L}\\right)e^{-D(\\pi/L)^2t}+\\sum_{n=3,5,\\dots}\\frac4{n\\pi}\\sin\\left(\\frac{n\\pi x}{L}\\right)e^{-D(n\\pi/L)^2t}\\right].\n$$\n\n下文出現的 $\\pi/2$ 均為代入有因次長度 $L=2\\,\\mathrm m$ 後的波數數值，其單位為 m$^{-1}$。"
+      },
+      {
+        "chapter": 4,
+        "old": "故 $E(20)\\approx5.1677\\times e^{-4.9348}\\approx5.1677\\times0.007192\\approx0.03716$。$n=3$ 以上模態的能量貢獻是其係數平方乘上各自的衰減因子平方，在此時間已極小。",
+        "new": "故 $E(20)\\approx0.03716\\,c_\\ast^2\\,\\mathrm m$；以 $c_\\ast=1\\,\\mathrm{kg/m^3}$ 代入，為 $0.03716\\,\\mathrm{kg^2/m^5}$。這個近似採用首模態，並非將平方範數視為無單位數字；第三及更高模態的貢獻已因振幅平方而極小。"
+      },
+      {
+        "chapter": 4,
+        "old": "4. **整合**：比較 Dirichlet 與 Neumann 邊界在相同 PDE $\\partial c/\\partial t = D c''$ 下的長期行為。$D=0.01, L=1$，初始條件 $f(x)=x(1-x)$（拋物線，最大值 $0.25$ 在 $x=0.5$）。",
+        "new": "4. **整合**：比較 Dirichlet 與 Neumann 邊界在相同 PDE $\\partial c/\\partial t=Dc''$ 下的長期行為。取 $D=0.01\\,\\mathrm{m^2/s}$、$L=1\\,\\mathrm m$、$c_\\ast=1\\,\\mathrm{kg/m^3}$，初值 $f(x)=c_\\ast(x/L)(1-x/L)$（最大濃度為 $c_\\ast/4$，位置 $x=L/2$）。"
+      },
+      {
+        "chapter": 4,
+        "old": "**(a) 長期行為**\n\nDirichlet：",
+        "new": "**(a) 長期行為**\n\n本題以下保留原來在 $L=1$、$c_\\ast=1$ 下的數值係數；式中的積分變數若寫成純數值 $x$，實際代表無因次位置 $x/L$。各濃度結果須乘 $c_\\ast$，每單位截面積的質量須乘 $c_\\ast L$，平方範數須乘 $c_\\ast^2L$。\n\nDirichlet："
+      },
+      {
+        "chapter": 4,
+        "old": "- $t=50$ 時，高頻模式衰減，$E(50) \\approx 0.0278 + \\text{small}$。",
+        "new": "- $t=50\\,\\mathrm s$ 時，高頻模式已衰減，$E(50)\\approx0.0278\\,\\mathrm{kg^2/m^5}$，尚有正的高頻模態平方貢獻。上述 Dirichlet 近似的 $M(50)\\approx1.18\\times10^{-3}\\,\\mathrm{kg/m^2}$、$E(50)\\approx1.72\\times10^{-6}\\,\\mathrm{kg^2/m^5}$；Neumann 的 $M=1/6\\,\\mathrm{kg/m^2}$。這些單位均依本題指定的 $c_\\ast,L$，不是無條件適用於任意尺度。"
+      }
+    ],
+    "reason": "依量綱證據為例一、習題一與習題四加入濃度尺度，保留已核對的數值係數，並補正濃度積分與平方範數的條件式單位契約。僅修相關段落，未執行程式。"
+  }
+}

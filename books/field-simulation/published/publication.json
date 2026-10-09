@@ -1,0 +1,1260 @@
+{
+  "volume": 3,
+  "chapter_count": 30,
+  "built_at": "2026-10-08T11:02:38.260Z",
+  "source_sha256": "5649c2752c477f225752236eef801be798627693916fec18f284ee5bc94067ea",
+  "source_files": {
+    "00-preface.md": "805c966bc6710b040ca7808ec50f31d4763417c82e9a634e02262da199c95470",
+    "chapters/01.md": "d391b9f9373d909e811b10802d6b2e032961fac61204be3e7cf3b370b7058c38",
+    "chapters/02.md": "a1583d469cbb65361686f1e7538b8d77c18ef31e973202c4a6d002ea358b0ac7",
+    "chapters/03.md": "1fcae849558017e93bd7a7a4d648763793ef4c6939a99b7df63cbd993d87bb2b",
+    "chapters/04.md": "e0a47e3581f5805009e1e59d3efebd59bd3308b12c680faa57c000ea18bdd297",
+    "chapters/05.md": "c5237f8d7e6f5b3cb661ab54a335f8960ac3a0c692da57531c7d5165bdce2a97",
+    "chapters/06.md": "04d54320cdcb7c91f6e2755330e096939d4536b99f8f9ff338f75a325e2dabad",
+    "chapters/07.md": "ad1838ef27c02ab5e0cf01fa90574e7ba5ac08ec8168c708a94ac3f351c20da1",
+    "chapters/08.md": "0a778f2f9f4d6a9c684935b82d6fc1673e1a6f4de45bf3d98146f4c43aa2d774",
+    "chapters/09.md": "cf8ee2a3482c9b52c6e37ce219e4bd16a8549980be30f76a7124d13ce2bc79ac",
+    "chapters/10.md": "795594bb904458bb24c99f0b3f1de22cb6693ee300b0829482bc5ee49dccb6e6",
+    "chapters/11.md": "12ce2287fae8dae219075f392e07e02a26fde1c8833ddbc7bfbe844387ef8c57",
+    "chapters/12.md": "472e85cc17e5ec80c8e0f04d7267501ac60c9b8a1cc9e57390d9aea97f92e3ac",
+    "chapters/13.md": "4e1b372ac42b30bc88544bc393a64f4b6ded0f3a1909a2900735b572906b88ff",
+    "chapters/14.md": "9c80bb9fcd1396174af08395317f0872ebfbd45dcc2bf1fed28d2a7602716870",
+    "chapters/15.md": "d2648df7bd0fbc5f439abf4dd58e444fbe36072de7c1ac5fd242386355f26bd6",
+    "chapters/16.md": "4b86094a1dad7a6c99be25437f4d724d28dadd50910d9f65d2ea2d39a4a4dd23",
+    "chapters/17.md": "5f3631c85a9740c6447c8ea63efdd3aed9cfe03b32fef7c99b6fb1e80a60e5b7",
+    "chapters/18.md": "5c0fdd8cabaf51eeddd40c342c2048beac3715c7416a508d05ff3e244773fff8",
+    "chapters/19.md": "72eafb0b77b2a26d9abc8bbe092bb2dd84c4d152f8f5ec1c26ee1a6f7d9d9643",
+    "chapters/20.md": "33c1f301c171e8cea5a4e994807b380dce3b98c3cf969b1fae041e6667480d3e",
+    "chapters/21.md": "67b8329063dd78d70aac7b21f601f3210c9daf10288310df71e6146a9d605c86",
+    "chapters/22.md": "28f87393dba7a7a40010fc16ded15965d2f55f711a1fc5489d5c42e4854c6b3c",
+    "chapters/23.md": "d50ab178d0ca02b605d02e7a352d8bba01644daeb3eb88c737328c570f9d508e",
+    "chapters/24.md": "c51f52a89aed66acd1d07009b77a3df476f0528528801d588eb1d341f28467ba",
+    "chapters/25.md": "78a441198842eb7fb989860f3f15d7fb0643f3f58312c19b909261cef263234a",
+    "chapters/26.md": "a0ae3b8cea1d2982cb4350917faf044b26af2e09056cb61e59fc5d481e4be006",
+    "chapters/27.md": "595b9242e7da917253677503bf9d8fcae1cd188e2755e2d7ece2af76c8c6085a",
+    "chapters/28.md": "7c15c2335ecf240cbd99dd6c0e585077e8e145525ed01db56629ce8fb4856aa9",
+    "chapters/29.md": "03ff7958bd9490bd693897255070cfe680f1ab5330e8028e0c83230c90e6af7b",
+    "chapters/30.md": "98c61fe418cc58f2ade90590951fdc0212f0d0f83fc0056ba894f5545be0adaa",
+    "99-appendix.md": "e0cdc4aefb81159f51fa0f189481604fc5feda5899e04874517f843de6db903a",
+    "REFERENCES.md": "647441102238c8849240f565e341bccd07b488ba1cb6f896d72f75f9c3f7a861",
+    "figures/conservation.svg": "d920031488bb499247a890e17fe8557a90b448321ad4080a158bec82a8277f97",
+    "figures/operators.svg": "38d06c467f48f732568462b0585b4d1545cadd86eee1f5c2b743555ae302a74f",
+    "figures/phase-field.svg": "06ed5c0278bd24c31d97765537bb191aff7ec1c3e2fcf92dabf4948b20c14ae2",
+    "figures/pipeline.svg": "2e037952bca3920b554f9d2d8e15ab3a46af96ac998056d137b0397c2582c8a9",
+    "figures/solvers.svg": "dfa5f693ebbf687798dffe3322ee965658175a4294bbea48f1a591a09ae1db02"
+  },
+  "renderer_normalizations": [
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t $",
+      "rendered": "$\\Delta t$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u_t = \\nu \\partial_{xx} u $",
+      "rendered": "$u_t = \\nu \\partial_{xx} u$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\nu > 0 $",
+      "rendered": "$\\nu > 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{L}_h $",
+      "rendered": "$\\mathbf{L}_h$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\partial_{xx} $",
+      "rendered": "$\\partial_{xx}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\nu $",
+      "rendered": "$\\nu$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{A} = \\nu \\mathbf{L}_h $",
+      "rendered": "$\\mathbf{A} = \\nu \\mathbf{L}_h$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{L}_h $",
+      "rendered": "$\\mathbf{L}_h$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{A} $",
+      "rendered": "$\\mathbf{A}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu_k \\le 0 $",
+      "rendered": "$\\mu_k \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu_k $",
+      "rendered": "$\\mu_k$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |1 + \\Delta t \\mu_k| \\le 1 $",
+      "rendered": "$|1 + \\Delta t \\mu_k| \\le 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu_k \\le 0 $",
+      "rendered": "$\\mu_k \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t \\le \\frac{\\Delta x^2}{2\\nu} $",
+      "rendered": "$\\Delta t \\le \\frac{\\Delta x^2}{2\\nu}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ L $",
+      "rendered": "$L$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ N = L/\\Delta x $",
+      "rendered": "$N = L/\\Delta x$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta x \\propto 1/N $",
+      "rendered": "$\\Delta x \\propto 1/N$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t_{stable} \\propto 1/N^2 $",
+      "rendered": "$\\Delta t_{stable} \\propto 1/N^2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ k=1 $",
+      "rendered": "$k=1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\tau_{phys} \\sim L^2/\\nu $",
+      "rendered": "$\\tau_{phys} \\sim L^2/\\nu$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ N $",
+      "rendered": "$N$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\tau_{phys} $",
+      "rendered": "$\\tau_{phys}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ n_{steps} \\propto N^2 $",
+      "rendered": "$n_{steps} \\propto N^2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{u}' = \\mathbf{A} \\mathbf{u} $",
+      "rendered": "$\\mathbf{u}' = \\mathbf{A} \\mathbf{u}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{A} $",
+      "rendered": "$\\mathbf{A}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{A} $",
+      "rendered": "$\\mathbf{A}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{A} $",
+      "rendered": "$\\mathbf{A}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu_k \\le 0 $",
+      "rendered": "$\\mu_k \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ z $",
+      "rendered": "$z$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ z = \\lambda \\Delta t $",
+      "rendered": "$z = \\lambda \\Delta t$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\lambda $",
+      "rendered": "$\\lambda$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y'=\\lambda y $",
+      "rendered": "$y'=\\lambda y$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q $",
+      "rendered": "$q$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu_k \\le 0 $",
+      "rendered": "$\\mu_k \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q_k = -\\mu_k \\Delta t \\ge 0 $",
+      "rendered": "$q_k = -\\mu_k \\Delta t \\ge 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q $",
+      "rendered": "$q$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y' = \\mu y $",
+      "rendered": "$y' = \\mu y$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu \\le 0 $",
+      "rendered": "$\\mu \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ z = \\mu \\Delta t $",
+      "rendered": "$z = \\mu \\Delta t$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{BE}(z) = \\frac{1}{1-z} $",
+      "rendered": "$R_{BE}(z) = \\frac{1}{1-z}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\text{Re}(z) \\le 0 $",
+      "rendered": "$\\text{Re}(z) \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |R_{BE}(z)| = \\frac{1}{|1-z|} \\le 1 $",
+      "rendered": "$|R_{BE}(z)| = \\frac{1}{|1-z|} \\le 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q = -\\mu \\Delta t \\ge 0 $",
+      "rendered": "$q = -\\mu \\Delta t \\ge 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{BE}(q) = \\frac{1}{1+q} $",
+      "rendered": "$R_{BE}(q) = \\frac{1}{1+q}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q \\to \\infty $",
+      "rendered": "$q \\to \\infty$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\lim_{q \\to \\infty} R_{BE}(q) = 0 $",
+      "rendered": "$\\lim_{q \\to \\infty} R_{BE}(q) = 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t) $",
+      "rendered": "$O(\\Delta t)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t^2) $",
+      "rendered": "$O(\\Delta t^2)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t) $",
+      "rendered": "$O(\\Delta t)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y' = \\mu y $",
+      "rendered": "$y' = \\mu y$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ z = \\mu \\Delta t $",
+      "rendered": "$z = \\mu \\Delta t$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{CN}(z) = \\frac{1+z/2}{1-z/2} $",
+      "rendered": "$R_{CN}(z) = \\frac{1+z/2}{1-z/2}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\text{Re}(z) \\le 0 $",
+      "rendered": "$\\text{Re}(z) \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |R_{CN}(z)| \\le 1 $",
+      "rendered": "$|R_{CN}(z)| \\le 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q = -\\mu \\Delta t \\ge 0 $",
+      "rendered": "$q = -\\mu \\Delta t \\ge 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu = -q/\\Delta t $",
+      "rendered": "$\\mu = -q/\\Delta t$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{CN}(q) = \\frac{1 - q/2}{1 + q/2} $",
+      "rendered": "$R_{CN}(q) = \\frac{1 - q/2}{1 + q/2}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q \\to \\infty $",
+      "rendered": "$q \\to \\infty$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\lim_{q \\to \\infty} R_{CN}(q) = -1 $",
+      "rendered": "$\\lim_{q \\to \\infty} R_{CN}(q) = -1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q $",
+      "rendered": "$q$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |R_{CN}(q)| $",
+      "rendered": "$|R_{CN}(q)|$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t^2) $",
+      "rendered": "$O(\\Delta t^2)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t^3) $",
+      "rendered": "$O(\\Delta t^3)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t^2) $",
+      "rendered": "$O(\\Delta t^2)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |R_{BE}(q)| < 1 $",
+      "rendered": "$|R_{BE}(q)| < 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q > 0 $",
+      "rendered": "$q > 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ E^{n+1} \\le E^n $",
+      "rendered": "$E^{n+1} \\le E^n$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |R_{CN}(q)| \\le 1 $",
+      "rendered": "$|R_{CN}(q)| \\le 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{CN} \\approx -1 $",
+      "rendered": "$R_{CN} \\approx -1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t \\to \\Delta t/2 \\to \\Delta t/4 $",
+      "rendered": "$\\Delta t \\to \\Delta t/2 \\to \\Delta t/4$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ r = \\|e_{\\Delta t}\\| / \\|e_{\\Delta t/2}\\| $",
+      "rendered": "$r = \\|e_{\\Delta t}\\| / \\|e_{\\Delta t/2}\\|$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t^p $",
+      "rendered": "$\\Delta t^p$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ p \\approx \\log_2 r $",
+      "rendered": "$p \\approx \\log_2 r$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ p \\approx 1 $",
+      "rendered": "$p \\approx 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ p \\approx 2 $",
+      "rendered": "$p \\approx 2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\|\\mathbf{r}\\|_2 = \\|\\mathbf{b} - M_{\\text{left}} \\mathbf{u}^{n+1}\\|_2 $",
+      "rendered": "$\\|\\mathbf{r}\\|_2 = \\|\\mathbf{b} - M_{\\text{left}} \\mathbf{u}^{n+1}\\|_2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathrm{atol} + \\mathrm{rtol} \\|\\mathbf{b}\\|_2 $",
+      "rendered": "$\\mathrm{atol} + \\mathrm{rtol} \\|\\mathbf{b}\\|_2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y' = -100 y $",
+      "rendered": "$y' = -100 y$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y(0)=1 $",
+      "rendered": "$y(0)=1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y(t) = e^{-100 t} $",
+      "rendered": "$y(t) = e^{-100 t}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ t=0.2 $",
+      "rendered": "$t=0.2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\lambda^{-1}=0.01 $",
+      "rendered": "$\\lambda^{-1}=0.01$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\lambda t = 20 $",
+      "rendered": "$\\lambda t = 20$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y(0.2) = e^{-20} \\approx 2.06 \\times 10^{-9} $",
+      "rendered": "$y(0.2) = e^{-20} \\approx 2.06 \\times 10^{-9}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t = 0.1 $",
+      "rendered": "$\\Delta t = 0.1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q = \\lambda \\Delta t = 100 \\times 0.1 = 10 $",
+      "rendered": "$q = \\lambda \\Delta t = 100 \\times 0.1 = 10$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{BE} = \\frac{1}{1+10} = \\frac{1}{11} \\approx 0.0909 $",
+      "rendered": "$R_{BE} = \\frac{1}{1+10} = \\frac{1}{11} \\approx 0.0909$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^2 = (1/11)^2 \\approx 0.00826 $",
+      "rendered": "$y^2 = (1/11)^2 \\approx 0.00826$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\frac{|0.00826 - 2.06 \\times 10^{-9}|}{2.06 \\times 10^{-9}} \\approx 4 \\times 10^6 $",
+      "rendered": "$\\frac{|0.00826 - 2.06 \\times 10^{-9}|}{2.06 \\times 10^{-9}} \\approx 4 \\times 10^6$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{CN} = \\frac{1 - 5}{1 + 5} = -\\frac{4}{6} = -0.667 $",
+      "rendered": "$R_{CN} = \\frac{1 - 5}{1 + 5} = -\\frac{4}{6} = -0.667$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^2 = (-4/6)^2 \\approx 0.444 $",
+      "rendered": "$y^2 = (-4/6)^2 \\approx 0.444$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t = 0.001 $",
+      "rendered": "$\\Delta t = 0.001$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q = 0.1 $",
+      "rendered": "$q = 0.1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{BE} = \\frac{1}{1.1} \\approx 0.9091 $",
+      "rendered": "$R_{BE} = \\frac{1}{1.1} \\approx 0.9091$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^{200} = (1/1.1)^{200} \\approx 5.27 \\times 10^{-9} $",
+      "rendered": "$y^{200} = (1/1.1)^{200} \\approx 5.27 \\times 10^{-9}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ 2.06 \\times 10^{-9} $",
+      "rendered": "$2.06 \\times 10^{-9}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{CN} = \\frac{1 - 0.05}{1 + 0.05} = \\frac{0.95}{1.05} \\approx 0.9048 $",
+      "rendered": "$R_{CN} = \\frac{1 - 0.05}{1 + 0.05} = \\frac{0.95}{1.05} \\approx 0.9048$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^{200} = (0.95/1.05)^{200} \\approx 2.03 \\times 10^{-9} $",
+      "rendered": "$y^{200} = (0.95/1.05)^{200} \\approx 2.03 \\times 10^{-9}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ 2.06 \\times 10^{-9} $",
+      "rendered": "$2.06 \\times 10^{-9}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q \\ll 1 $",
+      "rendered": "$q \\ll 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u_t = \\nu u_{xx} $",
+      "rendered": "$u_t = \\nu u_{xx}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ L_0 $",
+      "rendered": "$L_0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ T_0 = L_0^2/\\nu_0 $",
+      "rendered": "$T_0 = L_0^2/\\nu_0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\nu=1 $",
+      "rendered": "$\\nu=1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ x\\in[0, 2\\pi] $",
+      "rendered": "$x\\in[0, 2\\pi]$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ x_i = i\\Delta x $",
+      "rendered": "$x_i = i\\Delta x$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ i=0,\\dots,N-1 $",
+      "rendered": "$i=0,\\dots,N-1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ x=2\\pi $",
+      "rendered": "$x=2\\pi$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ N=20 $",
+      "rendered": "$N=20$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta x = 2\\pi/20 = 0.1\\pi $",
+      "rendered": "$\\Delta x = 2\\pi/20 = 0.1\\pi$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u(x,0) = \\cos(x) + 0.1 \\cos(10x) $",
+      "rendered": "$u(x,0) = \\cos(x) + 0.1 \\cos(10x)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\cos(10x) $",
+      "rendered": "$\\cos(10x)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ k=10 $",
+      "rendered": "$k=10$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ N/2 $",
+      "rendered": "$N/2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta x^2 = (0.1\\pi)^2 = 0.01 \\pi^2 $",
+      "rendered": "$\\Delta x^2 = (0.1\\pi)^2 = 0.01 \\pi^2$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ k=1 $",
+      "rendered": "$k=1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\cos(x) $",
+      "rendered": "$\\cos(x)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu_1 = -40.53 \\sin^2\\left(\\frac{\\pi}{20}\\right) \\approx -40.53 \\times (0.1564)^2 \\approx -0.989 $",
+      "rendered": "$\\mu_1 = -40.53 \\sin^2\\left(\\frac{\\pi}{20}\\right) \\approx -40.53 \\times (0.1564)^2 \\approx -0.989$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\nu $",
+      "rendered": "$\\nu$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ 100 $",
+      "rendered": "$100$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu_{10} \\approx -4053 $",
+      "rendered": "$\\mu_{10} \\approx -4053$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q_{10} = 405.3 $",
+      "rendered": "$q_{10} = 405.3$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{BE} \\approx 1/406.3 \\approx 0.00246 $",
+      "rendered": "$R_{BE} \\approx 1/406.3 \\approx 0.00246$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R_{CN} \\approx \\frac{1-202.6}{1+202.6} \\approx -0.990 $",
+      "rendered": "$R_{CN} \\approx \\frac{1-202.6}{1+202.6} \\approx -0.990$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u(x,0) = 1 $",
+      "rendered": "$u(x,0) = 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u(x,t) = 1 $",
+      "rendered": "$u(x,t) = 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta x $",
+      "rendered": "$\\Delta x$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t $",
+      "rendered": "$\\Delta t$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\|\\mathbf{u}^{num} - \\mathbf{u}^{ref}\\| $",
+      "rendered": "$\\|\\mathbf{u}^{num} - \\mathbf{u}^{ref}\\|$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{u}^{ref} $",
+      "rendered": "$\\mathbf{u}^{ref}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t) $",
+      "rendered": "$O(\\Delta t)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ O(\\Delta t^2) $",
+      "rendered": "$O(\\Delta t^2)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\nu \\le 0 $",
+      "rendered": "$\\nu \\le 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^{n+1} = \\frac{1-q/2}{1+q/2} y^n $",
+      "rendered": "$y^{n+1} = \\frac{1-q/2}{1+q/2} y^n$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu $",
+      "rendered": "$\\mu$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mu > 0 $",
+      "rendered": "$\\mu > 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q < 0 $",
+      "rendered": "$q < 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q = -\\mu \\Delta t \\ge 0 $",
+      "rendered": "$q = -\\mu \\Delta t \\ge 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ a_{nyq} = \\frac{v^T u}{v^T v} $",
+      "rendered": "$a_{nyq} = \\frac{v^T u}{v^T v}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ v_i = (-1)^i $",
+      "rendered": "$v_i = (-1)^i$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ e^{\\mu_k t} $",
+      "rendered": "$e^{\\mu_k t}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y' = -100 y $",
+      "rendered": "$y' = -100 y$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y(0)=1 $",
+      "rendered": "$y(0)=1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t = 0.01 $",
+      "rendered": "$\\Delta t = 0.01$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ t=0.1 $",
+      "rendered": "$t=0.1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^{10} $",
+      "rendered": "$y^{10}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^{10} $",
+      "rendered": "$y^{10}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y(0.1) $",
+      "rendered": "$y(0.1)$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q=1 $",
+      "rendered": "$q=1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u^{n+1} = u^n + \\Delta t \\nu L_h u^n $",
+      "rendered": "$u^{n+1} = u^n + \\Delta t \\nu L_h u^n$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u_0 = (-1)^i $",
+      "rendered": "$u_0 = (-1)^i$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q = \\lambda \\Delta t = 100 \\times 0.01 = 1 $",
+      "rendered": "$q = \\lambda \\Delta t = 100 \\times 0.01 = 1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R = 1/2 = 0.5 $",
+      "rendered": "$R = 1/2 = 0.5$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^{10} = (0.5)^{10} \\approx 9.77 \\times 10^{-4} $",
+      "rendered": "$y^{10} = (0.5)^{10} \\approx 9.77 \\times 10^{-4}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R = (1-0.5)/(1+0.5) = 1/3 \\approx 0.333 $",
+      "rendered": "$R = (1-0.5)/(1+0.5) = 1/3 \\approx 0.333$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y^{10} = (1/3)^{10} \\approx 1.69 \\times 10^{-5} $",
+      "rendered": "$y^{10} = (1/3)^{10} \\approx 1.69 \\times 10^{-5}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ y(0.1) = e^{-10} \\approx 4.54 \\times 10^{-5} $",
+      "rendered": "$y(0.1) = e^{-10} \\approx 4.54 \\times 10^{-5}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |9.77e-4 - 4.54e-5| / 4.54e-5 \\approx 20.5 $",
+      "rendered": "$|9.77e-4 - 4.54e-5| / 4.54e-5 \\approx 20.5$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ |1.69e-5 - 4.54e-5| / 4.54e-5 \\approx 0.62 $",
+      "rendered": "$|1.69e-5 - 4.54e-5| / 4.54e-5 \\approx 0.62$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u^{n+1} = u^n + \\Delta t \\nu L_h u^n $",
+      "rendered": "$u^{n+1} = u^n + \\Delta t \\nu L_h u^n$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t = 0.06, \\nu=1, \\Delta x=0.1 $",
+      "rendered": "$\\Delta t = 0.06, \\nu=1, \\Delta x=0.1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\Delta t / \\Delta x^2 = 0.06 / 0.01 = 6 $",
+      "rendered": "$\\Delta t / \\Delta x^2 = 0.06 / 0.01 = 6$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\nu \\Delta t / \\Delta x^2 \\le 0.5 $",
+      "rendered": "$\\nu \\Delta t / \\Delta x^2 \\le 0.5$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ 6 > 0.5 $",
+      "rendered": "$6 > 0.5$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u $",
+      "rendered": "$u$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u_0 = [1, -1, 1, -1, \\dots] $",
+      "rendered": "$u_0 = [1, -1, 1, -1, \\dots]$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R \\approx -1 $",
+      "rendered": "$R \\approx -1$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q $",
+      "rendered": "$q$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u_{n+1} \\approx - u_n $",
+      "rendered": "$u_{n+1} \\approx - u_n$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u_{10} \\approx u_0 $",
+      "rendered": "$u_{10} \\approx u_0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ R \\approx 0 $",
+      "rendered": "$R \\approx 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ q $",
+      "rendered": "$q$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ u_{10} \\approx 0 $",
+      "rendered": "$u_{10} \\approx 0$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathrm{atol} $",
+      "rendered": "$\\mathrm{atol}$"
+    },
+    {
+      "chapter": "ch09",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathrm{rtol} $",
+      "rendered": "$\\mathrm{rtol}$"
+    },
+    {
+      "chapter": "ch19",
+      "rule": "Close MAC index inline formula with dollar rather than stray backtick"
+    },
+    {
+      "chapter": "ch26",
+      "rule": "Restore backspace-corrupted boldsymbol command; same expression intact in chapter summary"
+    },
+    {
+      "chapter": "ch29",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\rho c_p \\frac{\\partial T}{\\partial t} = \\nabla \\cdot (k \\nabla T) + Q $",
+      "rendered": "$\\rho c_p \\frac{\\partial T}{\\partial t} = \\nabla \\cdot (k \\nabla T) + Q$"
+    },
+    {
+      "chapter": "ch29",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$ \\mathbf{A} \\mathbf{T}^{n+1} = \\mathbf{b}^n $",
+      "rendered": "$\\mathbf{A} \\mathbf{T}^{n+1} = \\mathbf{b}^n$"
+    }
+  ],
+  "manuscript_sha256": "43338f442a64959d5af36f9c77a2d12bbdd2d2726592b99cd451afaac9e8cb55",
+  "source_status": "completed_model_review_pending_human",
+  "characters": 123889,
+  "mathCount": 6227,
+  "inspection": {
+    "math": 6227,
+    "figures": 7,
+    "missingLinks": [],
+    "chapterCount": 30,
+    "unrenderedDollars": [],
+    "cjkFontLoaded": true,
+    "overflow": []
+  },
+  "mobile": {
+    "viewport": 390,
+    "bodyWidth": 390
+  },
+  "scaled_math": [
+    {
+      "text": "Δt≤0.5⋅Δx2/D=0.5⋅(3.844×10−6)/(2×10−9)≈961.2 s\\Delta t \\le 0.5 \\cdot \\Delta x^2 / D = 0.5 \\cdot (3.8",
+      "scale": 0.9968351395415748
+    },
+    {
+      "text": "c(x,t)→cˉ=1L∫0Lc(x,0)dxc(x,t) \\to \\bar{c} = \\frac{1}{L} \\int_0^L c(x,0) dxc(x,t)→cˉ=L1​∫0L​c(x,0)dx",
+      "scale": 0.9894100568763238
+    },
+    {
+      "text": "∫01f dx=−π2[sin⁡(πx)/π]01=0\\int_0^1 f\\,dx = -\\pi^2[\\sin(\\pi x)/\\pi]_0^1 = 0∫01​fdx=−π2[sin(πx)/π]01​",
+      "scale": 0.9943319063449166
+    },
+    {
+      "text": "u0=u∗(0)=1u_0 = u^*(0) = 1u0​=u∗(0)=1",
+      "scale": 0.9964289994008388
+    },
+    {
+      "text": "0≤ϕ≤10\\le \\phi\\le 10≤ϕ≤1",
+      "scale": 0.9910846245530394
+    },
+    {
+      "text": "0.5+0.375+0.3125+0.625+0.3125+0.375=2.50.5 + 0.375 + 0.3125 + 0.625 + 0.3125 + 0.375 = 2.50.5+0.375+",
+      "scale": 0.9997114552274695
+    },
+    {
+      "text": "C+2r≤1C+2r\\le1C+2r≤1",
+      "scale": 0.9960470520591265
+    },
+    {
+      "text": "L1=0L\\mathbf1=0L1=0",
+      "scale": 0.9900226217406835
+    },
+    {
+      "text": "w=0w=0w=0",
+      "scale": 0.9968829425022778
+    },
+    {
+      "text": "Au=f~Au=\\tilde fAu=f~​",
+      "scale": 0.9972655313024706
+    },
+    {
+      "text": "x0=0x_0 = 0x0​=0",
+      "scale": 0.9966917581627271
+    },
+    {
+      "text": "u′′≡−1u''\\equiv-1u′′≡−1",
+      "scale": 0.994950582717113
+    },
+    {
+      "text": "8u1−4u2=0.258u_1-4u_2 = 0.258u1​−4u2​=0.25",
+      "scale": 0.9912263971008964
+    },
+    {
+      "text": "∂tu+(u⋅∇)u=−∇p/ρ+νΔu+f\\partial_t\\boldsymbol u+(\\boldsymbol u\\cdot\\nabla)\\boldsymbol u=-\\nabla p/\\rho",
+      "scale": 0.9977441804655628
+    },
+    {
+      "text": "t=τt = \\taut=τ",
+      "scale": 0.994474609515153
+    },
+    {
+      "text": "kd>0k_d>0kd​>0",
+      "scale": 0.9989908212792542
+    },
+    {
+      "text": "a=A/Ascalea=A/A_{\\rm scale}a=A/Ascale​",
+      "scale": 0.9892452650613877
+    },
+    {
+      "text": "D=0.102D=0.102D=0.102",
+      "scale": 0.991793893129771
+    },
+    {
+      "text": "2>02>02>0",
+      "scale": 0.9901169298182944
+    },
+    {
+      "text": "r=0r=0r=0",
+      "scale": 0.993642751302519
+    },
+    {
+      "text": "Lref=1 mL_\\mathrm{ref} = 1\\,\\mathrm{m}Lref​=1m",
+      "scale": 0.9986069078157276
+    },
+    {
+      "text": "a<0a < 0a<0",
+      "scale": 0.9899283316269435
+    },
+    {
+      "text": "ϕ=−1\\phi = -1ϕ=−1",
+      "scale": 0.992196262797413
+    },
+    {
+      "text": "uhn=e−tn+h(−1)nu_h^n=e^{-t_n}+h(-1)^nuhn​=e−tn​+h(−1)n",
+      "scale": 0.9893865118271382
+    },
+    {
+      "text": "0.1(0.01−1+0.08)=−0.0910.1(0.01-1+0.08)=-0.0910.1(0.01−1+0.08)=−0.091",
+      "scale": 0.9922909854650469
+    },
+    {
+      "text": "18(2.5T11−7.5)−4T11=11018(2.5 T_1^1 - 7.5) - 4 T_1^1 = 11018(2.5T11​−7.5)−4T11​=110",
+      "scale": 0.992077884890713
+    },
+    {
+      "text": "Δt=1 s\\Delta t=1\\ \\mathrm{s}Δt=1 s",
+      "scale": 0.9879758566608051
+    },
+    {
+      "text": "10→8→910\\to8\\to910→8→9",
+      "scale": 0.9970981125740461
+    },
+    {
+      "text": "ϕt=−Mμ\\phi_t=-M\\muϕt​=−Mμ",
+      "scale": 0.993642751302519
+    }
+  ],
+  "external_requests": [],
+  "files": {
+    "html": 13446096,
+    "pdf": 7776314
+  },
+  "html_sha256": "187945ffb6dda42adb7fb38755b4f6b4f48f344d16f7b4373c4282e88362198a",
+  "pdf_sha256": "02a5fc7d15f04b44558ac07e11a0618c751098db140b6cbb9102c67996586309"
+}

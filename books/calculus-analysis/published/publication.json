@@ -1,0 +1,220 @@
+{
+  "volume": 4,
+  "chapter_count": 30,
+  "built_at": "2026-10-08T11:03:25.879Z",
+  "source_sha256": "c6ee30159bc11991294cb72cd3c13c921d087ce3b5299e706db2d01a44c9ea74",
+  "source_files": {
+    "00-preface.md": "e89741931976c5357ef4751cb93ddbb7db011b2c398912bde2eab62a5dfb7007",
+    "chapters/01.md": "7d078ee3f561b5a043fea821c89440dd51ea339e528f8aaae8bac658f7da2b81",
+    "chapters/02.md": "157fcab441819c14117917a5f2578414548d4660ce337d70b37778626f95a737",
+    "chapters/03.md": "183d64d14d867b25bf1ec717b81e7bed1d70bf3327df05f8c72b4a14565c6119",
+    "chapters/04.md": "994fca577573cf77d5ee566aab5d6492fa0ff8538405e94ce7cde1a606f709ef",
+    "chapters/05.md": "9ea0f5c8f476c770aa1406c9e60e31c2462a798be80282e6f6b60dcc0ebb2364",
+    "chapters/06.md": "96b2a9b0e4b94262c92b178167b548529b8ff5d6f505cf597a573c685147c7c1",
+    "chapters/07.md": "c5bf7ae0230f2d5d0a410dda1bbf4e3c61a60fa14de7c28633f7d0e4aa90726d",
+    "chapters/08.md": "cadad1127e275bb80f6b21ea89c13ad2c79394635a65d40f4e14dab5b8b3f5cb",
+    "chapters/09.md": "b59aee5ccca996598beb04449723ad9cf817db9f42697b923019c93a5285d68c",
+    "chapters/10.md": "4bbf106d554023176234b87daada7e2d6a03c03cee3870d7b14cf0465966554e",
+    "chapters/11.md": "2b70e40f2b382ef62c02456142ae5cc252a6f34865473994129ca1e90ef1b8fe",
+    "chapters/12.md": "3ac0f5a6f39b80a7a2f1e2ce11c81901757f2cb7f305cc1372cf6ed1735376bc",
+    "chapters/13.md": "d2ae6f36be4078d90ac20b1fb7efa7323079282962597e4c53df92bce6a1926d",
+    "chapters/14.md": "16fa6c85280a1f0d7a2a7a950d47cf0a385a18d69e8aea542eaa2f8c61a06fa3",
+    "chapters/15.md": "cea35d09f85749acd89da094cc7c41887624d387c515129cd90152da0218d98d",
+    "chapters/16.md": "02cdc1a4bcdc7b83f86f29be38bf3c71d81714e23a2d62ee4aa396b61681c08f",
+    "chapters/17.md": "037ab912302f3f3b500fb86fddb7f6b9b1b19baf94c55fd4cfd661b9757f1259",
+    "chapters/18.md": "f6d85b216d780e8db9bd2a4f91af8ed92c8f04f3bd3e6de47695aab02b946aa0",
+    "chapters/19.md": "52a42cac2d14c9ccfc2208476fad2d5b8f81e02c977e2cb920eccaf7ea84ce73",
+    "chapters/20.md": "2b09dbb4ed3e827f50f137a8570ab206ec99de6f09c036082a288e910cabcf64",
+    "chapters/21.md": "d79d626777a42f70142a0dca3819aadc6561fa55a05ec4310999002a886bd10d",
+    "chapters/22.md": "0969b3e0d3b20916430548947d376ccbc05cc564d7d229839b25cb34f17d81c8",
+    "chapters/23.md": "042a20734034a615e69dcc37911b7cad18f9269df212bb6310d9a26351dad958",
+    "chapters/24.md": "7eb83465261270c163f0aff893eba08814f2512ef91fd39f63caeaf8686da8f1",
+    "chapters/25.md": "ab28a6aefef24548fd0625619a26a01a4ee70e06553a8b09450b8bcc37f18482",
+    "chapters/26.md": "35885f46e33e72e19483b7da3366c20ff828ca1a4aebe7fceb0f77bf4eb7eeb6",
+    "chapters/27.md": "d39dcfabfd96c2de22e83d4b7ce221c416168f8a590275abdee016778333aa6a",
+    "chapters/28.md": "b16348a22c5dfdcdb7292ab38f0440f08f24aedb3b34eef8f8fecb792c285802",
+    "chapters/29.md": "194c7ad29b474f572484fb87098271427b9818ac5031d691aa2e7b56532fd4b3",
+    "chapters/30.md": "27aabf4d0d7b02ed3a681a6959433084d8199b9101dc9a87556f3b88dca7c39c",
+    "99-appendix.md": "c66994561d5e24feb63937f0daff93ce529e988d5244428a4d9ed5c9bb06ae23",
+    "REFERENCES.md": "d1e90fb9855e87527d96d014862cfc44c5b3186a2338d2148f34b33777e3bd07",
+    "figures/chain.svg": "f7effadab9bb6ed441d9245a5d747825c7e7dc33b4a1d1e07a5936b4ca20e9fe",
+    "figures/conditions.svg": "6acd9064481fc3853fb98ecd3397a5c59114052ae51a17927ebbae247a40eadd",
+    "figures/derivative.svg": "181e10dfe4351884988409cc449189b3e389b48205065b071adeb1cc51b8b5b8",
+    "figures/geometry.svg": "62019745963128b1d0d88b8b6fac876b247a62b37c5f2ce9155751f7c0a3ea01",
+    "figures/pipeline.svg": "77a1cbbcf43cf5899488e163d82dd7897375ded07b4374132156d03607aa1994"
+  },
+  "renderer_normalizations": [
+    {
+      "chapter": "ch03",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$\\|Ax\\|_{\\mathrm{out}}\\leq\n\\|A\\|_{\\mathrm{in}\\to\\mathrm{out}}\\|x\\|_{\\mathrm{in}}$",
+      "rendered": "$\\|Ax\\|_{\\mathrm{out}}\\leq \\|A\\|_{\\mathrm{in}\\to\\mathrm{out}}\\|x\\|_{\\mathrm{in}}$"
+    },
+    {
+      "chapter": "ch08",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$\\|r(tv)/t\\|_2\n=\\bigl(\\|r(tv)\\|_2/\\|tv\\|_2\\bigr)\\|v\\|_2\\to0$",
+      "rendered": "$\\|r(tv)/t\\|_2 =\\bigl(\\|r(tv)\\|_2/\\|tv\\|_2\\bigr)\\|v\\|_2\\to0$"
+    },
+    {
+      "chapter": "ch08",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$L(1,1)^{\\mathsf T}\n=L(1,0)^{\\mathsf T}+L(0,1)^{\\mathsf T}=1$",
+      "rendered": "$L(1,1)^{\\mathsf T} =L(1,0)^{\\mathsf T}+L(0,1)^{\\mathsf T}=1$"
+    },
+    {
+      "chapter": "ch26",
+      "rule": "Render definition-label prime as Unicode prime (dollar after digit rejected by parser)"
+    }
+  ],
+  "manuscript_sha256": "2974d9f948780b041e5428492a98f7066deece278df865b40179757f307f31c9",
+  "source_status": "completed_model_review_pending_human",
+  "characters": 117879,
+  "mathCount": 8642,
+  "inspection": {
+    "math": 8642,
+    "figures": 2,
+    "missingLinks": [],
+    "chapterCount": 30,
+    "unrenderedDollars": [],
+    "cjkFontLoaded": true,
+    "overflow": []
+  },
+  "mobile": {
+    "viewport": 390,
+    "bodyWidth": 390
+  },
+  "scaled_math": [
+    {
+      "text": "Jij=∂fi/∂xjJ_{ij}=\\partial f_i/\\partial x_jJij​=∂fi​/∂xj​",
+      "scale": 0.9879993346165729
+    },
+    {
+      "text": "∃N,∀ε>0,∀n≥N,∣an−L∣<ε\\exists N,\\forall\\varepsilon>0,\\forall n\\ge N,|a_n-L|<\\varepsilon∃N,∀ε>0,∀n≥N,∣",
+      "scale": 0.9933578630477373
+    },
+    {
+      "text": "12f′′(0)=0\\frac12 f''(0)=021​f′′(0)=0",
+      "scale": 0.9950458320369528
+    },
+    {
+      "text": "∣r∣≈0.0177≤0.02|r|\\approx 0.0177\\le 0.02∣r∣≈0.0177≤0.02",
+      "scale": 0.9912263971008964
+    },
+    {
+      "text": "∞−∞\\infty-\\infty∞−∞",
+      "scale": 0.9952363853979653
+    },
+    {
+      "text": "xk,yk≠ax_k,y_k\\neq axk​,yk​=a",
+      "scale": 0.9969546555403688
+    },
+    {
+      "text": "∥g(f(x))−g(f(a))∥<ϵ\\|g(f(x)) - g(f(a))\\| < \\epsilon∥g(f(x))−g(f(a))∥<ϵ",
+      "scale": 0.9932866665073943
+    },
+    {
+      "text": "r→0r \\to 0r→0",
+      "scale": 0.9912500298023508
+    },
+    {
+      "text": "d(xk,yk)<δd(x_k,y_k)<\\deltad(xk​,yk​)<δ",
+      "scale": 0.9906123421491542
+    },
+    {
+      "text": "d(xk,yk)<1/kd(x_k,y_k)<1/kd(xk​,yk​)<1/k",
+      "scale": 0.9907775897814741
+    },
+    {
+      "text": "M2⋅25/2M_2\\cdot 25/2M2​⋅25/2",
+      "scale": 0.9942605701167018
+    },
+    {
+      "text": "f:[a,b]→Rf:[a,b]\\to\\mathbb{R}f:[a,b]→R",
+      "scale": 0.9951410995954906
+    },
+    {
+      "text": "U−L<εU-L<\\varepsilonU−L<ε",
+      "scale": 0.9922909854650469
+    },
+    {
+      "text": "C>0C>0C>0",
+      "scale": 0.9947839402785089
+    },
+    {
+      "text": "JLv=[12][0.5−0.5]=0.5−1=−0.5J_L v = \\begin{bmatrix} 1 & 2 \\end{bmatrix} \\begin{bmatrix} 0.5 \\\\ -0.5 ",
+      "scale": 0.9923620393354974
+    },
+    {
+      "text": "∥AX−B∥F2\\|AX-B\\|_F^2∥AX−B∥F2​",
+      "scale": 0.990447149629559
+    },
+    {
+      "text": "2×22\\times22×2",
+      "scale": 0.9894336030461685
+    },
+    {
+      "text": "∥x−a∥,∥x′−a∥≤ε\\|x-a\\|,\\|x'-a\\|\\leq\\varepsilon∥x−a∥,∥x′−a∥≤ε",
+      "scale": 0.9966678652762795
+    },
+    {
+      "text": "∥x−x′∥=∥T(x)−T(x′)∥≤12∥x−x′∥\\|x-x'\\|=\\|T(x)-T(x')\\|\\leq\\tfrac12\\|x-x'\\|∥x−x′∥=∥T(x)−T(x′)∥≤21​∥x−x′∥",
+      "scale": 0.9969785621792719
+    },
+    {
+      "text": "y=±1−x2y=\\pm\\sqrt{1-x^2}y=±1−x2​",
+      "scale": 0.991344571878204
+    },
+    {
+      "text": "V×W⊂NV\\times W\\subset NV×W⊂N",
+      "scale": 0.999134864942805
+    },
+    {
+      "text": "1×2=21 \\times 2 = 21×2=2",
+      "scale": 0.9915810059863102
+    },
+    {
+      "text": "a=b=3a=b=3a=b=3",
+      "scale": 0.9948553516307339
+    },
+    {
+      "text": "∂xQ−∂yP\\partial_xQ-\\partial_yP∂x​Q−∂y​P",
+      "scale": 0.9987748336416268
+    },
+    {
+      "text": "un(x)=sin⁡(nx)/n−sin⁡((n−1)x)/(n−1)u_n(x)=\\sin(nx)/n-\\sin((n-1)x)/(n-1)un​(x)=sin(nx)/n−sin((n−1)x)/",
+      "scale": 0.9995432143286452
+    },
+    {
+      "text": "L>0L>0L>0",
+      "scale": 0.9953555183145798
+    },
+    {
+      "text": "y(0)=0y(0)=0y(0)=0",
+      "scale": 0.9991588762586816
+    },
+    {
+      "text": "0<y<Kmax⁡=500<y<K_{\\max}=500<y<Kmax​=50",
+      "scale": 0.9940466228332338
+    },
+    {
+      "text": "∣3e−2−(3−6+6−4+2)∣=∣3e−2−1∣≈0.594|3e^{-2}-(3-6+6-4+2)|=|3e^{-2}-1|\\approx 0.594∣3e−2−(3−6+6−4+2)∣=∣3",
+      "scale": 0.9918175528996398
+    },
+    {
+      "text": "t≥0t\\ge0t≥0",
+      "scale": 0.992504177608021
+    },
+    {
+      "text": "∥DN∥2→2=N\\|D_N\\|_{2\\to2}=N∥DN​∥2→2​=N",
+      "scale": 0.9892217278545766
+    }
+  ],
+  "external_requests": [],
+  "files": {
+    "html": 17075539,
+    "pdf": 7773533
+  },
+  "html_sha256": "74654332816a4c690e7aaf524e68c77ff2af258455db5ad22f0981b2c3748c4b",
+  "pdf_sha256": "e8c25b609107a7f659fa61c1a29389b3f9691eaed6c9f8e5285c14353f933e70"
+}

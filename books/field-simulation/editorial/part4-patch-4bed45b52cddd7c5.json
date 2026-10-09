@@ -1,0 +1,25 @@
+{
+  "key": "4bed45b52cddd7c5048c757a69350b5d3b926c3081dfa10fbd516a7731682ee7",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 408,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$"
+      },
+      {
+        "chapter": 19,
+        "old": "$$\nu_{i,\\mathrm{face}}^{n+1}=u_i^\\star-\\frac{\\Delta t}{\\rho}\n\\frac{p_i-p_{i-1}}{\\Delta x}.\n$$",
+        "new": "$$u_i^{n+1}=u_i^\\star-\\frac{\\Delta t}{\\rho}\n\\frac{p_i-p_{i-1}}{\\Delta x}.\n$$"
+      }
+    ],
+    "reason": "將面速度校正式改回與預測速度、習題解答一致的 u_i；製造場定義中的希臘字母須改為拉丁 u_x、u_y。"
+  }
+}

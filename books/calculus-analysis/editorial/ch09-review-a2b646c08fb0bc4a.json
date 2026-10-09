@@ -1,0 +1,11 @@
+{
+  "key": "a2b646c08fb0bc4ad8131f028a66cf19774486b2aad3c3eda238a7d506cc8060",
+  "person": {
+    "id": "v4_editor_17",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 222,
+  "result": "本稿仍與前版相同，以下阻擋項尚未修正：\n\n1. **篇幅不足**：`measured_characters` 仍為 2833，未達最低 3000 中文字。\n\n2. **應用案例維度錯誤**。原句：\n   > 形狀依次為 $(2 \\times 1)(1 \\times 2)(2 \\times 2)(2 \\times 1)$\n\n   對\n   $$\n   \\frac{dL}{dP}=J_q(P)^TJ_f(q(P))^T\\nabla_yL\n   $$\n   正確形狀應為\n   $$\n   (1\\times2)(2\\times2)(2\\times1)=(1\\times1).\n   $$\n\n3. **域限制 VJP 沒有測試斷言**。`err_dom_vjp` 被計算但未使用。至少補上：\n   ```python\n   print(f\"Domain VJP Error: {err_dom_vjp:.2e}\")\n   assert err_dom_vjp < 1e-5, \"Domain VJP mismatch\"\n   ```\n\n4. **邊界測試名實不符**。$x_1=0.5$ 是內點，$x_1=-1.5$ 是域外點，程式沒有測試精確邊界 $x_1=-1$。應另外確認邊界點被拒絕；若測試近邊界內點，須保證中央差分兩端仍在域內。\n\n5. **鏈式法則證明仍未指定範數**。應明定向量採 Euclidean 範數、矩陣採相應誘導算子範數，才能使用\n   $$\n   \\|J_gr_f(h)\\|\\leq\\|J_g\\|_{\\mathrm{op}}\\|r_f(h)\\|.\n   $$\n\n6. **反例中解碼後公式仍有錯誤命令**。原文實際為：\n   > `\\frac{x}{2|x|\\\\sqrt{2}}`\n\n   應改成解碼後只有單一命令反斜線的\n   $$\n   \\frac{x}{2|x|\\sqrt{2}}.\n   $$\n\n7. **協向量表示仍違反固定約定**。原句：\n   > 在對偶空間中視為行向量或泛函\n\n   本卷固定以 column 座標表示協向量。最小修法是寫成：「$w$ 以 $m\\times1$ column 座標表示，其對擾動 $\\delta y$ 的泛函作用寫作 $w^T\\delta y$。」\n\n8. **一般 VJP 被誤稱為梯度**。原句：\n   > 前向計算圖得出的線性變化與反向計算圖得出的梯度\n\n   對任意 $w$，$J^Tw$ 只是拉回協向量；只有 $w$ 是某純量損失的輸出微分，並採 Euclidean 度量識別時，才對應梯度。\n\n9. **未執行狀態仍需明示**。測試段應直接寫明程式未執行；`All tests passed.` 只是所有斷言在未來實際執行時成立才會出現的預期訊息。\n\nVERDICT: REVISE"
+}

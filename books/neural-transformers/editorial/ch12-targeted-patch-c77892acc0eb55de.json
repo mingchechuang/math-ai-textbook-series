@@ -1,0 +1,11 @@
+{
+  "key": "c77892acc0eb55dee799de4e411a11e60a4a49b4927a8f8116b2824e776e1e4f",
+  "person": {
+    "id": "v5_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 317,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n    return {\n        \"status\": \"completed\",\n        \"metrics\": metrics,\n        \"W\": best_W,\n        \"b\": best_b,\n<<<NEW>>>\n    # 常數基線只依訓練標籤決定；平手選編號較小的類別。\n    baseline_class = int(np.argmax(\n        np.bincount(ytr, minlength=cfg.classes)\n    ))\n    baseline_accuracy = {\n        name: float(np.mean(parts[name][\"y\"] == baseline_class))\n        for name in (\"train\", \"val\", \"test\")\n    }\n    return {\n        \"status\": \"completed\",\n        \"metrics\": metrics,\n        \"baseline_class\": baseline_class,\n        \"baseline_accuracy\": baseline_accuracy,\n        \"W\": best_W,\n        \"b\": best_b,\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n`resume=True` 時，程式重建相同合成資料及切分，核對設定、群組和標準化統計，再恢復當前參數、最佳參數、早停計數與 RNG 狀態。因 checkpoint 在每個 epoch 結束後寫入，下一輪由 `epoch+1` 開始。\n<<<NEW>>>\n`resume=True` 時，程式重建相同合成資料及切分，核對設定、群組和標準化統計，再恢復當前參數、最佳參數、早停計數與 RNG 狀態。因 checkpoint 在每個 epoch 結束後寫入，下一輪由 `epoch+1` 開始。此實作只支援 `.npz` 與 JSON 兩檔均完整寫入後的 epoch 邊界中止；兩檔分別覆寫，寫入期間中斷可能留下不完整或不同輪次的檔案，不保證可恢復。\n<<<END>>>"
+}

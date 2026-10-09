@@ -1,0 +1,30 @@
+{
+  "key": "43e0b8ffaa7571442d3894657b4eeac60eab30cd41db00b53efb97d8069842a4",
+  "person": {
+    "id": "v2_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 114,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "    # 正數縮放不改變方程的解；先正規化可減少極端尺度問題。\n    U_scaled = U / sigma_max\n\n    # U @ [T^T; B^T] = [e1^T; e2^T]\n    edges = np.vstack([e1, e2])\n    tb = np.linalg.solve(U_scaled, edges) / sigma_max\n    t_raw = tb[0]\n    b_raw = tb[1]\n\n    if not np.all(np.isfinite(tb)):\n        raise ValueError(\"切線求解超出可表示範圍\")",
+        "new": "    # 正數縮放不改變方程的解；先將 U 以 sigma_max 正規化。\n    # 原方程 U X = E，其中 U = sigma_max * U_scaled。\n    # 因此 X = U^{-1} E = (1 / sigma_max) * U_scaled^{-1} E；\n    # 右側先除以 sigma_max，避免解出後再額外縮放一次。\n    U_scaled = U / sigma_max\n\n    # U @ [T^T; B^T] = [e1^T; e2^T]\n    edges = np.vstack([e1, e2])\n    tb = np.linalg.solve(U_scaled, edges / sigma_max)\n    t_raw = tb[0]\n    b_raw = tb[1]\n\n    if not np.all(np.isfinite(tb)):\n        raise ValueError(\"切線求解超出可表示範圍\")\n\n    # 殘差核對：解回 U @ tb 應還原 edges。\n    residual = U @ tb - edges\n    residual_scale = max(1.0, float(np.linalg.norm(edges)))\n    if float(np.linalg.norm(residual)) > 1e-9 * residual_scale:\n        raise ValueError(\"切線求解殘差過大，UV 或位置資料可能不一致\")"
+      },
+      {
+        "chapter": 17,
+        "old": "    # 小型但形狀良好的 UV 島應被接受。\n    tu, bu, nu, hu = triangle_tangent_frame(\n        p0, p1, p2,\n        [0, 0], [1e-6, 0], [0, 1e-6]\n    )\n    assert np.allclose(tu, t, atol=1e-9)\n    assert np.allclose(bu, b, atol=1e-9)",
+        "new": "    # 小型但形狀良好的 UV 島應被接受，且方向與標準 UV 案例一致。\n    tu, bu, nu, hu = triangle_tangent_frame(\n        p0, p1, p2,\n        [0, 0], [1e-6, 0], [0, 1e-6]\n    )\n    assert np.allclose(tu, t, atol=1e-9)\n    assert np.allclose(bu, b, atol=1e-9)\n    assert hu == h"
+      },
+      {
+        "chapter": 17,
+        "old": "4. 等比例縮小至 $10^{-6}$ 的良態 UV 島仍應被接受。",
+        "new": "4. 等比例縮小至 $10^{-6}$ 的良態 UV 島仍應被接受，且其單位切線、副切線方向與手性應與標準 UV 案例一致。求解後亦應通過 `U tb = edges` 的殘差核對。"
+      }
+    ],
+    "reason": "依審稿修正第 17 章 triangle_tangent_frame 的尺度錯誤。原程式在 solve 之後又除以 sigma_max，導致 UV 尺度為 10^-6 的良態島解出切線多縮小 10^6 倍；改為在 solve 前將右側除以 sigma_max（U_scaled 為 U/sigma_max，因此 X = U^{-1}E = (1/sigma_max)·U_scaled^{-1}E）。同時加入 U @ tb = edges 的殘差核對，並在自檢程式中確認小尺度 UV 島的切線、副切線與手性與標準案例一致，符合預期結果第 4 項。其餘推導、手算與其他測試依審稿意見保留。"
+  }
+}

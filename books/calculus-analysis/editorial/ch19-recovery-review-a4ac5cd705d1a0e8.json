@@ -1,0 +1,11 @@
+{
+  "key": "a4ac5cd705d1a0e841604451a5aa8a4d717b09e2f7530aa616606172772c7d03",
+  "person": {
+    "id": "v4_editor_37",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 384,
+  "result": "## 審稿結果\n\n主要定義、Darboux 判準、連續矩形上的 Fubini 證明、瑕積分反例、程式、測試、誤差手算、習題 3、單位與來源均已核對為一致。\n\n尚有一項定理適用域問題：\n\n**例 19.2 對非矩形區域直接援引了只證明於矩形的 Fubini 定理。**\n\n原句：\n\n> 「應用Fubini：」\n\n但定理 19.3 的域是矩形 $R=[a,b]\\times[c,d]$，三角形\n$$\nD=\\{(x,y):0\\leq x\\leq1,\\ 0\\leq y\\leq x\\}\n$$\n不是矩形。雖然答案 $1/2$ 正確，現稿尚未證明補零函數或此類簡單區域的迭代積分公式，因此不能直接稱為已證定理 19.3 的應用。習題解答 1 的「可用此上下限計算」亦有相同的小缺口。\n\n**最小修法：**在例 19.2 前加入一個簡單區域推論並證明或明標引用範圍：若\n$$\nD=\\{(x,y):a\\leq x\\leq b,\\ \\alpha(x)\\leq y\\leq\\beta(x)\\},\n$$\n其中 $\\alpha,\\beta$ 連續且 $\\alpha\\leq\\beta$，而 $f$ 在包含 $D$ 的矩形上連續，則\n$$\n\\iint_D f\\,dA\n=\n\\int_a^b\\int_{\\alpha(x)}^{\\beta(x)}f(x,y)\\,dy\\,dx.\n$$\n也可只針對本三角形，以補零函數及上下和估計證明該等式。完成後，例題與習題解答即可合法使用變動上下限。\n\nVERDICT: REVISE"
+}

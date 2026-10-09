@@ -1,0 +1,25 @@
+{
+  "key": "3cb24ce992bb8925de181b737efef211d3bce012f177910b0e90612084867fc0",
+  "person": {
+    "id": "v2_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 108,
+  "result": {
+    "patches": [
+      {
+        "chapter": 2,
+        "old": "def classify_point_to_plane(\n    point,\n    plane_point,\n    plane_normal,\n    eps_distance,\n):\n    \"\"\"回傳 'positive'、'negative' 或 'boundary'。\"\"\"\n    if not np.isfinite(eps_distance) or eps_distance < 0.0:\n        raise ValueError(\"eps_distance 必須是有限非負數\")\n\n    distance = signed_point_plane_distance(\n        point, plane_point, plane_normal\n    )",
+        "new": "def classify_point_to_plane(\n    point,\n    plane_point,\n    plane_normal,\n    eps_distance,\n    eps_normal=1e-12,\n):\n    \"\"\"回傳 'positive'、'negative' 或 'boundary'。\n\n    eps_distance 與座標同單位；eps_normal 與 plane_normal 同單位。\n    正式應用應依資料尺度設定這兩個門檻，不要依賴預設值。\n    \"\"\"\n    if not np.isfinite(eps_distance) or eps_distance < 0.0:\n        raise ValueError(\"eps_distance 必須是有限非負數\")\n\n    distance = signed_point_plane_distance(\n        point, plane_point, plane_normal, eps_normal=eps_normal\n    )"
+      },
+      {
+        "chapter": 2,
+        "old": "$\\rho$ 越小，三角形越狹長，法線對頂點擾動越敏感。",
+        "new": "$\\rho$ 越小，兩邊越接近平行；在邊長與頂點誤差尺度相近的條件下，法線方向通常較不穩定，但這不是完整的條件數分析。"
+      }
+    ],
+    "reason": "依審稿修正第 2 章兩處：(1) classify_point_to_plane 增加 eps_normal 參數並傳入 signed_point_plane_distance，使法線正規化門檻可依場景尺度指定，且與同檔其他距離／投影函式介面一致；(2) 將「$\\rho$ 越小…法線對頂點擾動越敏感」改為較精確的表述，指出 $\\rho$ 小代表兩邊近共線，敏感性還受邊長與誤差尺度影響，避免把它當成完整條件數結論。其餘內容（含所有手算、程式與預期輸出）依審稿意見保留。"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "key": "4bad35d477eb2ca583cf2ef4d10af6d89b958e139b2c88ca53c98c8191eca424",
+  "person": {
+    "id": "v5_editor_01",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "reviewer"
+  },
+  "call": 504,
+  "result": "**1. 自行重算與核對**\n\n*   **命題 21.1 (梯度累積權重)**：\n    *   定義：$L = \\frac{1}{N} \\sum_{i=1}^N \\ell_i$。\n    *   微批次 $k$ 有 $n_k$ 個有效 token，其平均梯度 $g_k = \\frac{1}{n_k} \\sum_{i \\in \\text{batch}_k} \\nabla \\ell_i$。\n    *   加權和：$\\sum_{k=1}^K \\frac{n_k}{N} g_k = \\sum_{k=1}^K \\frac{n_k}{N} \\left( \\frac{1}{n_k} \\sum_{i \\in \\text{batch}_k} \\nabla \\ell_i \\right) = \\frac{1}{N} \\sum_{k=1}^K \\sum_{i \\in \\text{batch}_k} \\nabla \\ell_i = \\nabla L$。\n    *   **結論**：證明邏輯正確。\n\n*   **例題 21.1 (數值驗證)**：\n    *   $n_1=3, n_2=1, N=4$。\n    *   $g_1 = (0.2-0.4+0.6)/3 = 0.4/3 \\approx 0.133333$。\n    *   $g_2 = 1.0/1 = 1.0$。\n    *   Weighted Accum: $\\frac{3}{4}(0.133333) + \\frac{1}{4}(1.0) = 0.1 + 0.25 = 0.35$。\n    *   Direct Calc: $(0.4+1.0)/4 = 0.35$。\n    *   Unweighted Avg: $(0.133333+1.0)/2 \\approx 0.566667$。\n    *   **結論**：計算正確。\n\n*   **例題 21.2 (優化器對齊)**：\n    *   正確：$g=0.35, v_1=0.35, \\theta_1 = 1.0 - 0.1(0.35) = 0.965$。\n    *   錯誤：\n        *   MB1: $g_1 \\approx 0.1333, v_1 \\approx 0.1333, \\theta_1 \\approx 0.9867$。\n        *   MB2: $g_2 = 1.0, v_2 = 0.9(0.1333)+1.0 = 1.12, \\theta_2 = 0.9867 - 0.112 = 0.8747$。\n    *   **結論**：計算正確。\n\n*   **程式碼邏輯檢查**：\n    *   `ce_sum_and_grad`: 回傳 sum 梯度，未除以 N。正確。\n    *   `step_accum`: 累加 sum 梯度，最後除以全域 N。正確。\n    *   `splits`: `[0, 3)` (valid: T,T,F -> 2), `[3, 8)` (valid: T,T,T,F,T -> 4)。$n_1 \\neq n_2$，適合測試未加權平均的錯誤。\n    *   **結論**：程式邏輯與數學定義一致。\n\n**2. 逐字原句、原因與最小修法**\n\n無發現需修正之錯誤。章節結構完整，數學證明嚴謹，程式碼自足且邏輯正確，測試預期結果描述誠實（區分預期與已執行），陷阱與反例覆蓋全面。\n\n**3. 總體評估**\n\n*   **數學與邏輯**：正確。\n*   **程式碼**：自足、無依賴、邏輯正確。\n*   **合規性**：\n    *   未虛構執行結果（明確標註「預期」）。\n    *   未使用 GPU。\n    *   Mask 語義一致（True=允許/有效）。\n    *   字數 5936，符合目標。\n    *   所有必要章節均存在。\n    *   來源標註誠實。\n\nVERDICT: APPROVE"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "390d78c9786197f48bb3dfb6cb6a58232fcc9706c0201bcd6702be4d91d3d81c",
+  "person": {
+    "id": "v3_editor_33",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 320,
+  "result": "## 審稿意見\n\n新增的 `relative_tol` 型別與有限值檢查合理；非恆定 Dirichlet 測試的中心節點計算也正確，預期 \\(U_c=1/4\\)。\n\n但稿件仍有三處把未知場 \\(u\\) 誤寫成希臘字母 \\(\\nu\\)：`$$\\nu=g_D$$`、`$$\\nu_h=\\sum_{a=1}^3U_aN_a$$`、`$$\\nu=0$$`。請分別修正為 \\(u=g_D\\)、\\(u_h=\\sum_aU_aN_a\\)、\\(u=0\\)。這些是核心符號錯誤，尚未排除。VERDICT: REVISE"
+}

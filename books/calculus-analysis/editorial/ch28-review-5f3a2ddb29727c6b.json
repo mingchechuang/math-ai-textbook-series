@@ -1,0 +1,11 @@
+{
+  "key": "5f3a2ddb29727c6b7567a96bdece6c6a225d9d2fe6536bc23e4844f6f163241d",
+  "person": {
+    "id": "v4_editor_15",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "reviewer"
+  },
+  "call": 136,
+  "result": "## 重算紀錄（本輪獨立重算）\n\n**有界 ⇔ 連續**：$\\varepsilon=1$ 取 $\\delta$，令 $z=\\delta x/(2\\|x\\|_X)$，得 $\\|Tx\\|_Y<2\\|x\\|_X/\\delta$；$x=0$ 亦成立。推導無誤，未用完備性。\n\n**有限維範數界**：$\\|x\\|_2^2=\\sum x_i^2\\le n\\|x\\|_\\infty^2$ 得 $\\|x\\|_2\\le\\sqrt n\\|x\\|_\\infty$；$\\|x\\|_1\\le\\sqrt n\\|x\\|_2$ 由 Cauchy–Schwarz。此稿新增的兩組不等式正確，且「$1$ 全分量向量 $\\|x\\|_\\infty=1,\\|x\\|_2=\\sqrt n$」正確。\n\n**$V_2$ 顯式矩陣**：程式 `A[c,s]=k, A[s,c]=-k`，$s=2k-1,c=2k$。$k=1$ 得 $A[2,1]=1,A[1,2]=-1$；$k=2$ 得 $A[4,3]=2,A[3,4]=-2$。稿中 $D_2$ 各列數據逐項吻合；區塊 $\\begin{pmatrix}0&-k\\\\k&0\\end{pmatrix}$ 奇異值 $k,k$，故 $\\|D_2\\|_2=2$、一般 $\\|D_N\\|_2=N$。奇異值方陣視角亦回收同一結果。\n\n**高頻反例**：$u_n=\\sin(nx)/n$，$\\|u_n\\|_\\infty=1/n$，$\\|Du_n\\|_\\infty=1$，比值 $n$。正確。\n\n**緊緻性反例**：$\\int_0^{2\\pi}|\\sin nx-\\sin mx|^2dx=\\pi+\\pi-0=2\\pi$（$n\\ne m$）；配合 $\\int|u|^2\\le2\\pi\\|u\\|_\\infty^2$ 得一致距離 $\\ge1$，無一致 Cauchy 子列。正確。\n\n**手算**：$A=\\mathrm{diag}(2,-3)$ 範數 3（$e_2$）；$B=\\mathrm{diag}(1,-4,2)$ 範數 4（$e_2$）；$V_5$ 係數範數 5。正確。\n\n**程式**：`np.linalg.norm(A,2)` 為譜範數；`linspace(0,2π,4096,endpoint=False)` 上 $n=1,2,8$ 的 $u_n$ 峰值 $k=1024/n$ 為整數，落到網格點；$\\cos(nx)$ 在 $x=0$ 精確取 1。`derivative_matrix(-1)` 拋 `ValueError`。故障路徑正確。\n\n**量綱**：$u_n(t)=a\\sin(2\\pi nt/T)/n$，$du_n/dt=2\\pi a/T\\cos(\\cdot)$，最大 $2\\pi a/T$ °C/s；無因次 $s=t/T$ 求導後乘 $1/T$ 返回物理量。正確。\n\n**字數**：`measured_characters: 3215` ≥ 3000 最低，`automatic_checks` 空。前一輪的阻擋條件已解除。\n\n## 核對結果\n\n本輪重算未發現數學錯誤、量詞／域／正則性問題、維度或形狀不一致、必要／充分條件誤植、證明漏洞或反例失效。前輪曾發現的不足字數已補足，新增的不等式與 $D_2$ 顯式矩陣與程式邏輯完全一致，且標籤（正常／邊界／故障、四個習題類型、完整小命題證明、兩個手算例、自足程式）齊備。所有列舉公式與引句經與解碼後原文逐字核對，未見 $\\\\nu$ 與 `u` 混淆或跳脫誤植。\n\nVERDICT: APPROVE"
+}

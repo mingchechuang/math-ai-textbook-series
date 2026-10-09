@@ -1,0 +1,2 @@
+{"role": "user", "text": "{\"task\": \"模型連線與實際provider/model核對。只回答READY。\", \"round\": 4, \"attempt\": 1}", "timestamp": 1790971683372}
+{"role": "assistant", "text": "READY", "timestamp": 1790971683383, "provider": "gb10-2-vllm", "model": "unsloth/Qwen3.8-27B-NVFP4", "stopReason": "stop"}

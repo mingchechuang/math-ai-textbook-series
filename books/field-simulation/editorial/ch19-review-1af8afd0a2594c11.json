@@ -1,0 +1,11 @@
+{
+  "key": "1af8afd0a2594c11ee1209fbc05bbd2590bcad25f45f4267a43c941d271f9aca",
+  "person": {
+    "id": "v3_editor_37",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 404,
+  "result": "# 審稿結果\n\n本版仍未修正前次唯一阻擋問題。\n\n## 製造場速度分量的符號契約未閉合\n\n**原句：**\n\n$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$\n\n後文及程式改用 $u,v$，但沒有宣告 $u=u_x$、$v=u_y$：\n\n> 由 $\\partial_xu$ 及 $\\partial_yv$……\n\n```python\nu = a*np.sin(k*x)*np.cos(k*y)\nv = -a*np.cos(k*x)*np.sin(k*y)\n```\n\n因此後續散度、對流、動量殘差及例二所用的 $u,v$ 在正文形式上仍未定義。\n\n**最小修法：**將製造場定義改成\n\n$$\nu=a\\sin(kx)\\cos(ky),\\qquad\nv=-a\\cos(kx)\\sin(ky),\\qquad\n\\boldsymbol u=(u,v)^{\\mathsf T},\n$$\n\n或保留 $u_x,u_y$，並立即明示 $u:=u_x$、$v:=u_y$。\n\n其餘推導、量綱、投影手算、程式 shape、週期差分、能量、測試及習題無新增阻擋問題。\n\nVERDICT: REVISE"
+}

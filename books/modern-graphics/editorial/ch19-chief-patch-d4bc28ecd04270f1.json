@@ -1,0 +1,93 @@
+{
+  "key": "d4bc28ecd04270f17fac64f6690ec5ac0d7d064b1e1d56304e1dbe704ae8ff06",
+  "person": {
+    "id": "v2_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 176,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "2. **相切（Tangency）：** 當射線與球面或平面僅有一個交點時，二次方程的判別式趨近於零，此時標準公式 $\\frac{-b \\pm \\sqrt{\\Delta}}{2a}$ 可能因兩數相減而丟失有效位元。\n3. **平行（Parallel）：** 當射線方向與平面法線內積趨近於零時，分母接近零，導致 $t$ 值爆炸或不穩定。",
+        "new": "2. **相切與消去誤差：** 球面求交是二次方程，判別式 $\\Delta$ 接近零時，浮點誤差可能改變其正負號，把相切誤判為無交點或穿越。此外，當 $\\Delta > 0$ 但其中一根遠小於另一根（即 $|b| \\approx \\sqrt{\\Delta}$）時，標準公式中 $-b$ 與 $\\sqrt{\\Delta}$ 大小相近而符號相反，相減會嚴重損失有效位元。注意這是**兩種不同的**數值問題：前者是相切附近的符號誤差，後者是根大小懸殊造成的消去誤差，必須分別處理。平面求交本身不是二次方程，不涉及判別式。\n3. **平行（Parallel）：** 當射線方向與平面法線內積 $\\mathbf{n}\\cdot\\mathbf{d}$ 趨近於零時，分母接近零，導致 $t$ 值爆炸或不穩定。這與球面的相切／消去問題無關，兩者的數值處理方式也不同。",
+        "reason": "修正相切與消去誤差混為一談的問題：原文明確指出平面求交也涉及判別式，以及把 $\\Delta\\approx 0$ 等同於消去誤差。改為區分相切的符號誤差、根大小懸殊的消去誤差、以及平面平行三類不同問題。"
+      },
+      {
+        "chapter": 19,
+        "old": "3. 若 $q = 0$（相切），$t_0 = -b / (2a)$。",
+        "new": "3. 若 $q = 0$，不可計算 $c/q$；此時兩根皆為 $t_0 = t_1 = -b / (2a)$。需注意 $q=0$ **不等同**於一般相切：一般相切只要求 $\\Delta=0$，穩定公式通常得到非零的 $q$。在本章 $a=1$ 的情形下，$q=0$ 只發生在 $b=0$ 且 $\\Delta=0$ 的更特殊情形，即 $t=0$ 的重根。",
+        "reason": "修正把 q=0 等同於一般相切的錯誤。一般相切（例如 (t-5)^2=0）穩定公式會得到 q=5，不為零。"
+      },
+      {
+        "chapter": 19,
+        "old": "$\\mathbf{q} = \\mathbf{tvec} \\times \\mathbf{e}_1 = (0.2, 0.2, -1) \\times (1, 0, 0) = (0, 0, 0.2)$。\n$v = (\\mathbf{d} \\cdot \\mathbf{q}) \\cdot invDet = (0.2) \\cdot (-1) = -0.2$。\n等等，這裡 $v$ 為負？讓我們重新檢查外積。\n$\\mathbf{tvec} \\times \\mathbf{e}_1$:\n$i: (0.2)(0) - (-1)(0) = 0$\n$j: (-1)(1) - (0.2)(0) = -1$\n$k: (0.2)(0) - (0.2)(1) = -0.2$\n$\\mathbf{q} = (0, -1, -0.2)$。\n$v = (\\mathbf{d} \\cdot \\mathbf{q}) \\cdot invDet = ((0,0,1)\\cdot(0,-1,-0.2)) \\cdot (-1) = (-0.2) \\cdot (-1) = 0.2$。",
+        "new": "$\\mathbf{q} = \\mathbf{tvec} \\times \\mathbf{e}_1 = (0.2, 0.2, -1) \\times (1, 0, 0) = (0, -1, -0.2)$。\n$v = (\\mathbf{d} \\cdot \\mathbf{q}) \\cdot invDet = ((0,0,1)\\cdot(0,-1,-0.2)) \\cdot (-1) = (-0.2) \\cdot (-1) = 0.2$。",
+        "reason": "刪除殘留的錯誤外積推導與自我修正草稿，直接給出正確的 q 與 v。"
+      },
+      {
+        "chapter": 19,
+        "old": "def intersect_triangle(ray: Ray, tri: Triangle) -> Optional[Tuple[float, np.ndarray, Tuple[float, float, float]]]:",
+        "new": "def intersect_triangle(\n    ray: Ray, tri: Triangle\n) -> Optional[Tuple[float, np.ndarray, Tuple[float, float, float], np.ndarray]]:",
+        "reason": "型別標註改為四個回傳元素，與實際 return t, point, (w0, w1, w2), n 一致。"
+      },
+      {
+        "chapter": 19,
+        "old": "class Ray:\n    def __init__(self, origin: np.ndarray, direction: np.ndarray, t_min: float = 1e-4, t_max: float = float('inf')):\n        self.origin = origin\n        length = np.linalg.norm(direction)\n        if not np.isfinite(length) or length <= 0.0:\n            raise ValueError(\"Ray direction must be finite and non-zero\")\n        self.direction = direction / length\n        self.t_min = t_min\n        self.t_max = t_max",
+        "new": "class Ray:\n    def __init__(self,\n                 origin: np.ndarray,\n                 direction: np.ndarray,\n                 t_min: float = 1e-4,\n                 t_max: float = float('inf')):\n        origin = np.asarray(origin, dtype=float)\n        direction = np.asarray(direction, dtype=float)\n        if not np.all(np.isfinite(origin)):\n            raise ValueError(\"Ray origin must be finite\")\n        length = np.linalg.norm(direction)\n        if not np.isfinite(length) or length <= 0.0:\n            raise ValueError(\"Ray direction must be finite and non-zero\")\n        if not np.isfinite(t_min):\n            raise ValueError(\"t_min must be finite\")\n        if t_max != float('inf') and not np.isfinite(t_max):\n            raise ValueError(\"t_max must be finite or +inf\")\n        if t_max < t_min:\n            raise ValueError(\"t_max must be >= t_min\")\n        self.origin = origin\n        self.direction = direction / length\n        self.t_min = t_min\n        self.t_max = t_max",
+        "reason": "Ray 建構子補上 origin 有限性、t_min/t_max 有限性與次序的驗證，並在正規化前先將輸入轉成 float 陣列，避免含 NaN 時比較結果為假而靜默通過。"
+      },
+      {
+        "chapter": 19,
+        "old": "def render(width: int, height: int, objects: list, cam_pos: np.ndarray, cam_dir: np.ndarray, fov_v: float = 90.0) -> np.ndarray:\n    img = np.zeros((height, width, 3), dtype=np.uint8)\n    \n    # 驗證相機\n    d_norm = np.linalg.norm(cam_dir)\n    if d_norm < 1e-8:\n        raise ValueError(\"Camera direction invalid\")\n    cam_dir = cam_dir / d_norm\n        \n    if not (0 < fov_v < 180):\n        raise ValueError(\"FOV must be between 0 and 180\")",
+        "new": "def render(width: int, height: int, objects: list, cam_pos: np.ndarray, cam_dir: np.ndarray, fov_v: float = 90.0) -> np.ndarray:\n    if not isinstance(width, int) or not isinstance(height, int):\n        raise ValueError(\"width and height must be integers\")\n    if width <= 0 or height <= 0:\n        raise ValueError(\"width and height must be positive\")\n\n    cam_pos = np.asarray(cam_pos, dtype=float)\n    cam_dir = np.asarray(cam_dir, dtype=float)\n    if not (np.all(np.isfinite(cam_pos)) and np.all(np.isfinite(cam_dir))):\n        raise ValueError(\"Camera position and direction must be finite\")\n\n    img = np.zeros((height, width, 3), dtype=np.uint8)\n\n    # 驗證相機\n    d_norm = np.linalg.norm(cam_dir)\n    if not np.isfinite(d_norm) or d_norm < 1e-8:\n        raise ValueError(\"Camera direction invalid\")\n    cam_dir = cam_dir / d_norm\n\n    if not (np.isfinite(fov_v) and 0 < fov_v < 180):\n        raise ValueError(\"FOV must be between 0 and 180\")",
+        "reason": "補上寬高為正整數、相機位置與方向有限性、d_norm 有限性與 fov_v 有限性的驗證；若 cam_dir 含 NaN，原本 d_norm < 1e-8 的比較會靜默通過而產生全黑或全 nan 影像。"
+      },
+      {
+        "chapter": 19,
+        "old": "def write_ppm(filename: str, img: np.ndarray):\n    h, w, _ = img.shape\n    with open(filename, 'wb') as f:\n        f.write(b\"P6\\n\")\n        f.write(f\"{w} {h}\\n\".encode())\n        f.write(b\"255\\n\")\n        f.write(img.tobytes())",
+        "new": "def write_ppm(filename: str, img: np.ndarray):\n    img = np.asarray(img)\n    if img.ndim != 3 or img.shape[2] != 3:\n        raise ValueError(\"PPM 影像必須是 shape (H, W, 3)\")\n    if img.dtype != np.uint8:\n        raise ValueError(\"PPM 影像必須使用 uint8\")\n    h, w, _ = img.shape\n    if h <= 0 or w <= 0:\n        raise ValueError(\"PPM 影像尺寸必須為正\")\n    with open(filename, 'wb') as f:\n        f.write(b\"P6\\n\")\n        f.write(f\"{w} {h}\\n\".encode())\n        f.write(b\"255\\n\")\n        f.write(img.tobytes())",
+        "reason": "write_ppm 補上形狀、通道數、dtype 與尺寸驗證，避免標頭與位元組內容不符，符合「完整可獨立閱讀的小程式」要求。"
+      },
+      {
+        "chapter": 19,
+        "old": "    # 4. Triangle Hit\n    tri = Triangle(np.array([0.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))\n    r_tri = Ray(np.array([0.2, 0.2, -1.0]), np.array([0.0, 0.0, 1.0]), t_min=1e-4)\n    res = intersect_triangle(r_tri, tri)\n    assert res is not None, \"Triangle hit failed\"\n    t_tri = res[0]\n    assert abs(t_tri - 1.0) < 1e-5, f\"Triangle t failed: {t_tri}\"\n    \n    # 5. Epsilon Test (Self-intersection avoidance)\n    # Ray starts on surface, shoots out\n    r_surf = Ray(np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, 1.0]), t_min=1e-4)\n    s_small = Sphere(np.array([0.0, 0.0, 0.0]), 1.0)\n    t_surf = intersect_sphere(r_surf, s_small)\n    # Should be None because t=0 is < t_min, and other root is negative\n    assert t_surf is None, f\"Surface self-intersection failed: {t_surf}\"\n    \n    # Render\n    obj = [s, p, tri]\n    img = render(16, 16, obj, np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, -1.0]))\n    assert img.shape == (16, 16, 3)\n    assert img.dtype == np.uint8\n    write_ppm(\"output_19.ppm\", img)\n    print(\"Tests passed. Generated output_19.ppm (Expected: White bg, Red sphere, Green floor, Blue triangle)\")",
+        "new": "    # 4. Triangle Hit，並驗證重心座標與最近命中\n    tri = Triangle(np.array([0.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))\n    r_tri = Ray(np.array([0.2, 0.2, -1.0]), np.array([0.0, 0.0, 1.0]), t_min=1e-4)\n    res = intersect_triangle(r_tri, tri)\n    assert res is not None, \"Triangle hit failed\"\n    t_tri = res[0]\n    assert abs(t_tri - 1.0) < 1e-5, f\"Triangle t failed: {t_tri}\"\n    assert np.allclose(res[2], (0.6, 0.2, 0.2), atol=1e-6), res[2]\n\n    # 4b. 三角形外未命中\n    r_miss = Ray(np.array([0.9, 0.9, -1.0]), np.array([0.0, 0.0, 1.0]))\n    assert intersect_triangle(r_miss, tri) is None\n\n    # 4c. 球面最近根回歸測試：射線自 z=-5 沿 +Z 打向單位球，最近根應為 t=4\n    r_near = Ray(np.array([0.0, 0.0, -5.0]), np.array([0.0, 0.0, 1.0]))\n    assert np.isclose(intersect_sphere(r_near, s), 4.0), intersect_sphere(r_near, s)\n\n    # 5. Epsilon Test (Self-intersection avoidance)\n    # 射線起點恰在球面並沿外法線射出\n    r_surf = Ray(np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, 1.0]), t_min=1e-4)\n    t_surf = intersect_sphere(r_surf, s)\n    # 應為 None：t=0 被 t_min 排除，另一根為負\n    assert t_surf is None, f\"Surface self-intersection failed: {t_surf}\"\n\n    # 5b. 近表面浮點擾動：起點略在球內，向外射出\n    r_near_surface = Ray(\n        np.array([0.0, 0.0, 1.0 - 1e-8]),\n        np.array([0.0, 0.0, 1.0]),\n        t_min=1e-6,\n    )\n    assert intersect_sphere(r_near_surface, s) is None\n\n    # 5c. 同一射線若 t_min=0，應可取得約 1e-8 的小正根\n    r_zero = Ray(\n        np.array([0.0, 0.0, 1.0 - 1e-8]),\n        np.array([0.0, 0.0, 1.0]),\n        t_min=0.0,\n    )\n    t_zero = intersect_sphere(r_zero, s)\n    assert t_zero is not None and 0.0 < t_zero < 1e-6, t_zero\n\n    # Render（展示場景與先前單元測試物件分開，避免相機落在球面或三角形平面上）\n    scene_sphere = Sphere(\n        np.array([0.0, 0.0, -2.0]), 0.5,\n        np.array([1.0, 0.0, 0.0]),\n    )\n    scene_plane = Plane(\n        np.array([0.0, 1.0, 0.0]), 0.0,\n        np.array([0.0, 1.0, 0.0]),\n    )\n    scene_tri = Triangle(\n        np.array([-1.0, 0.1, -3.0]),\n        np.array([ 1.0, 0.1, -3.0]),\n        np.array([ 0.0, 1.5, -3.0]),\n        np.array([0.0, 0.0, 1.0]),\n    )\n    obj = [scene_sphere, scene_plane, scene_tri]\n    img = render(16, 16, obj, np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, -1.0]))\n    assert img.shape == (16, 16, 3)\n    assert img.dtype == np.uint8\n    write_ppm(\"output_19.ppm\", img)\n    print(\"若執行且斷言通過，預期輸出：Tests passed. Generated output_19.ppm\")",
+        "reason": "重寫渲染測試：把單元測試物件與展示場景分開，改以相機前方 z=-2 的球、y=0 的地板、z=-3 的三角形作為場景，避免相機落在球面或與三角形共面。新增球面最近根回歸測試、三角形重心與外未命中測試、近表面浮點擾動測試，以及 t_min=0 vs t_min=1e-6 的對照，強化數值穩健性的可重現性。程式輸出改為「若執行且斷言通過，預期輸出」，不宣稱已實跑。"
+      },
+      {
+        "chapter": 19,
+        "old": "3. **平行平面：** 射線平行於 XY 平面，預期 `None`。",
+        "new": "3. **平行平面：** 測試平面為 $y=0$（法線 $(0,1,0)$），是 XZ 平面；射線方向 $(1,0,0)$ 與該平面平行（內積為零），預期回傳 `None`。",
+        "reason": "修正平面名稱：法線 (0,1,0) 對應的平面方程是 y=0，屬於 XZ 平面而非 XY 平面。"
+      },
+      {
+        "chapter": 19,
+        "old": "4. 參見程式 `shadow_test` 邏輯：偏移起點，計算新方向，設置 $t_{min}$ 與 $t_{max}$。",
+        "new": "4. 完整函式如下。輸入幾何法線必須先正規化；若 $\\mathbf{d}_{new}\\cdot\\mathbf{n}_g$ 為零（掠射），偏移方向取 $+\\mathbf{n}_g$ 並在文件中明示此約定。\n\n```python\ndef shadow_test(\n    point: np.ndarray,\n    normal: np.ndarray,\n    light_pos: np.ndarray,\n    objects: list,\n    origin_eps: float = 1e-4,\n    t_min: float = 1e-5,\n    endpoint_eps: float = 1e-6,\n) -> bool:\n    \"\"\"回傳 True 表示 point 到 light_pos 之間被物件遮蔽。\"\"\"\n    point = np.asarray(point, dtype=float)\n    light_pos = np.asarray(light_pos, dtype=float)\n    n_len = np.linalg.norm(normal)\n    if not np.isfinite(n_len) or n_len <= 0.0:\n        raise ValueError(\"normal must be finite and non-zero\")\n    n_g = normal / n_len\n\n    to_light = light_pos - point\n    dist = float(np.linalg.norm(to_light))\n    if not np.isfinite(dist) or dist <= 0.0:\n        return False\n    d_new = to_light / dist\n\n    # 偏移方向：沿幾何法線選擇與 d_new 同側。若內積為 0，取 +n_g。\n    sided = float(np.dot(d_new, n_g))\n    sign = 1.0 if sided >= 0.0 else -1.0\n    origin_new = point + sign * origin_eps * n_g\n\n    # 遮蔽射線的 t_max：到光源的距離再往內縮一個端點容差。\n    t_max = max(t_min, dist - endpoint_eps - origin_eps)\n\n    ray = Ray(origin_new, d_new, t_min=t_min, t_max=t_max)\n    for obj in objects:\n        t = None\n        if isinstance(obj, Sphere):\n            t = intersect_sphere(ray, obj)\n        elif isinstance(obj, Plane):\n            t = intersect_plane(ray, obj)\n        elif isinstance(obj, Triangle):\n            res = intersect_triangle(ray, obj)\n            if res is not None:\n                t = res[0]\n        if t is not None:\n            return True\n    return False\n```\n\n此函式與 `intersect_sphere`／`intersect_plane`／`intersect_triangle` 的介面一致，可直接串接本章的 Ray Caster；射線區間以 `max(t_min, dist - endpoint_eps - origin_eps)` 限定，只檢查光源方向上的遮蔽物。",
+        "reason": "補上 shadow_test 的完整定義，取代原本「參見程式 shadow_test 邏輯」這種引用不存在函式的寫法，符合「若需新函式，當章提供完整定義」的規格。同時把習題敘述的用語對齊為「起點偏移與 t_min 射線下界」。"
+      },
+      {
+        "chapter": 19,
+        "old": "4. **整合：** 實作 `shadow_test`，使用 $t_{min}$ 偏移與 $t_{max}$ 限制。",
+        "new": "4. **整合：** 實作 `shadow_test`，使用起點偏移（origin offset）與 $t_{min}$ 射線下界，並以 $t_{max}$ 限制射線範圍。",
+        "reason": "修正習題敘述的用語：起點偏移改變幾何位置，t_min 限制射線參數區間，兩者功能不同，合稱「t_min 偏移」不精確。"
+      },
+      {
+        "chapter": 19,
+        "old": "- 色彩：本例使用「顯示 RGB」（Display RGB，約略等於 sRGB 端點值），不进行複雜的光學色彩空間轉換。",
+        "new": "- 色彩：本例使用「顯示 RGB」（Display RGB，約略等於 sRGB 端點值），不進行複雜的光學色彩空間轉換。本節的一切數值皆為合成資料，顏色僅用於辨識命中物件，不含光照、反射或材質量測。",
+        "reason": "修正簡體錯字「进行」為繁體「進行」，並補上合成資料與色彩用途的界線說明。"
+      },
+      {
+        "chapter": 19,
+        "old": "想像雷射筆緊貼鏡面射擊。物理上它不應立即擊中自己，但在數值模擬中，$10^{-6}$ m 的誤差可能讓它「穿牆」。我們需要定義一個「安全區域」，讓演算法忽略起點附近的幾何誤判。",
+        "new": "想像雷射筆緊貼鏡面射擊。物理上它不應立即擊中自己，但在數值模擬中，$10^{-6}$ m 的誤差可能讓它「穿牆」。我們需要在射線參數上定義一個**數值排除區間** $t \\in (0, t_{min})$，讓演算法忽略起點附近的幾何誤判。這個區間是純數值設定，不是物理安全閾值，也不是任何設備的容許誤差；它的具體大小應依場景尺度與浮點精度選定，與養殖池的結構安全、魚隻健康無關。",
+        "reason": "將「安全區域」改為「數值排除區間」，符合全書「數值 epsilon 不得充當物理安全閾值」的約定。"
+      }
+    ],
+    "reason": "依審稿逐項修正第 19 章：(1) 刪除三角形手算中殘留的錯誤外積推導與自我修正草稿，直接給出正確的 q=(0,-1,-0.2) 與 v=0.2；(2) 修正 intersect_triangle 型別標註為四個元素，與實際回傳相符；(3) 重寫渲染測試，把單元測試物件與展示場景分開，改用相機前方 z=-2 的球、y=0 的地板、z=-3 的三角形，避免相機落在球面上或與三角形共面，並把輸出改為「若執行且斷言通過，預期輸出」；(4) 修正「平行 XY 平面」為「平行 XZ 平面」；(5) 修正 q=0 與一般相切的混淆，說明 q=0 只對應 b=0 且 Δ=0 的雙根情形；(6) 區分相切的符號誤差、根大小懸殊的消去誤差、平面平行三種不同數值問題，並指出平面求交不是二次方程；(7) 提供完整 shadow_test 函式，取代引用不存在函式的寫法，並修正習題用語為「起點偏移與 t_min 射線下界」；(8) 補上 Ray 建構子的 origin 有限性、t_min/t_max 有限性與次序驗證，並在正規化前先轉成 float 陣列；(9) render 補上寬高為正整數、相機位置與方向有限性、d_norm 有限性與 fov_v 有限性的驗證；(10) write_ppm 補上形狀、通道數、dtype 與尺寸驗證；(11) 擴充單元測試，新增球面最近根回歸、三角形重心與外未命中、近表面浮點擾動、t_min=0 對照等測試；(12) 修正簡體錯字「进行」為「進行」，並將「安全區域」改為「數值排除區間」，補上合成資料界線說明。既有正確的數學主線、例題 1、相切與內部出射手算，及其他程式函式依審稿意見保留。"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "key": "2b904c27c6e24c03ef5da57f4a3ebb2761bc7557fac77b292013c73fcf6103c5",
+  "person": {
+    "id": "v3_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 384,
+  "result": {
+    "patches": [
+      {
+        "chapter": 26,
+        "old": "(a) **質量守恆**：數值上 $\\sum_i (\\phi^{n+1}_i - \\phi^n_i) = -\\Delta t \\sum_i \\Delta_h \\mu^{n+1}_i = 0$ 因為離散 Laplacian 在週期下和為零。應守恆到機器精度。",
+        "new": "(a) **質量守恆**：數值上 $\\sum_i (\\phi^{n+1}_i - \\phi^n_i) = +\\Delta t \\sum_i \\Delta_h \\mu^{n+1}_i = 0$ 因為離散 Laplacian 在週期下和為零。正號與前述演化式 $\\phi^{n+1} = \\phi^n + \\Delta t\\,\\Delta_h\\mu^{n+1}$ 一致；週期總和仍為零，故質量守恆到機器精度。"
+      },
+      {
+        "chapter": 26,
+        "old": "(b) **能量單調下降**：凸分裂加上後向歐拉保證離散能量下降（這是凸分裂的經典性質），但實作須解非線性方程並確認收斂容差足夠小。否則能量可能因殘差大而微升。",
+        "new": "(b) **能量單調下降**：本題習題測試以**凸分裂**寫法 $\\mu^{n+1} = (\\phi^{n+1})^3 - \\phi^n - \\kappa \\Delta_h \\phi^{n+1}$ 為格式，其中 $(\\phi^{n+1})^3$ 為凸項隱式、$-\\phi^n$ 為凹項顯式；在此特定格式下，其經典能量不增論證適用。前述**全隱式後向歐拉**表達式 $\\mu^{n+1} = (\\phi^{n+1})^3 - \\phi^{n+1} - \\kappa \\Delta_h \\phi^{n+1}$ 是不同格式，其能量結論須按全隱式方法另外推導。兩式不可共用同一能量保證。無論採用哪一式，實作須解非線性方程並確認收斂容差足夠小；否則能量可能因殘差大而微升。"
+      },
+      {
+        "chapter": 26,
+        "old": "若 Hessian $\\mathbf{H} = \\partial^2 F_h / \\partial \\boldsymbol\\phi^2$ 的最大特徵值 $\\lambda_{\\max}$ 滿足 $M \\Delta t \\lambda_{\\max} < 2$，則二次項可保持有界；否則高頻不穩定、能量可能反而上升。這給出「時間離散能量」的具體判準：**歐拉顯式能量下降要求 $M \\Delta t < 2/\\lambda_{\\max}(\\mathbf{H})$**，比線性擴散 FTCS 的穩定條件更強。\n\n**$\\lambda_{\\max}$ 的數量級估算**（本章無因次元組）：$\\mathbf{H}$ 由梯度能量與雙井勢組成。梯度項的離散 Laplacian 在週期下最大特徵值為 $4/\\Delta x^2$（Nyquist 模態），貢獻 $\\kappa \\cdot 4/\\Delta x^2$。代入 $\\kappa = 10^{-3}$、$\\Delta x = 1/64$：\n\n$$\n\\frac{4}{\\Delta x^2} = 4 \\times 64^2 = 16384,\n\\quad \\kappa \\cdot \\frac{4}{\\Delta x^2} = 10^{-3} \\times 16384 \\approx 16.4.\n$$\n\n雙井項 $W''(\\phi) = 3\\phi^2 - 1$，最大值在 $\\phi = \\pm 1$ 為 $2$。故\n\n$$\n\\lambda_{\\max} \\lesssim 16.4 + 2 \\approx 18.4.\n$$\n\n對應歐拉顯式能量下降的時間步限制為 $M \\Delta t < 2/18.4 \\approx 0.109$。**注意**：這是 $\\lambda_{\\max}$ 的粗略上界；若有空間變化更劇烈的模態，實際 $\\lambda_{\\max}$ 可能更大。",
+        "new": "上式的二次項來自 $F_h$ 的 Hessian，但接下來的數量級估算與步長結論屬**局部線性化**層級：令 $\\mu_{\\max}$ 為化學勢 Jacobian $\\mathrm{D}\\boldsymbol\\mu_h$ 的譜上界，若 $M \\Delta t \\mu_{\\max} < 2$，則此線性化顯式映射不放大該模態。$F_h$ 在歐氏度量下的 Hessian 與化學勢 Jacobian 相差一個格距權重因子 $\\Delta x$，兩者數值不可直接互換。\n\n**$\\mu_{\\max}$ 的數量級估算**（本章無因次元組）：化學勢 Jacobian 由雙井勢項與梯度項組成。梯度項的離散 Laplacian 在週期下最大特徵值絕對值為 $4/\\Delta x^2$（Nyquist 模態），貢獻 $\\kappa \\cdot 4/\\Delta x^2$。代入 $\\kappa = 10^{-3}$、$\\Delta x = 1/64$：\n\n$$\n\\frac{4}{\\Delta x^2} = 4 \\times 64^2 = 16384,\n\\quad \\kappa \\cdot \\frac{4}{\\Delta x^2} = 10^{-3} \\times 16384 \\approx 16.4.\n$$\n\n雙井項 $W''(\\phi) = 3\\phi^2 - 1$，最大值在 $\\phi = \\pm 1$ 為 $2$。故\n\n$$\n\\mu_{\\max} \\lesssim 16.4 + 2 \\approx 18.4.\n$$\n\n對應的局部線性化時間步估算為 $M \\Delta t < 2/18.4 \\approx 0.109$。**注意**：這是 $\\mu_{\\max}$ 的粗略上界；它**不構成**非線性一步能量下降的充分條件——非線性顯式步須控制從舊態到新態整段軌跡上的曲率，不能只依初態估值。若有空間變化更劇烈的模態，實際 $\\mu_{\\max}$ 也可能更大。後續範例與小結中使用的 $\\lambda_{\\max} \\approx 18.4$ 即為此 $\\mu_{\\max}$ 的粗估，不是 $F_h$ 歐氏 Hessian 的特徵值。"
+      },
+      {
+        "chapter": 26,
+        "old": "以下程式自足，只用 Python 3.10+ 與 NumPy，示範一維週期 AC 的半離散能量下降、歐拉顯式的時間離散能量行為、以及離散能量梯度檢查。",
+        "new": "以下程式自足，只用 Python 3.10+ 與 NumPy，示範一維週期 AC 的半離散能量下降、歐拉顯式的時間離散能量行為、以及離散能量梯度檢查。清單末尾的 `gradient_check_demo` 會在固定週期格網與固定方向 $\\mathbf{v}$ 上實際呼叫 `grad_check`, 並與 $\\Delta x \\sum_i \\mu_i v_i$ 的解析值比較；相對差超過 $10^{-5}$ 時丟出 `FloatingPointError`, 使這項檢查成為可重複執行的自足測試，而不是僅供說明的未使用函式。"
+      },
+      {
+        "chapter": 26,
+        "old": "        phi = phi - M * dt * mu\n    return x, phi, hist",
+        "new": "        phi = phi - M * dt * mu\n    return x, phi, hist\n\n\ndef gradient_check_demo():\n    \"\"\"在固定週期格網與方向 v 上比較離散能量的方向導數\n    與 Delta_x * sum_i mu_i v_i 的解析值。相對差超標時丟錯。\"\"\"\n    N, L, kappa = 16, 1.0, 1e-2\n    dx = L / N\n    x = np.arange(N) * dx\n    phi = np.sin(2.0 * np.pi * x / L)\n    rng = np.random.default_rng(0)\n    v = rng.standard_normal(N)\n    v /= np.linalg.norm(v)\n\n    def F(phi):\n        return free_energy_1d(phi, dx, kappa)\n\n    lhs = grad_check(F, phi, v, eps=1e-6)\n    mu = chem_potential_1d(phi, dx, kappa)\n    rhs = dx * np.sum(mu * v)\n\n    rel = abs(lhs - rhs) / max(abs(lhs), abs(rhs), 1.0)\n    if rel > 1e-5:\n        raise FloatingPointError(\n            f\"能量梯度檢查不符: lhs={lhs}, rhs={rhs}, rel={rel}\"\n        )\n    return lhs, rhs, rel\n\n\nif __name__ == \"__main__\":\n    gradient_check_demo()"
+      }
+    ],
+    "reason": "依跨章複核意見修正四項可定位問題：(1) 第26章習題四解答的質量證明仍用舊符號 −Δt Σ Δ_h μ^{n+1}, 與已改為 + 的主式不一致，改為 +Δt 並註明與演化式一致；(2) 測試回答中『凸分裂加上後向歐拉保證離散能量下降』未指明採用哪一式，改為明確選定凸分裂形式 μ^{n+1}=(φ^{n+1})³−φⁿ−κΔ_hφ^{n+1} 為習題測試格式，並聲明全隱式後向歐拉是不同格式，其能量結論須另行推導，兩式不可共用同一保證；(3) 例題二的 Hessian 判準段仍舊稱 H=∂²F_h/∂φ² 並以 18.4 為其譜，但同章其他處已正確指出格距權重差異，同步改正：18.4 現明確標為化學勢 Jacobian 的局部線性估算 μ_max, 另列 F_h 歐氏 Hessian 的 Δx 權重因子，並聲明此估算不構成非線性一步能量下降的充分條件；(4) 程式宣稱示範離散能量梯度檢查但未呼叫 grad_check, 補上 gradient_check_demo 函式，在 N=16、固定方向 v (norm=1) 上實際比較 grad_check 與 Δx Σμᵢvᵢ, 相對差超標丟出 FloatingPointError, 並在 __main__ 中呼叫，使梯度檢查成為可重複的自足測試。"
+  }
+}

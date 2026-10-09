@@ -1,0 +1,11 @@
+{
+  "key": "ebc73dab465cd3bf0e11af599f01d928d07b40822b47351003ab5262c4e34ae5",
+  "person": {
+    "id": "v5_editor_29",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "reviewer"
+  },
+  "call": 532,
+  "result": "重新核算本稿：例題一的輸出約為 $12.689$；query 位置 $[4,5]$ 對 key 位置 $[0,\\ldots,5]$ 的兩列遮罩正確。程式以最後的 key 軸正規化，矩形 `q`、`k`、`v` 的乘法 shape 相符；有效 token loss 也只除以有效目標數。因果擾動測試使用有效的未來 key，能與 PAD 遮蔽測試區分。全遮罩列有明確拒絕策略，故障測試亦已移除 `pass`。本章未虛稱已執行程式或完成訓練；我也沒有執行程式。\n\n兩處文字可作**非阻擋性**修正：\n\n- 原句：「批次大小 $B$ 在本程式設為 1，但以二維矩陣保留 query、key 與特徵軸」。程式實際省略了 batch 軸；最小修法是改稱「只處理單筆資料，省略 $B$ 軸」。\n- 原句：`q = x_cache = np.arange(12, dtype=np.float64).reshape(6, 2)[4:6]`。`x_cache` 未再使用；最小修法是刪去該別名及隨後解釋別名的文字，不影響結果。\n\n上述問題不改變本章的遮罩定義、測試意義或教學結論，不應僅因文字與多餘別名拒稿。\n\nVERDICT: APPROVE"
+}

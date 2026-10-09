@@ -1,0 +1,18 @@
+{
+  "synthetic": true,
+  "length_unit": "metre",
+  "handedness": "right",
+  "camera_forward": "-Z",
+  "world_up": "+Y",
+  "ndc_depth": [
+    -1,
+    1
+  ],
+  "seed": 42,
+  "pond_size": [
+    8,
+    2,
+    4
+  ],
+  "note": "教學合成幾何，不提供現場控制閾值"
+}

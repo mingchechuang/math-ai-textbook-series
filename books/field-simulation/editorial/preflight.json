@@ -1,0 +1,52 @@
+[
+  {
+    "person": {
+      "id": "v3_editor_00",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "role": "author"
+    },
+    "ok": true,
+    "response": "READY"
+  },
+  {
+    "person": {
+      "id": "v3_editor_06",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "role": "author"
+    },
+    "ok": true,
+    "response": "READY"
+  },
+  {
+    "person": {
+      "id": "v3_editor_02",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "role": "author"
+    },
+    "ok": true,
+    "response": "READY"
+  },
+  {
+    "person": {
+      "id": "v3_editor_08",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "role": "author"
+    },
+    "ok": true,
+    "response": "READY"
+  },
+  {
+    "person": {
+      "id": "v3_editor_04",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "role": "author"
+    },
+    "ok": true,
+    "response": "READY"
+  }
+]

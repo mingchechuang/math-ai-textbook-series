@@ -1,0 +1,11 @@
+{
+  "key": "0fa04d1143bffeba13bd03e6cdc7130df59a97f3473e8512ff08c7ab5daccd9a",
+  "person": {
+    "id": "v5_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 198,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n若分支尚未全部處理便提早往上游傳播，所得梯度會缺少路徑貢獻。\n<<<NEW>>>\n若分支尚未全部處理便提早往上游傳播，所得梯度會缺少路徑貢獻。實作時可為每個節點準備一個與其輸出同形狀的梯度槽，初值為零；每處理一條下游路徑，就把該路徑的貢獻加進槽中。只有所有使用該節點輸出的路徑都處理完畢，才用累積結果計算更上游的梯度。這說明反向拓撲順序不只是走訪方向，也規定了何時可以傳播已累加的梯度。\n\n除檢查最終損失外，除錯還應逐節點核對前向值與反向形狀。矩陣乘法要注意因子次序，偏置廣播要沿被複製的軸求和，平均損失的除數不可重複套用。若解析梯度與有限差分不符，應先排查這些局部規則，再檢查差分步長及輸入是否落在不可微點；不能只靠放寬容差掩蓋錯誤。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    expect_value_error(\n        \"non-finite logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.inf]]), np.array([[1.0]])\n        ),\n    )\n<<<NEW>>>\n    expect_value_error(\n        \"non-finite logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.inf]]), np.array([[1.0]])\n        ),\n    )\n    expect_value_error(\n        \"NaN logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.nan]]), np.array([[1.0]])\n        ),\n    )\n<<<END>>>"
+}

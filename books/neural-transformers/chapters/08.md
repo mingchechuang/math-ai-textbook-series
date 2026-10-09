@@ -1,0 +1,272 @@
+# 第08章 批次線性層與broadcast的梯度
+
+## 學習目標與先備知識
+
+本章要把單筆樣本的仿射層，推廣到任意數目的前導批次軸，並能從標量損失正確求出輸入、權重和偏置的梯度。讀完後，你應能辨認廣播在哪些軸複製了參數、為何反向傳播必須沿那些軸求和，以及平均損失應在何處除以樣本數。你也應能用手算、有限差分與程式斷言分別檢查結果，而不把其中一種檢查誤當成其餘兩種。
+
+先備知識是矩陣乘法、轉置、標量函數的鏈式法則，以及第七章使用的微分約定：若$F$是標量函數，則$dF=\operatorname{tr}(G_X^\top dX)$定義與$X$同形狀的梯度$G_X$。此處的矩陣橫列是row、縱行是column；批次中的每筆樣本存成一個橫列，並不否定推導時使用直向量表示單筆微分。
+
+## 問題與直覺
+
+先看$X\in\mathbb R^{B\times D_{\mathrm{in}}}$、$W\in\mathbb R^{D_{\mathrm{in}}\times D_{\mathrm{out}}}$、$b\in\mathbb R^{D_{\mathrm{out}}}$。前向為
+
+$$
+Y=XW+b,\qquad Y\in\mathbb R^{B\times D_{\mathrm{out}}}.
+$$
+
+加號不是把形狀不同的陣列硬湊在一起：它表示同一個$b$加到$Y$的每一橫列。若有時間軸，輸入可為$(B,T,D_{\mathrm{in}})$，輸出是$(B,T,D_{\mathrm{out}})$；此時同一個$W$和$b$在每個$(B,T)$位置重複使用。更一般地，把前導形狀記為$S=(s_1,\ldots,s_k)$，模型並不需要知道哪些軸叫批次、哪些叫時間，只須知道最後一軸是輸入特徵。
+
+直覺上，每個位置都對共享權重提出一份「修改建議」，故權重梯度要累加所有位置的貢獻；每個位置也都用到同一個偏置，故偏置梯度同樣要累加。相反地，各位置的輸入是不同變數，輸入梯度須留在各自位置。若標量目標已經是位置平均值，送入反傳的上游梯度就已帶有平均因子，後續不能再平均一次。
+
+## 定義、定理與推導
+
+令前導索引$p=(i_1,\ldots,i_k)$遍歷形狀$S$，總位置數$N=\prod_{j=1}^k s_j$。令$X$形狀為$(*S,D_{\mathrm{in}})$，$W$形狀為$(D_{\mathrm{in}},D_{\mathrm{out}})$，$b$形狀為$(D_{\mathrm{out}},)$。空前導形狀表示單筆輸入，這時求和只含一項。逐元素定義為
+
+$$
+Y_{p,o}=\sum_{i=1}^{D_{\mathrm{in}}}X_{p,i}W_{i,o}+b_o.
+$$
+
+給定可微標量損失$L(Y)$，記$G_{p,o}=\partial L/\partial Y_{p,o}$。$G$與$Y$同形狀，不預設$L$採總和還是平均；這項選擇必須在建構$L$或$G$時明確指定。
+
+**小命題：任意前導軸仿射層的反傳。** 在上述形狀及同一組參數於每個$p$共享的條件下，
+
+$$
+\begin{aligned}
+\frac{\partial L}{\partial X_{p,i}}&=\sum_o G_{p,o}W_{i,o},\\
+\frac{\partial L}{\partial W_{i,o}}&=\sum_p X_{p,i}G_{p,o},\\
+\frac{\partial L}{\partial b_o}&=\sum_p G_{p,o}.
+\end{aligned}
+$$
+
+因此，以所有前導軸合併成$N$列後的記法，$dX=dY\,W^\top$、$dW=X^\top dY$，而$db$沿所有前導軸求和。
+
+**證明。** 對前向式取微分：
+
+$$
+dY_{p,o}
+=\sum_i dX_{p,i}W_{i,o}
++\sum_i X_{p,i}dW_{i,o}
++db_o.
+$$
+
+因$L$是標量，依梯度定義有$dL=\sum_{p,o}G_{p,o}\,dY_{p,o}$。將上式代入，有限求和可以交換次序。把乘著每個獨立微小改變的係數收集起來，得到
+
+$$
+\begin{aligned}
+dL={}&
+\sum_{p,i}\left(\sum_oG_{p,o}W_{i,o}\right)dX_{p,i}\\
+&+\sum_{i,o}\left(\sum_pX_{p,i}G_{p,o}\right)dW_{i,o}
++\sum_o\left(\sum_pG_{p,o}\right)db_o.
+\end{aligned}
+$$
+
+這恰好是分別對$X,W,b$採Frobenius內積（對向量為一般內積）的梯度定義，三個括號內係數就是所求。若展平前導軸，矩陣乘法的指標求和與前三式一致；展平不會改變哪個位置使用哪組共享參數。證畢。
+
+這個證明也說明廣播的反向規則。前向中$b_o$被複製到每個$p$，反向時這些複本對原來同一個$b_o$的貢獻必須相加，而非取其中一份。若偏置原形狀是$(1,1,D_{\mathrm{out}})$並廣播到$(B,T,D_{\mathrm{out}})$，梯度要沿軸$0,1$求和，**保留**兩個長度為一的軸；若原形狀是$(D_{\mathrm{out}},)$，則沿軸$0,1$求和後不保留前導軸。梯度必須與原參數形狀相同。
+
+平均的位置也值得嚴格區分。假設每個位置有損失$\ell_p(Y_p)$，定義$L_{\mathrm{mean}}=N^{-1}\sum_p\ell_p$，則$G_{p,o}=N^{-1}\partial\ell_p/\partial Y_{p,o}$。將此$G$代入命題，$dW$與$db$都已含$1/N$。若改以總和損失$L_{\mathrm{sum}}=\sum_p\ell_p$，其$G$不含$1/N$，所得參數梯度是平均損失梯度的$N$倍。兩種約定都可用，但不能先在$G$除以$N$，又對求出的$dW,db$除以$N$。有遮罩時，若目標是有效位置平均，分母改為有效位置數$M>0$；無效位置的上游梯度是零，且僅除以$M$一次。
+
+## 逐步手算例題
+
+**例一：一個批次、兩個輸出。** 令
+
+$$
+X=\begin{pmatrix}1&2\\-1&3\end{pmatrix},\quad
+W=\begin{pmatrix}2&-1\\0&4\end{pmatrix},\quad
+b=\begin{pmatrix}1&-2\end{pmatrix}.
+$$
+
+先算矩陣乘法：第一列給$(2,7)$，第二列給$(-2,13)$；逐列加$b$後，
+
+$$
+Y=\begin{pmatrix}3&5\\-1&11\end{pmatrix}.
+$$
+
+取**輸出所有四個元素的平均**$L=\frac14\sum_{p,o}Y_{p,o}=18/4=4.5$，故上游矩陣每個元素都是$1/4$。由$G W^\top$，每一列的輸入梯度皆為$(\frac14,\;1)$：第一個分量是$(2-1)/4$，第二個是$(0+4)/4$。權重梯度逐項看，第一輸入特徵的列和為$1+(-1)=0$，第二特徵的列和為$2+3=5$，因此
+
+$$
+dW=\begin{pmatrix}0&0\\5/4&5/4\end{pmatrix},
+\qquad db=\begin{pmatrix}1/2&1/2\end{pmatrix}.
+$$
+
+這裡分母四來自四個**輸出元素**；若定義「先對兩個輸出求和，再對兩筆樣本平均」，分母會是二，並非同一個損失。務必先寫損失，才談梯度。
+
+**例二：含時間軸及廣播偏置。** 令$X$形狀為$(B,T,D_{\mathrm{in}})=(1,2,2)$，兩個時間位置分別是$(1,2)$、$(3,0)$；$W$形狀$(2,1)$，其直向值為$(2,-1)^\top$；$b=(1,)$。前向逐位置為$Y_{0,0,0}=1\cdot2+2\cdot(-1)+1=1$，$Y_{0,1,0}=3\cdot2+0\cdot(-1)+1=7$。若$L=(Y_{0,0,0}^2+Y_{0,1,0}^2)/2=25$，則上游梯度依次是$1,7$，因為平方求導的$2$與平均的$1/2$抵消。
+
+第一個位置的$dX$是$1(2,-1)=(2,-1)$，第二個是$7(2,-1)=(14,-7)$，所以$dX$保留形狀$(1,2,2)$。共享權重的兩份貢獻是$(1,2)^\top\! \cdot1$與$(3,0)^\top\! \cdot7$，相加得$dW=(22,2)^\top$。偏置沿批次軸$0$及時間軸$1$求和，$db=(1+7,)=(8,)$。即使$B=1$，也不能在推導或介面中暗中丟掉批次軸；它仍決定輸入、輸出的約定形狀。
+
+## 實作與程式
+
+以下是完整的NumPy CPU小程式。依賴僅為Python與NumPy；不安裝套件、不下載資料，這裡也不宣稱已執行。它將任意非空前導形狀展平成位置軸，用原參數形狀交還梯度，並以有限差分檢查一個分支圖：同一個$W$在兩次前向中被使用，最後梯度須相加。
+
+```python
+import numpy as np
+
+def affine_forward(x, w, b):
+    x, w, b = map(np.asarray, (x, w, b))
+    if x.ndim < 2 or w.ndim != 2 or b.ndim != 1:
+        raise ValueError("expected x=(*S,Din), w=(Din,Dout), b=(Dout,)")
+    if x.shape[-1] != w.shape[0] or b.shape != (w.shape[1],):
+        raise ValueError("incompatible feature or bias shape")
+    if any(size == 0 for size in x.shape[:-1]):
+        raise ValueError("empty leading axis has no mean loss")
+    return x @ w + b
+
+def affine_backward(x, w, b, grad_y):
+    y = affine_forward(x, w, b)
+    g = np.asarray(grad_y)
+    if g.shape != y.shape:
+        raise ValueError("grad_y must have exactly the output shape")
+    if not all(np.all(np.isfinite(a)) for a in (x, w, b, g)):
+        raise ValueError("non-finite input")
+    n = int(np.prod(x.shape[:-1]))
+    xf = np.asarray(x).reshape(n, w.shape[0])
+    gf = g.reshape(n, w.shape[1])
+    dx = (g @ w.T).reshape(x.shape)
+    dw = xf.T @ gf
+    db = gf.sum(axis=0)
+    return dx, dw, db
+
+def mean_square_loss(y):
+    # 所有輸出元素的平均；導數僅在這裡除以元素數一次。
+    return float(np.mean(y * y))
+
+def two_use_loss(x1, x2, w, b):
+    return (mean_square_loss(affine_forward(x1, w, b))
+            + mean_square_loss(affine_forward(x2, w, b)))
+
+def two_use_grads(x1, x2, w, b):
+    y1, y2 = affine_forward(x1, w, b), affine_forward(x2, w, b)
+    g1, g2 = 2 * y1 / y1.size, 2 * y2 / y2.size
+    dx1, dw1, db1 = affine_backward(x1, w, b, g1)
+    dx2, dw2, db2 = affine_backward(x2, w, b, g2)
+    return dx1, dx2, dw1 + dw2, db1 + db2
+
+def numeric_grad_w(x1, x2, w, b, step=1e-6):
+    result = np.zeros_like(w)
+    for index in np.ndindex(w.shape):
+        plus, minus = w.copy(), w.copy()
+        plus[index] += step
+        minus[index] -= step
+        result[index] = (two_use_loss(x1, x2, plus, b)
+                         - two_use_loss(x1, x2, minus, b)) / (2 * step)
+    return result
+
+def tests():
+    x = np.array([[1., 2.], [-1., 3.]])
+    w = np.array([[2., -1.], [0., 4.]])
+    b = np.array([1., -2.])
+    y = affine_forward(x, w, b)
+    assert np.array_equal(y, [[3., 5.], [-1., 11.]])
+    dx, dw, db = affine_backward(x, w, b, np.full_like(y, .25))
+    assert np.allclose(dx, [[.25, 1.], [.25, 1.]])
+    assert np.allclose(dw, [[0., 0.], [1.25, 1.25]])
+    assert np.allclose(db, [.5, .5])
+
+    # 邊界：B=1，仍保留批次與時間軸。
+    one = np.array([[[1., 2.], [3., 0.]]])
+    column = np.array([[2.], [-1.]])
+    oy = affine_forward(one, column, np.array([1.]))
+    assert oy.shape == (1, 2, 1)
+    assert np.array_equal(oy, [[[1.], [7.]]])
+    odx, odw, odb = affine_backward(
+        one, column, np.array([1.]), oy)
+    assert np.allclose(odx, [[[2., -1.], [14., -7.]]])
+    assert np.allclose(odw, [[22.], [2.]])
+    assert np.allclose(odb, [8.])
+
+    # 切片產生非連續布局；計算不應假設輸入連續。
+    sliced = np.arange(24., dtype=float).reshape(2, 3, 4)[:, ::2, ::2]
+    assert not sliced.flags.c_contiguous
+    sy = affine_forward(sliced, w, b)
+    assert sy.shape == (2, 2, 2)
+    assert affine_backward(sliced, w, b, np.ones_like(sy))[0].shape == sliced.shape
+
+    # 同一參數用兩次；有限差分檢查合計後的梯度。
+    x2 = np.array([[2., 0.]])
+    _, _, total_dw, total_db = two_use_grads(x, x2, w, b)
+    assert np.allclose(total_dw, numeric_grad_w(x, x2, w, b),
+                       rtol=1e-6, atol=1e-6)
+    assert total_db.shape == b.shape
+
+    # 故障輸入：貌似可廣播的錯誤偏置，不予默默接受。
+    try:
+        affine_forward(x, w, np.array([[1., -2.]]))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("wrong bias rank was accepted")
+    try:
+        affine_backward(x, w, b, np.ones((1, 2)))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("wrong upstream shape was accepted")
+
+if __name__ == "__main__":
+    tests()
+    print("all expected checks completed")
+```
+
+`reshape`在此只合併前導位置軸，不交換特徵軸；`transpose`則會交換軸，不能拿來替代。非連續切片的`reshape`可能配置新陣列，但這不改變數值與索引對應；程式沒有要求展平結果與輸入共用記憶體。`w.T`之所以有效，是因為$w$是二維；一維NumPy陣列的`.T`仍是一維，不能用來表示一般矩陣轉置。
+
+## 測試與預期結果
+
+正常測試對應例一：預期前向輸出、三種梯度分別等於手算值。這是精確小數的範例，程式用`array_equal`核對前向，用`allclose`核對反向。另一項正常測試檢查共享權重：兩個分支的$dW$先相加，再與對**整個**`two_use_loss`所作的中心有限差分比較。有限差分是局部數值佐證，步長、浮點誤差與非光滑點都可能影響它，不能取代前述證明。
+
+邊界測試包含$B=1$的三維輸入；預期前向形狀仍為$(1,2,1)$，反向$dX$仍為$(1,2,2)$，且數值與例二一致。非連續切片預期得到形狀$(2,2,2)$的輸出和與切片同形狀的$dX$。這檢查實作沒有偷偷依賴連續記憶體布局。
+
+故障測試故意提供形狀$(1,2)$的偏置。NumPy原本可能將它廣播到批次輸出，但本介面規定偏置必須是$(D_{\mathrm{out}},)$，所以預期拋出`ValueError`。另一故障是給錯上游梯度形狀，即使它可能經由廣播參與某些運算，也必須拒絕。若將$dX$誤寫成`g @ w`，當輸入與輸出特徵數不同時通常會形狀不合；若恰好相同，形狀測試未必抓得到，須以非對稱$W$的手算或有限差分辨識。這也是例一選用非對稱矩陣的理由。
+
+## 反例與常見陷阱
+
+第一種陷阱是把`db`寫成`g.mean(axis=0)`，卻已在上游`g`套用平均損失的分母。以例一為反例，正確$db=(1/2,1/2)$；再次沿批次取平均便成$(1/4,1/4)$。反過來說，若上游來自總和損失而目標是批次平均，應在定義損失時明確除以批次數，不能靠含糊的「反傳會自動平均」補救。
+
+第二種陷阱是只對最後一個前導軸求和。例如$X$是$(B,T,D_{\mathrm{in}})$時，`g.sum(axis=1)`留下形狀$(B,D_{\mathrm{out}})$，不是共享偏置$(D_{\mathrm{out}},)$的梯度。若偏置是刻意設定的每批次獨有參數，才有另一套原形狀與歸約規則；那已不是本章的共享$b$。
+
+第三種陷阱是誤把對$W$的梯度寫作$G^\top X$。其形狀是$(D_{\mathrm{out}},D_{\mathrm{in}})$，不是$W$的$(D_{\mathrm{in}},D_{\mathrm{out}})$；若兩維恰好相等，形狀碰巧吻合，元素位置仍會顛倒。檢查梯度應同時核對定義、形狀及數值，不能只看程式是否能相加。第四種是把重複使用的權重看成兩個獨立參數：它們的數值雖相同，計算圖仍指向同一個$W$，梯度必須在更新前相加。若某分支根本不依賴$W$，它的貢獻才是零。
+
+## AI、幾何與養殖案例
+
+神經網路中的線性層常在許多位置重複套用。對形狀$(B,T,D)$的序列表示，投影到$(B,T,D_{\mathrm{out}})$時，每個時間位置都使用同一個$W$。在後續注意力模型中，這種共享投影使參數數量不隨序列長度$T$增加；然而其梯度確實會聚集各個位置的訊號。這是參數共享的數學事實，不表示不同時間位置在資料上獨立。
+
+從幾何看，固定$W$時，每個位置的微小輸入擾動$dX_p$經$dY_p=dX_pW$映到輸出空間；輸出端的梯度經$W^\top$拉回輸入空間。這裡的「拉回」說的是內積對偶關係，不是宣稱$W^\top$必為$W$的逆矩陣：$W$甚至不必是方陣。權重梯度則由輸入值與輸出端訊號的逐位置外積累加，描述共享矩陣各元素對標量目標的一階敏感度。
+
+設想一個**完全合成**的養殖感測表：$B$代表模擬池組，$T$代表合成時間槽，最後一軸存兩種經過訓練集統計量標準化的假想特徵。$W$可把它們投影為一個供模型使用的中間數值，$b$是共享偏移。要評估模型，應先依池組或時間規則切分訓練、驗證與測試資料，再只用訓練部分擬合標準化統計量；同一來源的重疊時間窗不跨集合。此處的梯度公式不會自動防止資料洩漏，也不證明投影具有現場操作意義。合成數值不是投餌、曝氣或加藥閾值，模型輸出不可用來控制設備，測試集亦不得拿來挑選參數。
+
+## 習題
+
+1. **手算題。** 設$X$為$(2,1)$且兩列為$2,-1$，$W=(3,4)$形狀$(1,2)$，$b=(1,0)$。定義$L=\frac12\sum_{p=0}^{1}\sum_{o=0}^{1}Y_{p,o}$。求$Y,dX,dW,db$，並指出分母二所平均的是什麼。
+2. **程式題。** 將本章`affine_backward`用於形狀$(2,3,2)$的$X$、$(2,1)$的$W$、$(1,)$的$b$，以及全為$1/6$的上游梯度。寫出可加入`tests()`的斷言，檢查三種梯度形狀和$db$值。解釋為何不可另外對`db`呼叫`mean`。
+3. **反例題。** 有人說：「若$D_{\mathrm{in}}=D_{\mathrm{out}}$，`g @ w`可代替`g @ w.T`，因為形狀相同。」用一筆輸入、具體非對稱$W$與上游梯度反駁。
+4. **整合題。** 某合成序列資料的輸入形狀$(B,T,D_{\mathrm{in}})$，部分位置以布林遮罩$m_{bt}$標記有效。每個有效位置有平方誤差$\ell_{bt}=\frac12\sum_o(Y_{bto}-R_{bto})^2$。寫出有效位置平均損失、$G$、$dW$、$db$；說明有效數為零及按同一來源切窗後跨資料集合時各應如何處理。
+
+## 習題解答
+
+1. 前向第一列是$(2\cdot3+1,\;2\cdot4+0)=(7,8)$，第二列是$((-1)\cdot3+1,\;(-1)\cdot4+0)=(-2,-4)$，故$Y=\begin{pmatrix}7&8\\-2&-4\end{pmatrix}$。所有$G_{p,o}=1/2$。每列$dX$為$(3+4)/2=7/2$，故$dX=(7/2,7/2)^\top$。$dW$的兩欄都等於$2(1/2)+(-1)(1/2)=1/2$，即$dW=(1/2,1/2)$。兩個位置的上游值相加，$db=(1,1)$。分母二平均的是兩筆樣本各自「兩輸出之和」，不是四個輸出元素的平均。
+2. 可使用以下片段；只檢查形狀不夠，故同時核對偏置梯度：
+
+   ```python
+   tx = np.arange(12., dtype=float).reshape(2, 3, 2)
+   tw = np.array([[2.], [-1.]])
+   tb = np.array([0.])
+   tg = np.full((2, 3, 1), 1 / 6)
+   tdx, tdw, tdb = affine_backward(tx, tw, tb, tg)
+   assert tdx.shape == tx.shape
+   assert tdw.shape == tw.shape
+   assert tdb.shape == tb.shape
+   assert np.allclose(tdb, [1.])
+   ```
+
+   六個位置各提供$1/6$，沿軸$0,1$求和是$1$。上游值已各帶$1/6$；再取平均會錯成$1/6$。
+3. 取$W=\begin{pmatrix}1&2\\3&4\end{pmatrix}$、$G=(1,0)$，任取形狀$(1,2)$的合法輸入。正確$dX=GW^\top=(1,3)$；錯式$GW=(1,2)$。兩者形狀同為$(1,2)$，數值卻不同。
+4. 令$M=\sum_{b=1}^B\sum_{t=1}^T m_{bt}$，先要求$M>0$，再定義$L=M^{-1}\sum_{b,t}m_{bt}\ell_{bt}$及$G_{bto}=m_{bt}(Y_{bto}-R_{bto})/M$。因此$(dW)_{io}=\sum_{b,t}X_{bti}G_{bto}$，$(db)_o=\sum_{b,t}G_{bto}$；兩處只求和，不再除以$M$。$M=0$時應拒絕計算該平均損失，不能回傳`NaN`或任意稱零梯度為平均結果。資料方面，應先按來源分割訓練、驗證、測試，再在各集合內建立窗口；同源重疊窗口跨集合會洩漏訊息，必須調整切分，而非寄望遮罩或梯度公式修正。
+
+## 本章小結
+
+批次仿射層的最後一軸是特徵，所有前導軸標記共享參數的使用位置。反傳時，$dX=dY W^\top$保留各位置，$dW=X^\top dY$在前導位置累加，$db$沿偏置被廣播的軸求和；展平只是方便實作，不改變這三項的意義。損失採總和、元素平均或有效位置平均，必須先說清楚，並只套用一次相應分母。手算與形狀約束能揭露轉置、廣播和重複平均錯誤；有限差分再提供獨立的局部數值核對，而非代替推導。
+
+## 參考來源
+
+- [N4 NumPy broadcasting 使用指南](https://numpy.org/doc/stable/user/basics.broadcasting.html)：廣播概念的延伸入口；本章的反向求和規則已在正文自行證明，此入口尚未逐條核對，不作已查證依據。
+- [N5 Dive into Deep Learning](https://d2l.ai/)：深度學習實作的延伸閱讀入口，未逐章核對。本章程式及測試約定以正文為準。

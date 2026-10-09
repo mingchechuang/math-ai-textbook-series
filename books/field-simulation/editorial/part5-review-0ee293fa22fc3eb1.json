@@ -1,0 +1,11 @@
+{
+  "key": "0ee293fa22fc3eb1e6600129fc0ab5d599dadeb8a99c47fc2316638b4776a91a",
+  "person": {
+    "id": "v3_editor_09",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "reviewer"
+  },
+  "call": 413,
+  "result": "## 複核結果\n\n先核對第26章的邊界推導：自由能第一變分的邊界項是 $\\int_{\\partial\\Omega}\\kappa\\psi\\,\\partial_n\\phi\\,dS$，因此由此得到的自然條件是 $\\partial_n\\phi=0$。另一方面，CH 的質量率是 $\\frac{d}{dt}\\int_\\Omega\\phi\\,dV=\\int_{\\partial\\Omega}M\\partial_n\\mu\\,dS$；令 $\\partial_n\\mu=0$ 是另行指定無組分通量。前輪指出的區別在本稿仍未改動。\n\n### 須修正\n\n1. **第26章〈H^{-1} 梯度流〉及〈本章小結〉**  \n   原句分別稱 $\\partial_n\\mu=0$ 為「**第二個自然邊界條件**」，及稱自然邊界為「$\\partial_n\\phi=0$，CH 還需 $\\partial_n\\mu=0$」。這會把自由能變分條件與守恆通量條件混為同一來源。**最小修法：**明稱前者為自由能的自然邊界條件、後者為另行指定的無通量條件；兩組條件及其耗散、守恆公式可保留。\n\n2. **第26章〈習題1解答〉**  \n   原句：「$\\mu=V'(\\phi)-\\Delta\\phi$（本題 $\\kappa$ 併入 $V$ 或單獨處理；兩者等價）。」題給梯度能係數已是 $1$，而局部函數 $V(\\phi)$ 不能吸收梯度項的係數：兩者變分分別產生 $V'(\\phi)$ 與 $-\\kappa\\Delta\\phi$。**最小修法：**刪去括號中的「$\\kappa$ 併入 $V$」說法；若另討論一般係數，寫成 $\\mu=V'(\\phi)-\\kappa\\Delta\\phi$。\n\n第26章的舊態曲率反例已正確寫入，不再列為問題。本次僅依稿件與手算審閱，未執行程式或獨立查證來源。\n\nVERDICT: REVISE"
+}

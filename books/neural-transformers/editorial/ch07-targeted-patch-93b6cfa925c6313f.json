@@ -1,0 +1,11 @@
+{
+  "key": "93b6cfa925c6313f43f0260d9e0c70b888dcb454d3036f926aff30063cfdec34",
+  "person": {
+    "id": "v5_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 277,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n單次合成切分不能支持統計顯著性主張。若根據測試結果反覆調參，該集合就不再是未見測試集。\n<<<NEW>>>\n單次合成切分不能支持統計顯著性主張。若根據測試結果反覆調參，該集合就不再是未見測試集。驗證集可用來比較事先確定的候選設定，但每增加一次選擇，結果就越依賴這份有限樣本；因此應記錄候選設定、選擇依據與隨機種子，不能只呈現最好的一次。保留的測試集應在選定設定後才用於最終評估。若測試結果不理想，應如實報告，並以新的獨立資料安排後續研究，而不是在原測試集上繼續挑選參數。\n\n梯度驗收與模型評估回答不同問題：前者檢查程式是否依既定損失計算局部變化，後者檢查模型在未參與更新的資料上表現如何。即使有限差分與解析梯度接近，也不能據此推論合成標籤規則適用於真實場景。相反地，評估數值不佳也不必然表示反傳有錯；應分別檢查計算、資料規則與切分。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n        \"non-finite logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.inf]]), np.array([[1.0]])\n        ),\n    )\n<<<NEW>>>\n        \"non-finite logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.inf]]), np.array([[1.0]])\n        ),\n    )\n    expect_value_error(\n        \"NaN logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.nan]]), np.array([[1.0]])\n        ),\n    )\n<<<END>>>"
+}

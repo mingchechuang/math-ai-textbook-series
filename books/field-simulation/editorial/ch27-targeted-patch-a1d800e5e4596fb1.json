@@ -1,0 +1,25 @@
+{
+  "key": "a1d800e5e4596fb1dad7a8270e6b86f67572b9c1dcde61a409b1a2418c892a42",
+  "person": {
+    "id": "v3_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 194,
+  "result": {
+    "patches": [
+      {
+        "chapter": 27,
+        "old": "    energy = discrete_energy(phi, kappa, dx, dy)\n    records = []",
+        "new": "    energy = discrete_energy(phi, kappa, dx, dy)\n    if not np.isfinite(energy):\n        raise FloatingPointError(\"初始離散能量非有限值\")\n    records = []"
+      },
+      {
+        "chapter": 27,
+        "old": "        new_energy = discrete_energy(\n            trial, kappa, dx, dy\n        )\n        scale = max(1.0, abs(energy))",
+        "new": "        new_energy = discrete_energy(\n            trial, kappa, dx, dy\n        )\n        if not np.isfinite(new_energy):\n            raise FloatingPointError(\"試算步驟的離散能量非有限值\")\n        scale = max(1.0, abs(energy))"
+      }
+    ],
+    "reason": "所附審查意見引用的是第07章 Neumann ghost 矩陣與 CG，並非本次提交的第27章原稿，不能據此修改第27章。另修補本章可定位的故障：有限的初值或試算場仍可能在計算四次勢能時溢位；原程式只檢查場值，且關閉能量上升拒絕時可能接受非有限能量。新增初始與試算能量的有限性檢查；未執行程式。"
+  }
+}

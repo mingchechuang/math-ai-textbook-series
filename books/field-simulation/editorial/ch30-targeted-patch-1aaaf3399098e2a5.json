@@ -1,0 +1,40 @@
+{
+  "key": "1aaaf3399098e2a56c83dafc31259c57a9025005103c20f7c0d135e537b856a9",
+  "person": {
+    "id": "v3_editor_22",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "author"
+  },
+  "call": 202,
+  "result": {
+    "patches": [
+      {
+        "chapter": 30,
+        "old": "固定步數 `steps` 是本例的停止條件；沒有迭代線性求解器，因此不應虛構線性殘差或求解容差。每步記錄總量相對初值的差值、離散 $L_2$ 能量 $E_h=\\frac12\\sum q_{j,i}^2\\Delta x\\Delta y$ 及其相對初值的變化，並依明示的 `atol`、`rtol` 判定收支是否通過、能量是否未上升。若診斷失敗，紀錄保留失敗狀態；查詢端也必須拒絕把這種紀錄當作一般通過結果。",
+        "new": "固定步數 `steps` 是本例的停止條件；沒有迭代線性求解器，因此不應虛構線性殘差或求解容差。每步記錄總量相對初值的差值、離散 $L_2$ 能量 $E_h=\\frac12\\sum q_{j,i}^2\\Delta x\\Delta y$、相對初值的變化及相對前一步的變化。能量未上升必須逐步判定：第 $n$ 步與第 $n-1$ 步比較，而不是只要求仍低於初始能量；否則能量先由 $10$ 降至 $8$、再回升至 $9$ 時會被錯誤放行。程式依明示的 `atol`、`rtol` 分別判定收支與逐步能量變化。若診斷失敗，紀錄保留失敗狀態；查詢端也必須拒絕把這種紀錄當作一般通過結果。"
+      },
+      {
+        "chapter": 30,
+        "old": "def run_synthetic_case(q0, D, dt, dx, dy, steps,\n                       atol=1e-12, rtol=1e-12):",
+        "new": "def energy_nonincrease(current, previous, atol, rtol):\n    \"\"\"以相鄰兩步能量及明示容差判定是否未上升。\"\"\"\n    current = float(require_finite(\"current_energy\", current))\n    if previous is None:\n        return True, 0.0, 0.0\n    previous = float(require_finite(\"previous_energy\", previous))\n    tolerance = atol + rtol * max(abs(previous), abs(current), 1.0)\n    change = current - previous\n    return change <= tolerance, change, tolerance\n\n\ndef run_synthetic_case(q0, D, dt, dx, dy, steps,\n                       atol=1e-12, rtol=1e-12):"
+      },
+      {
+        "chapter": 30,
+        "old": "    initial_energy = float(0.5 * np.sum(q * q) * cell_volume_per_depth)\n    scale = max(abs(initial_total), 1.0)\n    history = []\n\n    for n in range(steps + 1):\n        total = float(np.sum(q) * cell_volume_per_depth)\n        energy = float(0.5 * np.sum(q * q) * cell_volume_per_depth)\n        balance_error = total - initial_total\n        tolerance = atol + rtol * scale\n        energy_tol = atol + rtol * max(abs(initial_energy), 1.0)\n        finite = bool(np.all(np.isfinite(q)))\n        passed = finite and abs(balance_error) <= tolerance\n        energy_decreased = (n == 0) or (\n            energy <= initial_energy + energy_tol\n        )\n\n        history.append({\n            \"step\": n,\n            \"time_s\": n * dt,\n            \"total_per_depth\": total,\n            \"balance_error_per_depth\": balance_error,\n            \"balance_tolerance\": tolerance,\n            \"balance_pass\": bool(passed),\n            \"energy_per_depth_L2\": energy,\n            \"energy_change_vs_initial\": energy - initial_energy,\n            \"energy_decreased\": bool(energy_decreased),\n            \"minimum\": float(np.min(q)),\n            \"maximum\": float(np.max(q)),\n            \"finite\": finite,\n        })\n\n        if not finite:\n            raise FloatingPointError(\"場中出現非有限值\")\n        if n < steps:\n            q = periodic_diffusion_step(q, D, dt, dx, dy)",
+        "new": "    initial_energy = float(0.5 * np.sum(q * q) * cell_volume_per_depth)\n    scale = max(abs(initial_total), 1.0)\n    history = []\n    previous_energy = None\n\n    for n in range(steps + 1):\n        total = float(np.sum(q) * cell_volume_per_depth)\n        energy = float(0.5 * np.sum(q * q) * cell_volume_per_depth)\n        balance_error = total - initial_total\n        tolerance = atol + rtol * scale\n        finite = bool(np.all(np.isfinite(q)))\n        passed = finite and abs(balance_error) <= tolerance\n        energy_decreased, energy_change_prev, energy_tol = (\n            energy_nonincrease(\n                energy, previous_energy, atol, rtol\n            )\n        )\n\n        history.append({\n            \"step\": n,\n            \"time_s\": n * dt,\n            \"total_per_depth\": total,\n            \"balance_error_per_depth\": balance_error,\n            \"balance_tolerance\": tolerance,\n            \"balance_pass\": bool(passed),\n            \"energy_per_depth_L2\": energy,\n            \"energy_change_vs_initial\": energy - initial_energy,\n            \"energy_change_vs_previous\": energy_change_prev,\n            \"energy_tolerance_vs_previous\": energy_tol,\n            \"energy_decreased\": bool(energy_decreased),\n            \"minimum\": float(np.min(q)),\n            \"maximum\": float(np.max(q)),\n            \"finite\": finite,\n        })\n\n        if not finite:\n            raise FloatingPointError(\"場中出現非有限值\")\n        previous_energy = energy\n        if n < steps:\n            q = periodic_diffusion_step(q, D, dt, dx, dy)"
+      },
+      {
+        "chapter": 30,
+        "old": "assert np.all(np.isfinite(qf))\nassert all(row[\"balance_pass\"] for row in report[\"history\"])\n\nquery = {",
+        "new": "assert np.all(np.isfinite(qf))\nassert all(row[\"balance_pass\"] for row in report[\"history\"])\nassert all(row[\"energy_decreased\"] for row in report[\"history\"])\n\n# 逐步能量判定測試：10 -> 8 通過，8 -> 9 必須失敗，\n# 即使 9 仍低於初始能量 10，也不能標成逐步未上升。\ntest_energies = [10.0, 8.0, 9.0]\ntest_flags = []\nprevious = None\nfor energy in test_energies:\n    passed, change, tolerance = energy_nonincrease(\n        energy, previous, atol=1e-12, rtol=1e-12\n    )\n    test_flags.append(passed)\n    previous = energy\nassert test_flags == [True, True, False]\n\nquery = {"
+      },
+      {
+        "chapter": 30,
+        "old": "正常測試預期場值保持有限，每一步總量收支誤差均落在明示的 $atol+rtol\\max(|M^0|,1)$ 內，且與結果摘要相符的唯讀查詢會被接受。未知場、單位不符、邊界不同或缺少必要欄位時預期拒絕。結果形狀不符、內容被改動或含有非有限值也預期拒絕。",
+        "new": "正常測試預期場值保持有限，每一步總量收支誤差均落在明示的 $atol+rtol\\max(|M^0|,1)$ 內；每一步能量則與前一步比較，容許量為 $atol+rtol\\max(|E^{n-1}|,|E^n|,1)$。測試用能量紀錄 $10\\to8\\to9$ 的最後一步雖仍低於初值，仍應因相對前一步回升而失敗。與結果摘要相符且所有逐步診斷通過的唯讀查詢才會被接受。未知場、單位不符、邊界不同或缺少必要欄位時預期拒絕。結果形狀不符、內容被改動或含有非有限值也預期拒絕。"
+      }
+    ],
+    "reason": "依審查證據，原程式把每一步能量只與初始能量比較，無法偵測先下降後回升。修補後以相鄰兩步及明示容差判定，並記錄逐步能量差與容差；另加入10→8→9的待執行測試，確認回升步會失敗。未改動其餘正確的守恆、邊界、雜湊與唯讀查詢內容，也未宣稱已執行程式。"
+  }
+}

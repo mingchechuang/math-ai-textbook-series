@@ -1,0 +1,11 @@
+{
+  "key": "5137cd818d9e3190acec790d107584abed5c6a820146ffbfe9c6260936300e9a",
+  "person": {
+    "id": "v5_editor_18",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 288,
+  "result": "<<<PATCH 19>>>\n<<<OLD>>>\n**輸出**：Logits $Z \\in \\mathbb{R}^{B \\times T \\times V}$，表示每個位置對詞彙表中每個詞元的未歸一化對數概率。\n<<<NEW>>>\n**輸出**：Logits $Z \\in \\mathbb{R}^{B \\times T \\times V}$ 是每個位置對詞彙表中各詞元的未正規化實數分數；沿詞彙軸套用 softmax 後得到條件機率。\n<<<END>>>\n\n<<<PATCH 19>>>\n<<<OLD>>>\n    $$ A_{ij} = \\frac{\\exp(S'_{ij})}{\\sum_{k=0}^{T-1} \\exp(S'_{ik})} \\in \\mathbb{R}^{B \\times H \\times T \\times T} $$\n    由於 $S'_{ij} = -\\infty$ 當 $j > i$，故 $\\exp(S'_{ij}) = 0$，因此 $A_{ij} = 0$ 當 $j > i$。\n<<<NEW>>>\n    $$ A \\in \\mathbb{R}^{B \\times H \\times T \\times T}, \\qquad A_{b,h,i,j} = \\frac{\\exp(S'_{b,h,i,j})}{\\sum_{k=0}^{T-1} \\exp(S'_{b,h,i,k})} $$\n    由於 $S'_{b,h,i,j} = -\\infty$ 當 $j > i$，故 $\\exp(S'_{b,h,i,j}) = 0$，因此 $A_{b,h,i,j} = 0$ 當 $j > i$。\n<<<END>>>\n\n<<<PATCH 19>>>\n<<<OLD>>>\n        *   **Softmax & Weighted Sum**：\n    對分數沿最後一個維度（key 軸 $j$）進行 Softmax：\n    $$ A_{ij} = \\frac{\\exp(S'_{ij})}{\\sum_{k=0}^{T-1} \\exp(S'_{ik})} \\in \\mathbb{R}^{B \\times H \\times T \\times T} $$\n    由於 $S'_{ij} = -\\infty$ 當 $j > i$，故 $\\exp(S'_{ij}) = 0$，因此 $A_{ij} = 0$ 當 $j > i$。\n    計算加權和：\n<<<NEW>>>\n        *   **Softmax & Weighted Sum**：\n    對分數沿最後一個維度（key 軸 $j$）進行 Softmax：\n    $$ A \\in \\mathbb{R}^{B \\times H \\times T \\times T}, \\qquad A_{b,h,i,j} = \\frac{\\exp(S'_{b,h,i,j})}{\\sum_{k=0}^{T-1} \\exp(S'_{b,h,i,k})} $$\n    由於 $S'_{b,h,i,j} = -\\infty$ 當 $j > i$，故 $\\exp(S'_{b,h,i,j}) = 0$，因此 $A_{b,h,i,j} = 0$ 當 $j > i$。\n    計算加權和：\n<<<END>>>\n\n<<<PATCH 19>>>\n<<<OLD>>>\n    將 $H$ 個頭拼接回 $D$ 維：\n    $$ O = \\text{Concat}(O_1, \\dots, O_H) \\in \\mathbb{R}^{B \\times T \\times D} $$\n    最後通過輸出投影 $W_O \\in \\mathbb{R}^{D \\times D}$：\n<<<NEW>>>\n    將 $H$ 個頭拼接回 $D$ 維：\n    $$ O = \\text{Concat}(O_1, \\dots, O_H) \\in \\mathbb{R}^{B \\times T \\times D} $$\n    最後通過輸出投影 $W_O \\in \\mathbb{R}^{D \\times D}$：\n<<<END>>>"
+}

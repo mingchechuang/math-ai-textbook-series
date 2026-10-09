@@ -1,0 +1,11 @@
+{
+  "key": "1719f5c6567708987f0d40d597bb92ebba0e015224174d9cfd03d6699fcb8967",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 340,
+  "result": "<<<PATCH 04>>>\n<<<OLD>>>\n        terms[p_support] = p[p_support] * np.log(p[p_support] / q[p_support])\n<<<NEW>>>\n        safe = p_support & (q > 0)\n        terms[safe] = p[safe] * (np.log(p[safe]) - np.log(q[safe]))\n<<<END>>>"
+}

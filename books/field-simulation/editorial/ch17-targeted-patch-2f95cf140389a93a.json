@@ -1,0 +1,45 @@
+{
+  "key": "2f95cf140389a93a4b517acd848d68d39517d253402d32664db3651677c7b2a8",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 218,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "    # 先縮放再加總，避免有限但極大的分量直接相加而溢位。\n    scale = float(np.max(np.abs(b))) if b.size else 0.0\n    if scale == 0.0:\n        return 0.0, float(tolerances[0])\n    scaled = b / scale\n    defect_scaled = float(np.sum(scaled))\n    size_scaled = float(np.sum(np.abs(scaled)))\n    # 直接以無因次形式比較，避免還原 defect、limit 時溢位。\n    threshold_scaled = float(tolerances[0] / scale\n                             + tolerances[1] * size_scaled)\n    if not np.all(np.isfinite(\n            [defect_scaled, size_scaled, threshold_scaled])):\n        raise ValueError(\"相容性計算無法以有限值完成\")\n    if abs(defect_scaled) > threshold_scaled:\n        raise ValueError(\n            \"純 Neumann 右端不相容：\"\n            f\"scaled defect={defect_scaled}, scaled tolerance={threshold_scaled}\"\n        )\n    # 回傳縮放後的量，兩者均以 max(abs(b)) 為尺度。\n    return defect_scaled, threshold_scaled",
+        "new": "    # 先縮放再加總，避免有限但極大的分量直接相加而溢位。\n    scale = float(np.max(np.abs(b))) if b.size else 0.0\n    if scale == 0.0:\n        return 0.0, 0.0\n    scaled = b / scale\n    defect_scaled = float(np.sum(scaled))\n    size_scaled = float(np.sum(np.abs(scaled)))\n    if not np.all(np.isfinite([defect_scaled, size_scaled])):\n        raise ValueError(\"縮放後的相容性加總不是有限值\")\n\n    # |defect_scaled| 不超過 size_scaled，故可將門檻安全地截於此值。\n    # 以下先判斷 atol/scale 是否足以覆蓋整個範圍，避免極小\n    # scale 導致有限的 atol/scale 溢位。\n    if tolerances[1] >= 1.0 or scale <= tolerances[0] / size_scaled:\n        threshold_scaled = size_scaled\n    else:\n        relative_part = float(tolerances[1] * size_scaled)\n        absolute_part = float(tolerances[0] / scale)\n        room = size_scaled - relative_part\n        threshold_scaled = (size_scaled if absolute_part >= room\n                            else relative_part + absolute_part)\n    if abs(defect_scaled) > threshold_scaled:\n        raise ValueError(\n            \"純 Neumann 右端不相容：\"\n            f\"scaled defect={defect_scaled}, scaled tolerance={threshold_scaled}\"\n        )\n    # 回傳經截頂的縮放門檻；它用於判定，不是原單位的容差。\n    return defect_scaled, threshold_scaled"
+      },
+      {
+        "chapter": 17,
+        "old": "    print(\"energy =\", energy(K, b, u))",
+        "new": "    print(\"full discrete energy (zero Dirichlet here) =\",\n          energy(K, b, u))"
+      },
+      {
+        "chapter": 17,
+        "old": "    # 非零但相容的代數測試；正負負載相抵，不藉此宣稱已求解。\n    balanced = np.array([1.0, -1.0, 0.0, 0.0, 0.0])\n    print(\"nonzero compatible scaled defect, limit =\",\n          check_pure_neumann_compatibility(balanced))",
+        "new": "    # 手造向量只測檢查函式，不測有限元素組裝契約。\n    balanced = np.array([1.0, -1.0, 0.0, 0.0, 0.0])\n    print(\"algebraic compatible scaled defect, limit =\",\n          check_pure_neumann_compatibility(balanced))\n\n    # 非零且由有限元素組裝而來：四角形節點沿 x 對稱，\n    # 對相同三角網格的來源 f=x-1/2，以三點精確積分組裝右端。\n    # 各元素的 f*N_a 為二次式，不能沿用常數來源的負載公式。\n    barycentric = np.array([\n        [2.0/3.0, 1.0/6.0, 1.0/6.0],\n        [1.0/6.0, 2.0/3.0, 1.0/6.0],\n        [1.0/6.0, 1.0/6.0, 2.0/3.0],\n    ])\n    b_manufactured = np.zeros(len(points))\n    for tri in triangles:\n        xy = points[tri]\n        det = np.linalg.det(np.column_stack((xy[1]-xy[0],\n                                             xy[2]-xy[0])))\n        area = abs(det)/2.0\n        for N in barycentric:\n            x_quad = N @ xy[:, 0]\n            b_manufactured[tri] += (area/3.0)*(x_quad-0.5)*N\n    print(\"assembled nonzero compatible scaled defect, limit =\",\n          check_pure_neumann_compatibility(b_manufactured))"
+      },
+      {
+        "chapter": 17,
+        "old": "純 Neumann 檢查函式只驗證相容性，不負責求解奇異系統。零來源、零邊界通量的示例及非零但正負相抵的右端，都應通過相容性檢查；正來源示例應被拒絕，且拒絕後不得呼叫任何純 Neumann 求解流程。函式回傳的是以最大右端絕對值縮放的缺陷與門檻，不是原單位的 $\\mathbf1^Tb$；此縮放避免有限輸入在直接求和時溢位。相容後仍須使用零均值增廣系統、零均值子空間投影或其他明確規範。大型問題應使用稀疏矩陣，但同樣要保留資料、幾何與相容性檢查。",
+        "new": "純 Neumann 檢查函式只驗證相容性，不負責求解奇異系統。零來源示例、手造的非零平衡向量，以及以 $f=x-1/2$ 進行元素積分所得的非零右端，預期均通過檢查；手造向量只測試檢查函式，後者才同時測試有限元素負載組裝。正來源示例應被拒絕，且拒絕後不得呼叫任何純 Neumann 求解流程。函式回傳的是以最大右端絕對值縮放的缺陷與**截頂後的判定門檻**，不是原單位的 $\\mathbf1^Tb$ 與容差；縮放及截頂避免直接求和與除以極小尺度所致的溢位。相容後仍須使用零均值增廣系統、零均值子空間投影或其他明確規範。大型問題應使用稀疏矩陣，但同樣要保留資料、幾何與相容性檢查。"
+      },
+      {
+        "chapter": 17,
+        "old": "離散能量預期為\n\n$$\n\\widetilde\\Pi_h(1/12)\n=\n2\\left(\\frac1{12}\\right)^2\n-\n\\frac13\\left(\\frac1{12}\\right)\n=\n-\\frac1{72}.\n$$",
+        "new": "程式列印的是完整向量的離散能量 $\\Pi_h(U)=\\frac12U^TKU-b^TU$。本例四個 Dirichlet 值皆為零，因此約化能量中的固定項 $C=0$，兩者數值恰好相同，預期為\n\n$$\n\\Pi_h(U)=\\widetilde\\Pi_h(1/12)\n=\n2\\left(\\frac1{12}\\right)^2\n-\n\\frac13\\left(\\frac1{12}\\right)\n=\n-\\frac1{72}.\n$$\n\n對一般非零 Dirichlet 值，完整能量與省略常數項的約化能量可能相差 $C$；兩者對自由變數的梯度仍相同。"
+      },
+      {
+        "chapter": 17,
+        "old": "此段改用**全套無因次相場變數**，不沿用前述以 m 計的池域座標。選參考長度 $\\ell_0>0$ 與能量密度 $f_0>0$，令 $\\hat x=x_{\\rm phys}/\\ell_0$、$\\hat y=y_{\\rm phys}/\\ell_0$，並以 $f_0\\ell_0^2$ 為每單位厚度自由能尺度。以下公式中的 $\\Omega$、$\\nabla$ 及面積元素均採無因次座標，$F$ 為依該尺度除過的自由能；$\\phi$、$\\kappa$ 均無因次。若有因次梯度能係數為 $K_g$，則此約定下 $\\kappa=K_g/(f_0\\ell_0^2)$。取",
+        "new": "此段改用**全套無因次相場變數**，不沿用前述以 m 計的池域座標。設 $\\phi$ 原本已是無因次序參量，取參考長度 $\\ell_0>0$（m）及體積自由能密度尺度 $f_0>0$（J/m³），令 $\\hat x=x_{\\rm phys}/\\ell_0$、$\\hat y=y_{\\rm phys}/\\ell_0$。假設三維薄層的場沿厚度方向不變；以下自由能均按**每單位實際厚度**計，其有因次形式為 $F_{\\rm phys}/H=\\int_{\\Omega_{\\rm phys}}[f_0W(\\phi)+K_g|\\nabla_{\\rm phys}\\phi|^2/2]\\,dA_{\\rm phys}$，其中 $K_g$ 的單位是 J/m，故兩個被積項同為 J/m³，而 $F_{\\rm phys}/H$ 的單位是 J/m。以 $f_0\\ell_0^2$（J/m）為每單位厚度自由能尺度後，$\\kappa=K_g/(f_0\\ell_0^2)$ 才是無因次的。以下公式中的 $\\Omega$、$\\nabla$ 及面積元素均指無因次座標，$F$ 為無因次自由能。取"
+      }
+    ],
+    "reason": "修正極小尺度右端的容差縮放、增加由有限元素積分所得的非零相容測試，並釐清完整能量與約化能量的數值關係及相場係數量綱。審稿引用的 `$$\\nu` 在輸入 JSON 中是換行符 `\\n` 緊接變數 `u`，實際公式為 $u=g_D$ 與 $u=0$；兩處並無梯度邊界條件錯誤，故保留。未執行程式。"
+  }
+}

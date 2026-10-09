@@ -1,0 +1,11 @@
+{
+  "key": "dc093c8db68dc5ceff07fca60f046a494d9b7f2c3c6c38e0fd470c14224c6c08",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 279,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n    if mean_nll > 700: # ln(float_max) approx 709\n<<<NEW>>>\n    if mean_nll > np.log(np.finfo(np.float64).max):\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n        terms[p_support] = p[p_support] * np.log(p[p_support] / q[p_support])\n<<<NEW>>>\n        safe = p_support & (q > 0)\n        terms[safe] = p[safe] * (np.log(p[safe]) - np.log(q[safe]))\n<<<END>>>"
+}

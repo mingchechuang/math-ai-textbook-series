@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-10-09T22:44:43+08:00",
+  "discussions": {
+    "linear-algebra-aquaculture": {
+      "completed_text_messages": 390,
+      "redacted_messages": 0
+    },
+    "modern-graphics": {
+      "completed_text_messages": 578,
+      "redacted_messages": 0
+    },
+    "field-simulation": {
+      "completed_text_messages": 851,
+      "redacted_messages": 0
+    },
+    "calculus-analysis": {
+      "completed_text_messages": 967,
+      "redacted_messages": 0
+    },
+    "neural-transformers": {
+      "completed_text_messages": 1139,
+      "redacted_messages": 0
+    }
+  },
+  "excluded": [
+    "raw agents/pi_sessions and pi_events",
+    "thinking/system/tool events",
+    "credentials and private settings",
+    "backups and failed publication staging",
+    "node_modules and virtualenvs",
+    "unrelated trading/discussion data",
+    "parent assistant chat"
+  ],
+  "note": "Only this export directory is intended for upload. Review before making repository public."
+}

@@ -1,0 +1,384 @@
+# 第15章 Padding、因果遮罩與未來資訊洩漏
+
+## 學習目標與先備知識
+
+讀完本章，你應能：
+
+1. 說明 padding、key 遮罩、因果遮罩與 loss 遮罩各自管制什麼。
+2. 依 query 與 key 的**絕對位置**建立因果遮罩，並辨認 KV cache 下的非方形遮罩。
+3. 推導遮罩 softmax 的權重與輸出，解釋為何全遮罩列必須明確處理。
+4. 使用 NumPy 寫出可在 CPU 執行的單頭注意力，並測試未來 token 不影響過去輸出。
+5. 分辨「padding query 的輸出值」與「padding token 是否計入訓練損失」。
+
+先備知識是矩陣乘法、softmax、序列索引與基本 NumPy。本文採用固定張量慣例：批次大小為 $B$、序列長度為 $T$、特徵維度為 $D$。單頭輸入 $X$ 的形狀為 $(B,T,D)$；投影後的 $Q,K,V$ 在單頭情況也可記為 $(B,T,d)$。布林遮罩採本章約定：**True 表示允許注意**，False 表示禁止注意。這與某些框架 API 的慣例可能相反，轉接前須查明實際 API 定義。
+
+本章的程式與數值結果是預期行為，不代表已執行或已通過測試。
+
+## 問題與直覺
+
+注意力中的每個 query 都會對一組 key 計算分數，再將分數正規化成權重，最後以權重加權 value。若沒有額外限制，query 可能讀取序列中任何位置的 key。
+
+這對兩種任務尤其危險：
+
+- **Padding**：不同長度序列放進同一批次時，常以 PAD 補齊到相同長度。PAD 不是實際內容，正常 token 不應把它當成有意義的 key。
+- **自回歸預測**：在位置 $i$ 預測下一個 token 時，只能利用位置 $i$ 及以前的資訊，不能讀取未來位置 $j>i$ 的內容。若允許偷看未來，訓練分數可能很好看，部署時卻因為未來資料不存在而失效。
+
+「遮住位置」不是單一操作。至少要分清三個問題：
+
+1. **注意力遮罩**：哪些 key 可以被 query 讀取？
+2. **Padding query 輸出**：padding 位置本身是否仍產生輸出？若產生，後續是否會使用？
+3. **Loss 遮罩**：哪些目標 token 的誤差要納入訓練平均？
+
+把這三者混成一個 mask，容易造成隱蔽錯誤。例如，只遮蔽 PAD 的 loss，卻不遮蔽 PAD key，模型仍可能讀取 padding 區域；反之，只遮蔽 PAD key，卻把 PAD 的預測誤差算入 loss，也會改變訓練目標。
+
+因果性也不只是對方形矩陣套用 `tril`。使用 KV cache 時，query 可能只有最新幾個位置，key 卻包含整段過去，矩陣是非方形的。正確判斷依據是 query 與 key 的**絕對位置**，而不是兩者在當前小矩陣中的相對列號。
+
+## 定義、定理與推導
+
+### 1. 注意力與遮罩
+
+單頭注意力的分數、權重及輸出為：
+
+$$
+S_{b,i,j}=\frac{Q_{b,i,:}K_{b,j,:}^{\mathsf T}}{\sqrt{d}},
+\qquad
+P_{b,i,:}=\operatorname{softmax}(S_{b,i,:}),
+\qquad
+Y_{b,i,:}=\sum_jP_{b,i,j}V_{b,j,:}.
+$$
+
+此處 softmax 沿最後的 key 軸 $j$ 計算，故 $S$ 與 $P$ 的形狀是 $(B,T_q,T_k)$，而 $Y$ 的形狀是 $(B,T_q,d_v)$。
+
+設 $A_{b,i,j}$ 是布林允許遮罩，True 代表可讀取。只在允許的位置計算 softmax：
+
+$$
+P_{b,i,j}=
+\begin{cases}
+\dfrac{\exp(S_{b,i,j})}{\sum_{k:A_{b,i,k}=\mathrm{True}}\exp(S_{b,i,k})}, & A_{b,i,j}=\mathrm{True},\\[6pt]
+0, & A_{b,i,j}=\mathrm{False}.
+\end{cases}
+$$
+
+實務上可在 softmax 前將禁止位置改成 $-\infty$，但如果一整列都被禁止，該列會成為「全負無窮」輸入，softmax 的分母與結果不再有有效定義。**本章選擇對全遮罩 query 列直接拒絕，不讓 NaN 靜默傳播。**若其他系統要讓全遮罩列輸出零，必須將其設計成明確、可測試的額外規則，而非依賴框架偶然行為。
+
+### 2. Padding、因果與 loss 遮罩
+
+令 $p_{b,j}$ 表示 key 位置 $j$ 是否為 padding，True 代表 PAD。對一般非空序列，key padding mask 為：
+
+$$
+K^{\text{valid}}_{b,j}=\neg p_{b,j}.
+$$
+
+這個遮罩會沿 query 軸廣播：同一個樣本的所有 query 都不能讀取 padding key。
+
+令 $q_i$、$k_j$ 分別是 query 與 key 的**絕對位置**。因果遮罩定義為：
+
+$$
+C_{i,j}=[k_j\le q_i].
+$$
+
+若同時要求因果限制與排除 padding key，合併遮罩為：
+
+$$
+A_{b,i,j}=C_{i,j}\land K^{\text{valid}}_{b,j}.
+$$
+
+padding 位置的 query 是否要計算輸出，則是另一項決策。若某個 padding query 的列仍有允許的有效 key，它仍可能得到非零輸出；這不表示 padding 已被當成有效訓練目標。可選策略包括：保留輸出但在後續忽略該位置、在每個區塊後將 padding query 輸出清零，或以其他明確方式隔離 padding 位置。無論選哪種策略，都不能把它誤認為 key mask 或 loss mask。
+
+若每個位置以 logits 預測下一個 token，令 $\ell_{b,i}$ 為位置 $i$ 的交叉熵，$m_{b,i}$ 為目標位置是否有效的指示值，則 token 平均 loss 為：
+
+$$
+L=\frac{\sum_{b,i}m_{b,i}\ell_{b,i}}{\sum_{b,i}m_{b,i}}.
+$$
+
+這個分母是有效目標 token 數，不是批次大小，也不是包括 PAD 在內的總位置數。若有效 token 數為零，loss 沒有定義，應拒絕該批次或明確跳過，不能偷偷除以任意 epsilon 後宣稱完成了有效訓練。
+
+### 3. 非方形遮罩與 cache
+
+在完整訓練序列中，query 與 key 常都長度 $T$，因果遮罩外觀是下三角矩陣。但在增量解碼中，假設 cache 已包含絕對位置 $0,1,2,3$ 的 key，本次只有位置 $4$ 的 query。遮罩應允許它讀取絕對位置 $0$ 至 $4$ 的 key；並不是把 $(1,5)$ 矩陣當作普通方陣切片後再盲目套用三角形規則。
+
+若 query 的絕對位置是 $[4,5]$，key 的絕對位置是 $[0,1,2,3,4,5]$，允許遮罩為：
+
+$$
+\begin{bmatrix}
+1&1&1&1&1&0\\
+1&1&1&1&1&1
+\end{bmatrix}.
+$$
+
+方框所表示的 shape 是 $(T_q,T_k)=(2,6)$；每一列比較的是該 query 的絕對位置與每一個 key 的絕對位置。只依矩陣內部列號、欄號重建因果關係，可能把該讀取的 cache key 遮掉，或讓未來位置漏過。
+
+### 4. 小命題與證明：過去輸出不受未來輸入影響
+
+**命題。** 固定模型參數與位置索引。假設位置 $i$ 的注意力只允許讀取絕對位置 $j\le i$ 的 key，且該層對位置 $j$ 的 $Q,K,V$ 僅由位置 $j$ 的表示與固定參數計算。則在此注意力層中，只改變位置 $r>i$ 的輸入，不會改變位置 $i$ 的輸出。
+
+**證明。** 因 $r>i$，因果遮罩使 query $i$ 對 key $r$ 的權重為零，並且位置 $i$ 的 softmax 正規化只使用 $j\le i$ 的分數。固定參數下，改變位置 $r$ 的輸入不改變任何位置 $j\le i$ 的 $Q_j,K_j,V_j$，所以位置 $i$ 的允許分數、正規化分母與 value 加權和都不變，故輸出不變。證畢。
+
+這個命題是逐層的局部陳述，不應誇大為任意模型、任意資料流程都不可能洩漏。若輸入特徵本身含有未來統計量、正規化使用了未來資料，或資料切分讓同一序列的未來片段參與訓練與評估，仍可能洩漏。
+
+## 逐步手算例題
+
+### 例題一：三個位置的遮罩 softmax
+
+只考慮一個 query，對三個 key 的原始分數為 $[2,1,3]$。其中 key 0、1 允許，key 2 是 padding key。
+
+1. 遮罩前分數為 $[2,1,3]$。
+2. 依 True=允許的約定，遮罩為 $[1,1,0]$，所以 key 2 的分數在 softmax 前設為 $-\infty$。
+3. 允許分數減去最大值 $2$，得到 $[0,-1]$。
+4. 兩個未正規化權重是 $[1,e^{-1}]$，約為 $[1,0.3679]$。
+5. 正規化後約為 $[0.7311,0.2689]$，padding key 的權重為 $0$。
+6. 若對應 value 為 $[10,20,999]$，輸出約為 $0.7311(10)+0.2689(20)=12.689$。PAD value $999$ 完全不參與。
+
+這個例子只說明 key padding mask。若第三個位置是有效目標，是否計算它的預測 loss，仍要另外由 loss mask 決定。
+
+### 例題二：cache 下的絕對位置因果遮罩
+
+query 絕對位置為 $[4,5]$，key 絕對位置為 $[0,1,2,3,4,5]$。
+
+1. 對第一列 query $q=4$，逐一比較 $k_j\le4$：位置 $0$ 至 $4$ 允許，位置 $5$ 禁止。
+2. 第一列得到 $[1,1,1,1,1,0]$。
+3. 對第二列 query $q=5$，全部 key 位置都滿足 $k_j\le5$。
+4. 第二列得到 $[1,1,1,1,1,1]$。
+5. 堆疊兩列後 shape 為 $(2,6)$。若同時有 padding key，再將相應欄位設為 0。
+
+這說明因果遮罩應根據絕對位置建立；不應假設非方形 cache 遮罩可直接套用方形下三角矩陣。
+
+## 實作與程式
+
+以下 NumPy 程式自足地建立允許遮罩，執行單頭注意力，並支援 padding key 與絕對位置。程式中每個 query 列都必須至少有一個有效 key；全遮罩列會明確拒絕。為簡潔起見，此實作使用固定投影 $Q=X,K=X,V=X$，沒有可訓練參數；目的在驗證遮罩語義，而不是展示模型訓練。
+
+```python
+import numpy as np
+
+
+def make_allowed(q_pos, k_pos, key_is_valid, causal=True):
+    q_pos = np.asarray(q_pos, dtype=np.int64)
+    k_pos = np.asarray(k_pos, dtype=np.int64)
+    key_is_valid = np.asarray(key_is_valid, dtype=bool)
+
+    if q_pos.ndim != 1 or k_pos.ndim != 1:
+        raise ValueError("位置索引必須是一維陣列")
+    if key_is_valid.shape != k_pos.shape:
+        raise ValueError("key_is_valid 必須與 k_pos 同形狀")
+    if q_pos.size == 0 or k_pos.size == 0:
+        raise ValueError("query 與 key 序列不得為空")
+
+    allowed = np.broadcast_to(key_is_valid[None, :],
+                               (q_pos.size, k_pos.size)).copy()
+    if causal:
+        allowed &= (k_pos[None, :] <= q_pos[:, None])
+    return allowed
+
+
+def attention(x, allowed):
+    x = np.asarray(x, dtype=np.float64)
+    allowed = np.asarray(allowed, dtype=bool)
+
+    if x.ndim != 2:
+        raise ValueError("x 須為 (T, D)")
+    tq = allowed.shape[0]
+    tk = allowed.shape[1]
+    if x.shape[0] != tk:
+        raise ValueError("x 的 key 長度必須符合遮罩欄數")
+    if tq == 0 or tk == 0:
+        raise ValueError("query 與 key 長度不得為零")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("輸入含 NaN 或無窮值")
+    if not np.all(np.any(allowed, axis=1)):
+        raise ValueError("存在全遮罩 query 列")
+
+    q = x[:tq]
+    k = x
+    v = x
+    d = x.shape[1]
+
+    scores = (q @ k.T) / np.sqrt(d)
+    scores = np.where(allowed, scores, -np.inf)
+    row_max = np.max(scores, axis=1, keepdims=True)
+    exp_scores = np.where(allowed, np.exp(scores - row_max), 0.0)
+    probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+    return probs @ v, probs
+
+
+def zero_padding_queries(y, query_is_valid):
+    query_is_valid = np.asarray(query_is_valid, dtype=bool)
+    if y.ndim != 2 or query_is_valid.shape != (y.shape[0],):
+        raise ValueError("query mask 與輸出形狀不符")
+    return np.where(query_is_valid[:, None], y, 0.0)
+
+
+def masked_token_mean(losses, valid_targets):
+    losses = np.asarray(losses, dtype=np.float64)
+    valid_targets = np.asarray(valid_targets, dtype=bool)
+    if losses.shape != valid_targets.shape:
+        raise ValueError("losses 與有效目標遮罩形狀不符")
+    if not np.all(np.isfinite(losses[valid_targets])):
+        raise ValueError("有效位置的 loss 必須有限")
+    count = int(np.sum(valid_targets))
+    if count == 0:
+        raise ValueError("批次沒有有效目標 token")
+    return float(np.sum(losses[valid_targets]) / count)
+
+
+def run_checks():
+    # 正常：三個 token，最後一個是 padding key。
+    x = np.array([[1.0, 0.0],
+                  [0.0, 1.0],
+                  [2.0, 2.0]])
+    q_pos = np.array([0, 1, 2])
+    k_pos = np.array([0, 1, 2])
+    key_valid = np.array([True, True, False])
+    allowed = make_allowed(q_pos, k_pos, key_valid, causal=True)
+    y, p = attention(x, allowed)
+    assert y.shape == (3, 2)
+    assert p.shape == (3, 3)
+    assert np.all(p[:, 2] == 0.0)
+    assert np.allclose(np.sum(p, axis=1), 1.0)
+
+    # 因果性：改變未來 token，不應影響位置 0、1 的輸出。
+    x_changed = x.copy()
+    x_changed[2] = np.array([-100.0, 50.0])
+    y2, _ = attention(x_changed, allowed)
+    assert np.allclose(y[:2], y2[:2])
+
+    # padding query 輸出採明確零輸出策略；不等同於 key 或 loss 遮罩。
+    y_zeroed = zero_padding_queries(y, np.array([True, True, False]))
+    assert np.all(y_zeroed[2] == 0.0)
+
+    # loss 只平均有效目標；最後一個 PAD 目標忽略。
+    loss = masked_token_mean(
+        np.array([0.2, 0.4, 100.0]),
+        np.array([True, True, False])
+    )
+    assert np.isclose(loss, 0.3)
+
+    # 邊界：位置 0 只能讀取位置 0。
+    first = make_allowed(
+        np.array([0]), np.array([0, 1]), np.array([True, True]), True
+    )
+    assert np.array_equal(first, np.array([[True, False]]))
+
+    # 故障：全遮罩列必須拒絕。
+    try:
+        attention(x, np.zeros((3, 3), dtype=bool))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("全遮罩列應被拒絕")
+
+    # 故障：loss 沒有任何有效目標必須拒絕。
+    try:
+        masked_token_mean(np.array([0.2, 0.4]), np.array([False, False]))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("零有效 token 應被拒絕")
+
+
+if __name__ == "__main__":
+    run_checks()
+```
+
+### shape、軸與平均方式核對
+
+- `x` 是 $(T_k,D)$；`q` 是 $(T_q,D)$。
+- `q @ k.T` 是 $(T_q,T_k)$。最後一軸是 key 軸，遮罩和 softmax 均沿此軸操作。
+- `probs @ v` 是 $(T_q,D)$。
+- 此範例批次大小為 1，但程式為單筆資料而明確使用二維矩陣；擴展成批次時應保留 $B$ 軸，不要依賴 NumPy 一維陣列的 `.T` 改變 shape。
+- padding query 清零的操作作用於輸出列，不會改變 key 是否可讀，也不會自動改變 loss。
+- loss 只將有效位置的誤差相加，再除以有效目標數，沒有先對每個小批次平均後再不加權地平均。
+
+## 測試與預期結果
+
+上述檢查涵蓋正常、邊界與故障情況。預期行為如下；本章未執行程式，因此不宣稱測試已通過。
+
+- **正常測試**：PAD key 的注意力權重為 0，各有效 query 的權重列總和為 1；有效目標 loss 為 $0.3$。
+- **因果測試**：改變位置 2 的輸入，位置 0、1 的輸出仍相同。這是對本實作指定遮罩與固定投影的測試，不是對任意輸入前處理流程的保證。
+- **邊界測試**：絕對位置 0 的 query，只能讀取位置 0；若 key 0 有效，softmax 列只有一個可選位置，其權重為 1。
+- **padding 輸出策略**：`zero_padding_queries` 會將指定的 padding query 輸出列歸零；若不呼叫此函式，該列仍可有輸出。這兩種選擇都不應被錯稱為 loss 遮罩。
+- **故障測試**：全遮罩 query 列、零有效目標 token、形狀不相符和非有限輸入應引發 `ValueError`，而非產生可被忽略的 NaN。
+- **框架 API 語義**：不同框架、不同版本對 bool mask 的 True 含義可能不同。有的介面 True 表示參與注意，有的則以 True 表示遮蔽。PyTorch 2.14 的 `scaled_dot_product_attention` 文件明確指出其 bool mask 的 True 表示參與注意；使用其他 API 時不可照抄而不核對。即使模型外層處於 evaluation 模式，若 API 仍以參數指定 attention dropout，也須按其介面明確設定 dropout 機率為 0。[N3]
+
+## 反例與常見陷阱
+
+1. **只遮 loss，沒遮 key**：PAD token 雖然不計入誤差，仍可能被有效 query 讀取。loss mask 不能代替 attention mask。
+2. **只遮 key，沒遮 loss**：模型仍可能被要求預測 PAD，錯誤改變訓練目標。key mask 不能代替 loss mask。
+3. **對所有 padding query 一概全遮 key**：若如此造成全遮罩列，softmax 沒有有效正規化結果。本章拒絕這種列；另一種系統設計可以採零輸出，但需明確實作並測試。
+4. **把 PAD query 輸出自動當作零**：遮蔽 PAD key 不會自然讓 PAD query 的輸出成為零。若需要零輸出，應另加策略，並避免其輸出被後續層或池化使用。
+5. **將 `tril` 用在任何形狀**：完整序列的方形矩陣適合用下三角形表達；cache 的非方形矩陣需比較絕對位置。也要核對框架內建 `is_causal` 對非方形矩陣的對齊規則；不得假定所有 API 都以相同方式對齊。
+6. **遮罩加在 softmax 後**：先把禁止位置 softmax 成正值，再將權重歸零會讓剩下權重的總和小於 1。除非之後再以明確規則重新正規化，否則這不是標準的遮罩 softmax。
+7. **用很大的有限負數冒充 $-\infty$**：有限負數在極端分數、低精度 dtype 或整列被遮蔽時可能產生意外結果。實作須考慮數值域並拒絕全遮罩列。
+8. **假設因果遮罩能防所有洩漏**：若每個位置的輸入早已包含未來統計量，遮住 attention 仍無法挽回。標準化統計量、特徵工程、資料窗及資料切分也須符合預測時間點。
+9. **不檢查 loss 平均分母**：不同批次 padding 數不同，若先各自求平均再平均各批次，等權的其實是批次，不是 token。累積梯度時也應依有效 token 數加權，並確保只除一次。
+
+## AI、幾何與養殖案例
+
+假設有合成養殖日誌，每個時間位置含有水溫摘要、餵食事件標記與感測器狀態。這些欄位在本章只用於說明資料結構，不提供真實養殖操作閾值或設備建議。為了批次訓練，短日誌以 PAD 補到相同長度；自回歸模型在時間 $i$ 預測下一筆記錄。
+
+- 因果 mask 確保預測時間 $i$ 不會看到未來的時間 $i+1$。
+- key padding mask 防止正常時間位置讀取補齊出的 PAD key。
+- 若訓練目標在 PAD 位置不存在，loss mask 排除那些目標。
+- 可選擇在每層後將 padding query 表示歸零，或保留但確保後續池化與 loss 都忽略它。必須測試選定策略。
+- 訓練、驗證與測試應先依文件、來源群組或時間順序切分，再建立重疊窗口。若同一日誌的相鄰窗口跨集合，即使 attention mask 正確，也會讓評估受到近重複資料污染。
+
+幾何上，因果遮罩是在 query–key 配對平面中選出「不晚於 query」的半平面；padding 遮罩則刪去代表缺失或補齊 key 的欄位。兩種限制可取交集，但它們代表不同條件。注意力權重是模型計算過程的一部分，不因此自動成為可靠的因果解釋。
+
+## 習題
+
+### A. 手算題
+
+1. 某 query 的分數為 $[0,0,0]$，允許遮罩為 $[1,0,1]$。求注意力權重。若對應 value 為 $[2,100,8]$，求輸出。
+2. query 絕對位置為 $[7,8]$，key 絕對位置為 $[5,6,7,8,9]$，其中位置 6 是 padding key。寫出同時使用因果與 key padding 限制的允許矩陣，shape 為何？
+
+### B. 程式題
+
+3. 修改程式，讓 `make_allowed` 另可接收 padding query mask，並用清楚的回傳值或獨立函式實作「padding query 輸出歸零」。請保留 key mask 與 loss mask 為分離的操作。
+4. 寫一個 loss 函式，輸入 logits $(B,T,V)$、整數目標 $(B,T)$ 與有效目標遮罩 $(B,T)$；以穩定 log-sum-exp 計算 logits 交叉熵，對有效目標 token 求平均，並拒絕零有效 token 及非法標籤。
+
+### C. 反例題
+
+5. 有人把 padding mask 套到 query 軸，因此 PAD query 不輸出；但沒有遮蔽 padding key。請構造一個長度為 2、補齊到 3 的序列，解釋位置 0 如何讀取位置 2 的 PAD value。
+6. 有人把完整序列的因果遮罩用在 cache 的 $(T_q,T_k)=(1,4)$ 注意力矩陣，採一般方形下三角形的左上角。說明為何可能錯誤，並寫出 query 絕對位置為 5、keys 為 $[0,1,2,3]$ 時正確遮罩。
+
+### D. 整合題
+
+7. 設計一個合成時間序列的訓練與評估流程，交代資料切分、PAD、attention mask、loss mask 與評估平均。指出至少一種即使使用因果遮罩仍可能發生的未來資訊洩漏。
+8. 說明如何測試某個框架的 bool mask True 語義與非方形 causal 對齊；不得以「另一個框架如此」作為依據，也不得把未執行測試寫成已通過。
+
+## 習題解答
+
+### A. 手算題
+
+1. 允許位置只有第 0 與第 2 個 key。兩個分數同為 0，所以未正規化權重為 $[1,1]$，正規化後為 $[0.5,0,0.5]$。輸出為 $0.5(2)+0(100)+0.5(8)=5$。
+2. query 7 可讀 key 5、7；key 6 是 padding，key 8、9 在未來。第一列為 $[1,0,1,0,0]$。query 8 可讀 key 5、7、8，key 6 仍是 padding，key 9 在未來，第二列為 $[1,0,1,1,0]$。矩陣 shape 為 $(2,5)$。
+
+### B. 程式題
+
+3. 可讓 `make_allowed` 只負責 query–key 是否配對，另設獨立的輸出函式依 query mask 清零。這能避免將 padding query 策略混入 key mask。參考本章 `zero_padding_queries`：輸入輸出 shape $(T_q,D)$ 及 query 有效遮罩 $(T_q,)$，沿 feature 軸廣播成 $(T_q,1)$。loss 仍由獨立的有效目標遮罩決定。
+4. 一個合法的計算流程為：先驗證 logits 與目標 shape 分別是 $(B,T,V)$、$(B,T)$；確認有效位置標籤落在 $[0,V)$。對每個位置計算 $m=\max_v z_v$，再算 $\log\sum_v\exp(z_v-m)+m-z_y$。只將有效位置 NLL 相加，除以有效位置數。有效位置數為零、標籤越界或有效 logits 非有限時應拒絕。這樣不必先算 softmax 再取 log，也不需任意加 epsilon。
+
+### C. 反例題
+
+5. 序列有效位置是 0、1，位置 2 是 PAD。若只遮蔽 query，位置 0 的 query 仍可注意位置 2 的 key。若 PAD value 很大，例如 $V_2=1000$，而注意力分數使其權重不為零，輸出會混入 $1000$ 的貢獻。必須另以 key mask 禁止讀取位置 2。
+6. 方形遮罩的「矩陣列號不大於欄號」不能表達 cache 外部的歷史位置。query 絕對位置 5 對 keys $[0,1,2,3]$ 全部滿足 $k\le5$，故正確遮罩為 $[1,1,1,1]$。若 API 的非方形因果模式使用不同對齊方式，應查文件並用小型明確測試確認。
+
+### D. 整合題
+
+7. 先以文件來源、序列群組或時間順序切出訓練、驗證與測試集合；同一原始序列的重疊窗口不得跨集合。只用訓練集合擬合標準化統計量與詞表，再分別建立各集合窗口。批次補 PAD，key mask 排除 PAD key，因果 mask 按絕對位置限制未來，loss mask 排除 PAD 目標。全資料的有效 token NLL 相加除以有效 token 數；perplexity 是其指數，而不是各批次 perplexity 的不加權平均。即使 attention 因果遮罩正確，若標準化平均值使用了測試期間未來資料，仍會洩漏。
+8. 查閱該框架與版本中**實際使用的 API** 文件，確認 True 是允許還是禁止。再建立含兩個 query、數個 key 的非方形輸入，手工指定絕對位置與預期允許矩陣，與 API 的遮罩結果或注意力輸出比較；另外改變未來 key，確認過去 query 輸出不變。若未實際執行，只能描述測試設計與預期結果，不能聲稱通過。
+
+## 本章小結
+
+- Padding key、因果未來位置與 padding 目標是三種不同限制，分別由 attention key mask、causal mask 與 loss mask 處理。
+- 本章約定布林 True 代表允許注意；使用框架 API 前須確認其版本語義。
+- 因果性以 key 的絕對位置不晚於 query 判斷。KV cache 的矩形遮罩不可不加檢查地當成方形 `tril`。
+- 全遮罩 query 列沒有可正規化的注意力分布。本章選擇明確拒絕；零輸出等其他策略必須另行定義。
+- padding query 的輸出策略應獨立指定。遮蔽 PAD key 不會自動清零 PAD query，遮蔽 loss 也不會自動禁止讀取 PAD key。
+- 有效 token loss 是有效 token 誤差總和除以有效 token 數；零有效 token 必須明確處理。
+- 正確 mask 只是防止未來資訊洩漏的一部分；預處理、資料窗口與切分也須符合預測時間點。
+
+## 參考來源
+
+1. Vaswani et al., “Attention Is All You Need.” [arXiv:1706.03762](https://arxiv.org/abs/1706.03762)。本章僅列作注意力架構背景，未宣稱已完整閱讀論文。
+2. PyTorch 2.14, `scaled_dot_product_attention` API。[文件](https://docs.pytorch.org/docs/2.14/generated/torch.nn.functional.scaled_dot_product_attention.html)。需依實際使用的框架版本與 API 核對遮罩和 dropout 語義；文件不是本機安裝或執行證據。
+3. NumPy broadcasting 使用指南。[文件入口](https://numpy.org/doc/stable/user/basics.broadcasting.html)。本章未逐條核對此延伸資料；shape 與廣播規則已在文中明列。

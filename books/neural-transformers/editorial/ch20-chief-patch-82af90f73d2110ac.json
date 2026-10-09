@@ -1,0 +1,11 @@
+{
+  "key": "82af90f73d2110ac2d30e9818eba1a8052f6b5ce39221f5dfc7cb0cbaa939dc3",
+  "person": {
+    "id": "v5_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 153,
+  "result": "<<<PATCH 20>>>\n<<<OLD>>>\n    bad_logits = np.array([[np.nan, 0.0]])\n    expect_value_error(\n        lambda: (_ for _ in ()).throw(\n            ValueError(\"logits 含非有限值\")\n        ) if not np.isfinite(bad_logits).all() else None,\n        \"非有限值\",\n    )\n<<<NEW>>>\n    # 注入 NaN 到輸出偏置，驗證模型自身的非有限 logits 檢查。\n    saved_bout = model.p[\"bout\"].copy()\n    model.p[\"bout\"][0] = np.nan\n    expect_value_error(\n        lambda: model.loss_and_grads(ids, targets, mask),\n        \"非有限值\",\n    )\n    model.p[\"bout\"] = saved_bout\n<<<END>>>"
+}

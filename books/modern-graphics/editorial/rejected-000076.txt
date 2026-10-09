@@ -1,0 +1,289 @@
+# 第23章　水面反射、折射與介質
+
+## 學習目標與先備知識
+
+本章要把射線追蹤中的「碰到水面」拆成三件事：決定反射與折射的方向、分配兩條路徑的光量，以及計算光在水中行進時的衰減。完成後，你應能：
+
+- 依射線所在介質選擇折射率及法線方向，用 Snell 定律求折射方向；
+- 判斷全反射，並區分 Fresnel 反射率與固定的「透明度」；
+- 用 Beer–Lambert 定律計算指定距離的吸收；
+- 以可重現的小程式測試入水、出水、全反射及介質路徑長度。
+
+先備知識是單位向量、內積、射線交點，以及前章的線性 RGB 與路徑追蹤概念。世界座標仍採右手系，$+Y$ 向上；下例以水平面 $y=0$ 為合成水面，空氣在 $y>0$，水在 $y<0$。長度以公尺、角度以弧度計。折射率 $n$ 是無單位數；所有色彩光量先在線性 RGB 中計算。
+
+## 問題與直覺
+
+從池上方向下看魚，水面同時顯示上方環境的倒影，以及穿過水面後的魚。觀看方向變得貼近水面時，倒影通常更顯著。若光從水中斜向上走，角度足夠大時，還可能完全無法形成向空氣傳播的折射射線。即使成功入水，光在水中走得越遠，某些波段也會衰減得越多。
+
+因此，「畫一片半透明藍色平面」不能替代水面模型。它可能產生可用的示意圖，卻沒有依入射角改變反射、沒有全反射，也沒有把水中行程與吸收分開。以下建立的是一個**清澈、平坦、均勻介質**的合成參考模型；它不包含波浪微表面、散射、懸浮粒子、焦散或魚體表面的完整光傳輸。
+
+## 數學與幾何推導
+
+### 介質、入射方向與法線
+
+令 $\mathbf d$ 為指向交點的**單位射線方向**，$\mathbf N$ 為由第一介質指向第二介質反方向、也就是**朝向入射射線所在一側**的單位法線。本章在每次交界時都調整 $\mathbf N$，使
+
+$$
+c_i=\cos\theta_i=-\mathbf d\cdot\mathbf N\in[0,1].
+$$
+
+$\theta_i$ 是射線與法線的夾角。令 $n_1$ 為射線目前所在介質的折射率、$n_2$ 為將進入介質的折射率。對水平水面，從空氣往下的 $\mathbf d_y<0$ 應使用 $\mathbf N=(0,1,0)$、$n_1=n_{\rm air}$、$n_2=n_{\rm water}$；從水往上的 $\mathbf d_y>0$ 則使用 $\mathbf N=(0,-1,0)$，並交換兩個折射率。這裡的 $\mathbf N$ 是**交界計算用的朝向法線**，不必等於網格儲存的固定外向法線。
+
+反射方向是入射方向沿法線分量翻轉：
+
+$$
+\mathbf r=\mathbf d-2(\mathbf d\cdot\mathbf N)\mathbf N.
+$$
+
+由於 $\mathbf d$、$\mathbf N$ 都是單位向量，$\mathbf r$ 也是單位向量。反射留在原介質，折射才跨越界面。
+
+### Snell 定律與全反射
+
+在平坦界面上，折射方向的切向分量必須符合 Snell 定律：
+
+$$
+n_1\sin\theta_i=n_2\sin\theta_t.
+$$
+
+設 $\eta=n_1/n_2$，把入射方向分解為切向部分 $\mathbf d+c_i\mathbf N$ 與法向部分 $-c_i\mathbf N$。折射方向的切向部分因而是 $\eta(\mathbf d+c_i\mathbf N)$。若
+
+$$
+k=1-\eta^2(1-c_i^2)\geq 0,
+$$
+
+折射角餘弦為 $c_t=\sqrt{k}$，折射方向可寫成
+
+$$
+\mathbf t=\eta\mathbf d+(\eta c_i-c_t)\mathbf N.
+$$
+
+這個寫法便於程式實作，也提供直接測試：$\mathbf t$ 應是單位向量，且指向第二介質，即 $\mathbf t\cdot\mathbf N\leq0$。
+
+當 $k<0$，$\sin\theta_t$ 會被要求大於 $1$，沒有向另一介質傳播的折射射線，稱為**全反射**。它只可能在 $n_1>n_2$ 時發生；臨界角為
+
+$$
+\theta_c=\arcsin\!\left(\frac{n_2}{n_1}\right),\qquad n_1>n_2.
+$$
+
+在理想幾何光學模型中，$\theta_i>\theta_c$ 全反射；恰在臨界角時，折射方向沿著界面。數值計算接近 $k=0$ 時應容許極小的浮點誤差，卻不能把明顯的負值當成有效折射。
+
+### Fresnel：兩條路徑如何分光
+
+方向確定後，還須決定反射與透射的光量。對無吸收、光滑的介電界面，無偏振入射光的 Fresnel **功率反射率**可由兩個偏振分量平均：
+
+$$
+R_s=
+\left(\frac{n_1c_i-n_2c_t}{n_1c_i+n_2c_t}\right)^2,\qquad
+R_p=
+\left(\frac{n_1c_t-n_2c_i}{n_1c_t+n_2c_i}\right)^2,
+\qquad
+F=\frac{R_s+R_p}{2}.
+$$
+
+此式在有效折射方向存在時使用；全反射時令 $F=1$。這裡的 $F$ 是介面處的反射光通量比例，不是某個顏色通道的藍色係數。在此理想、無界面吸收的設定下，透射光通量比例是 $1-F$。若把它們接進完整路徑追蹤器，方向取樣機率、輻射亮度跨介質的折射率因子及 PDF 必須一致處理；不可僅因兩個比例相加為一，就宣稱任意實作皆能量正確。
+
+正入射時 $c_i=c_t=1$，上式化成
+
+$$
+F_0=\left(\frac{n_1-n_2}{n_1+n_2}\right)^2.
+$$
+
+常見的 Schlick 近似 $F_{\rm Schlick}=F_0+(1-F_0)(1-c_i)^5$ 計算方便，但只是角度曲線的近似，不應拿它在全反射條件下取代 $F=1$。本章程式用上面的無偏振 Fresnel 公式，方便檢查臨界角附近的行為。
+
+### Beer–Lambert：跨過界面之後
+
+水中行進時的吸收與界面 Fresnel 是不同事件。對均勻、**只吸收、不散射且不發光**的介質，令每個線性 RGB 通道的吸收係數為 $\boldsymbol{\sigma}_a$，單位 $\mathrm{m}^{-1}$；水中行程為 $\ell$ 公尺。各通道透射率為
+
+$$
+\boldsymbol{\tau}(\ell)
+=\exp(-\boldsymbol{\sigma}_a\ell),
+\qquad
+\mathbf L_{\rm after}
+=\boldsymbol{\tau}(\ell)\odot\mathbf L_{\rm before},
+$$
+
+其中 $\odot$ 表示逐通道相乘。指數的乘積 $\sigma_a\ell$ 沒有單位。舉例說，兩公尺路程若 $\sigma_a=0.4\ \mathrm{m}^{-1}$，該通道透射率是 $e^{-0.8}$，約 $0.449$；這不是「水面有百分之四十四點九透明」，而是指定**介質路程**造成的衰減。
+
+實際水下影像還有向視線散入的光。只乘上 $\boldsymbol{\tau}$ 不會產生朦朧的水色，也不能代表濁水的散射；用 RGB 三係數亦只是合成影像近似，並非完整波長光譜模型。
+
+## 逐步手算例題
+
+**例一：由空氣入水。** 為使算式易驗算，設定合成折射率 $n_{\rm air}=1$、$n_{\rm water}=4/3$。取入射角 $\theta_i=30^\circ=\pi/6$，則 $\sin\theta_i=1/2$。Snell 定律給出
+
+$$
+\sin\theta_t=\frac{1}{4/3}\frac12=\frac38=0.375,
+\qquad
+\theta_t=\arcsin(0.375)\approx22.02^\circ.
+$$
+
+折射角較小，光線朝法線彎折。$c_i=\sqrt3/2\approx0.8660$、$c_t=\sqrt{1-(3/8)^2}\approx0.9270$。此時 $k=c_t^2=55/64>0$，故不是全反射。正入射的基準反射率另可手算：
+
+$$
+F_0=\left(\frac{1-4/3}{1+4/3}\right)^2
+=\left(-\frac17\right)^2
+=\frac1{49}\approx0.02041.
+$$
+
+注意 $F_0$ 是**正入射**值；不能未計算便把它宣稱為本題 $30^\circ$ 的精確反射率。
+
+**例二：由水出空氣與臨界角。** 交換折射率後，$n_1=4/3$、$n_2=1$。臨界角為
+
+$$
+\theta_c=\arcsin(3/4)\approx48.59^\circ.
+$$
+
+若水中入射角是 $30^\circ$，則 $\sin\theta_t=(4/3)(1/2)=2/3$，空氣中的折射角約 $41.81^\circ$，有折射射線。若改為 $60^\circ$，則 $\sin\theta_t=(4/3)(\sqrt3/2)=2\sqrt3/3>1$，所以全反射。把這條射線標成「完全不透明水面」並不精確：判斷取決於**入射側是水**及入射角，而非整片水面具有固定透明度。
+
+## 實作與程式
+
+以下完整程式僅用 Python 3.10+ 標準庫，計算單條射線在理想平面交界的反射、折射、Fresnel 反射率及水中吸收。`interface` 明確接收入射側與透射側的折射率；`face_normal` 檢查傳入的法線是否朝向入射側，避免在呼叫端暗中交換介質。此小程式不追蹤後續物件交點，也不讀寫檔案。
+
+```python
+import math
+
+def dot(a, b):
+    return sum(x * y for x, y in zip(a, b))
+
+def scale(k, v):
+    return tuple(k * x for x in v)
+
+def add(a, b):
+    return tuple(x + y for x, y in zip(a, b))
+
+def unit(v):
+    length = math.sqrt(dot(v, v))
+    if not math.isfinite(length) or length == 0:
+        raise ValueError("方向必須是非零有限向量")
+    return scale(1 / length, v)
+
+def face_normal(direction, normal):
+    d, n = unit(direction), unit(normal)
+    if dot(d, n) >= 0:
+        raise ValueError("法線須指向入射側，且非切向入射")
+    return d, n
+
+def interface(direction, normal, n1, n2):
+    if not (math.isfinite(n1) and math.isfinite(n2)
+            and n1 > 0 and n2 > 0):
+        raise ValueError("折射率必須是正的有限數")
+    d, n = face_normal(direction, normal)
+    ci = -dot(d, n)
+    eta = n1 / n2
+    reflected = unit(add(d, scale(2 * ci, n)))
+    k = 1 - eta * eta * (1 - ci * ci)
+
+    if k < -1e-14:
+        return reflected, None, 1.0  # 全反射
+    ct = math.sqrt(max(0.0, k))       # 僅修正邊界浮點誤差
+    transmitted = unit(add(scale(eta, d),
+                           scale(eta * ci - ct, n)))
+    rs = ((n1 * ci - n2 * ct) /
+          (n1 * ci + n2 * ct)) ** 2
+    rp = ((n1 * ct - n2 * ci) /
+          (n1 * ct + n2 * ci)) ** 2
+    return reflected, transmitted, (rs + rp) / 2
+
+def beer_lambert(rgb, absorption, distance):
+    if len(rgb) != 3 or len(absorption) != 3:
+        raise ValueError("需要三個線性 RGB 通道")
+    if not math.isfinite(distance) or distance < 0:
+        raise ValueError("路程必須是非負有限公尺數")
+    if any(not math.isfinite(x) or x < 0 for x in absorption):
+        raise ValueError("吸收係數須為非負有限數")
+    if any(not math.isfinite(x) or x < 0 for x in rgb):
+        raise ValueError("輸入光量須為非負有限數")
+    return tuple(value * math.exp(-sigma * distance)
+                 for value, sigma in zip(rgb, absorption))
+
+air, water = 1.0, 4.0 / 3.0
+up = (0.0, 1.0, 0.0)
+down = (0.0, -1.0, 0.0)
+
+# 由空氣往下：法線朝上；入射角 30 度。
+incident = (0.5, -math.sqrt(3) / 2, 0.0)
+r, t, f = interface(incident, up, air, water)
+assert t is not None
+assert math.isclose(-dot(t, up), math.sqrt(55) / 8,
+                    abs_tol=1e-12)
+assert 0 <= f <= 1
+assert math.isclose(dot(r, r), 1.0, abs_tol=1e-12)
+
+# 正入射，以及由水往上、超過臨界角的全反射。
+_, straight, f0 = interface(down, up, air, water)
+assert straight is not None
+assert math.isclose(f0, 1 / 49, abs_tol=1e-12)
+from_water = (math.sqrt(3) / 2, 0.5, 0.0)  # 與向下法線夾 60 度
+_, no_transmission, ftir = interface(
+    from_water, down, water, air)
+assert no_transmission is None and ftir == 1.0
+
+out = beer_lambert((1.0, 1.0, 1.0),
+                   (0.4, 0.2, 0.1), 2.0)
+assert math.isclose(out[0], math.exp(-0.8), abs_tol=1e-12)
+assert out[0] < out[1] < out[2]
+```
+
+`unit` 保證本例方向長度為一，因此介質行程以射線參數差計算時才可直接視為公尺。其他射線追蹤器若使用未正規化方向，必須把參數區間乘以方向長度，才得到 Beer–Lambert 所需的實際行程。例中沒有設定後續交點偏移量；若擴充成多次反彈的追蹤器，應按場景尺度處理射線自相交，而不是把 `1e-14` 當成交點的通用 epsilon。
+
+## 測試與預期結果
+
+讀者執行上述程式時，**預期**各斷言通過且無文字輸出；這不是已執行的報告。測試分別覆蓋折射方向的法向分量、反射方向的單位長度、正入射的 $F_0$、出水時的全反射，以及水中走兩公尺的逐通道吸收。
+
+可再自行增添兩種邊界測試。其一，取水中入射角 $30^\circ$，應得到有效透射方向，其折射角約 $41.81^\circ$；其二，取零公尺水中路程，`beer_lambert(rgb, absorption, 0)` 應等於原輸入光量。它們分別檢查「由水出空氣不一定全反射」及「沒有行程就沒有體吸收」。
+
+## 除錯與常見陷阱
+
+- **只翻轉法線，未交換折射率：** 射線入水和出水的 $n_1,n_2$ 不同。用同一組折射率處理兩側，會錯過出水時的全反射。
+- **用面法線直接代入公式：** 網格面法線可能指向與入射射線相同的一側。先確定射線位於哪種介質，再讓計算法線朝向入射側，使 $-\mathbf d\cdot\mathbf N\geq0$。
+- **平方根得到負數：** $k<0$ 是全反射判定，並非應以絕對值開根號的普通數值錯誤；只有非常接近零的負值才可能按浮點容差修正。
+- **以 $1-F$ 取代水中吸收：** 前者是界面分光，後者是以公尺計算的介質行程效應。光可先透射、再於水中吸收，兩步不可互換成一個固定 alpha。
+- **在 sRGB 數值上乘指數：** Beer–Lambert 應作用於線性光量。顯示用 sRGB 編碼及資料貼圖不可混作介質光量。
+- **以藍色濾鏡聲稱模擬真實濁水：** 濁度、散射與向視線補入的光均不在本章模型內；調整三個吸收係數只能建立特定的合成示意效果。
+
+## 養殖數位分身案例
+
+建立一個可檢查的簡化場景：水面是 $y=0$ 的平面，水中一尾合成魚位於 $y=-2$ 公尺附近，相機自水面上方看向魚。為展示機制，暫取 $n_{\rm air}=1$、$n_{\rm water}=4/3$，以及合成吸收係數 $(0.4,0.2,0.1)\ \mathrm{m}^{-1}$；這些數字只為測試與示意，不是對池水採樣的測量值。
+
+一條相機射線先與平面求交。交界處依入射角計算反射射線和折射射線；向水下的路徑再與魚求交，兩點之間的**實際水中距離**才是吸收公式的 $\ell$。若某通道進入水中的線性光量是 $1$，沿水中行進兩公尺，例中的三通道分別乘上 $e^{-0.8}$、$e^{-0.4}$、$e^{-0.2}$。斜看同一深度的魚時，水中射線通常走得更遠，因此不能一律用魚的垂直深度代替行程。
+
+這個場景可以產生「反射比例隨角度變動、魚的水中路徑隨距離衰減」的合成對照資料；它沒有波浪、懸浮物散射或真實水質校準。即使畫面看起來像養殖池，也不能據此推斷真實池水能見度或魚的狀態。
+
+## 習題
+
+1. **手算：** 使用 $n_{\rm air}=1$、$n_{\rm water}=4/3$。空氣中一條射線以 $30^\circ$ 入水，求 $\sin\theta_t$、折射角約值及正入射基準 $F_0$。再判斷水中以 $60^\circ$ 向上入射是否會全反射。
+2. **程式測試：** 在本章程式後增加兩個斷言：水中以 $30^\circ$ 向上入射能夠折射；對線性 RGB $(0.8,0.6,0.4)$，在任意合法吸收係數下走零公尺，輸出維持不變。給出程式片段。
+3. **反例／除錯：** 某實作把從水往上走的射線仍以 `interface(d, up, air, water)` 計算，並在出現負的平方根輸入時改用 `sqrt(abs(k))`。指出至少兩個獨立錯誤，說明水中 $60^\circ$ 入射時應採取的行為。
+4. **整合應用：** 一條已折射進水的射線，方向為單位向量，從水面交點走到合成魚表面交點共 $3$ 公尺。水中吸收係數為 $(0,\ln 2/3,\ln 4/3)\ \mathrm{m}^{-1}$，入水後的線性 RGB 光量為 $(0.6,0.6,0.6)$。求到達魚表面前的三通道光量。若魚的垂直深度只有 $1.5$ 公尺，為何不能用 $1.5$ 取代 $3$？
+
+## 習題解答
+
+1. $\sin\theta_t=(1/(4/3))\sin30^\circ=3/8$，故 $\theta_t\approx22.02^\circ$；$F_0=((1-4/3)/(1+4/3))^2=1/49\approx0.02041$。出水臨界角 $\arcsin(3/4)\approx48.59^\circ$，$60^\circ$ 超過臨界角，因此全反射，沒有向空氣傳播的折射射線。
+2. 可加入以下片段；由水向上的入射方向與朝下法線夾 $30^\circ$：
+
+   ```python
+   upward_30 = (0.5, math.sqrt(3) / 2, 0.0)
+   _, transmitted_30, fresnel_30 = interface(
+       upward_30, down, water, air)
+   assert transmitted_30 is not None
+   assert 0 <= fresnel_30 < 1
+
+   original = (0.8, 0.6, 0.4)
+   assert beer_lambert(
+       original, (0.3, 0.2, 0.1), 0.0) == original
+   ```
+
+   零距離時每個指數因子都是 $e^0=1$；**預期**這些斷言通過。
+3. 第一，射線在水中，應設 $n_1=n_{\rm water}$、$n_2=n_{\rm air}$；第二，計算法線應朝水中，即 `down`，不能直接使用 `up`。第三，明顯負的 $k$ 代表不存在傳播中的折射方向，`sqrt(abs(k))` 會捏造一條射線。正確呼叫是 `interface(d, down, water, air)`；水中 $60^\circ$ 時應回傳反射方向、無折射方向，且 $F=1$。
+4. 三公尺行程的透射因子依次是 $e^0=1$、$e^{-\ln2}=1/2$、$e^{-\ln4}=1/4$，因此到達前的光量為 $(0.6,0.3,0.15)$。Beer–Lambert 使用光線**沿路徑行進的距離**；斜射線可在下降 $1.5$ 公尺時走過 $3$ 公尺，垂直深度不等於行程。
+
+## 本章小結
+
+水面交界先由介質順序、入射方向與朝向法線決定幾何：Snell 定律給折射方向，負的 $k$ 判定全反射。Fresnel 給理想界面的反射光量比例；光成功入水後，Beer–Lambert 才按水中**實際路程**計算吸收。將這三步分開實作與測試，才能清楚指出合成水面呈現了哪些機制，以及哪些水下光學現象仍未建模。
+
+## 參考來源
+
+- [G2] *PBRT 4：Reflection Models*，https://pbr-book.org/4ed/Reflection_Models
+- [G3] *PBRT 4：The Light Transport Equation*，https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/The_Light_Transport_Equation
+- [G4] *Ray Tracing in One Weekend*，https://raytracing.github.io/books/RayTracingInOneWeekend.html
+
+以上供延伸閱讀理想介電界面與光傳輸概念；本章的合成折射率、吸收係數及測試設定均已在文中明示，不作真實池水量測或完整水下光學模型的聲稱。

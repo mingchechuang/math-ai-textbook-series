@@ -1,0 +1,80 @@
+{
+  "key": "ff78dc69b8b89ea0262c95bb8f712f8984f506f10ab37f0d8379d7c1f6aa52b4",
+  "person": {
+    "id": "v2_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 183,
+  "result": {
+    "patches": [
+      {
+        "chapter": 29,
+        "old": "**本卷限制聲明**：本章生成的「魚群行為」僅為基於局部規則的幾何運動，**不等於**真實生物生態學。所有資料均為合成（Synthetic），用於驗證圖學管線與標註流程，不可直接用於科學推論。",
+        "new": "**本卷限制聲明**：本章生成的「魚群行為」僅為基於局部規則的幾何運動，**不等於**真實生物生態學。所有資料均為合成（Synthetic），用於驗證圖學管線與標註流程，不可直接用於科學推論。\n\n本模型輸出的是質點的**位置、速度、近似深度與識別碼**；它不包含完整的魚體姿態（朝向、翻滾、關節角度）。速度可以近似推導出「前向方向」，但零速度時方向未定義，也不能取代骨架動畫。若下游需要姿態，必須在質點狀態之上另建朝向模型，並處理零速度、速度與 up 平行的退化情形。"
+      },
+      {
+        "chapter": 29,
+        "old": "在養殖場監控中，真實水下攝影面臨光線衰減、浮游生物干擾及魚體遮擋等挑戰。合成資料的核心價值在於**可控性**與**由模擬狀態直接產生的標註**。我們知道每一幀中每條魚的精確位置、姿態、深度及 ID。",
+        "new": "在養殖場監控中，真實水下攝影面臨光線衰減、浮游生物干擾及魚體遮擋等挑戰。合成資料的核心價值在於**可控性**與**由模擬狀態直接產生的標註**。本模型的狀態裡，我們知道每一幀中每條魚的位置、速度、近似深度及識別碼；前向方向可從非零速度粗略推得，但完整魚體姿態不在本模型範圍內。"
+      },
+      {
+        "chapter": 29,
+        "old": "        for i in range(num_fish):\n            # 確保最小間距，簡化處理：隨機生成後若過近則重試或接受\n            pos = self.rng.uniform(-self.bounds/2, self.bounds/2)\n            vel = self.rng.uniform(-0.5, 0.5, size=3)\n            self.fish.append(Fish(i, pos, vel))",
+        "new": "        min_init_dist = 0.5  # 初始化時可接受的最小間距，單位公尺\n        min_init_dist2 = min_init_dist ** 2\n        max_attempts = 1000\n        for i in range(num_fish):\n            placed = False\n            for _ in range(max_attempts):\n                pos = self.rng.uniform(-self.bounds/2, self.bounds/2)\n                ok = True\n                for f in self.fish:\n                    if np.sum((pos - f.pos) ** 2) < min_init_dist2:\n                        ok = False\n                        break\n                if ok:\n                    placed = True\n                    break\n            if not placed:\n                raise RuntimeError(\n                    f\"無法在 {max_attempts} 次嘗試內為魚 {i} 找到足夠遠的位置\"\n                )\n            vel = self.rng.uniform(-0.5, 0.5, size=3)\n            self.fish.append(Fish(i, pos, vel))"
+      },
+      {
+        "chapter": 29,
+        "old": "**單魚確定性測試（手算/簡化程式）**：\n若單條魚位於相機座標 $(0,0,-2)$，$r_{world}=0.1, f=400, W=800, H=600$。\n$z=2$。\n$u = 400(0)/2 + 400 = 400$。\n$v = 300 - 400(0)/2 = 300$。\n$r_{screen} = 400(0.1)/2 = 20$。\n中心像素 $(399, 299)$ 或 $(400, 300)$ 附近應被標記。\n深度應為 2.0。",
+        "new": "**單魚確定性測試（手算/簡化程式）**：\n若單條魚位於相機座標 $(0,0,-2)$，$r_{world}=0.1, f=400, W=800, H=600$。\n$z=2$。\n$u = 400(0)/2 + 400 = 400$。\n$v = 300 - 400(0)/2 = 300$。\n$r_{screen} = 400(0.1)/2 = 20$。\n\n注意投影中心 $(u, v) = (400, 300)$ 本身**不是**某個像素的中心——像素中心位於整數座標加 $0.5$。與此投影中心最接近的四個像素中心為 $(399.5, 299.5)$、$(400.5, 299.5)$、$(399.5, 300.5)$、$(400.5, 300.5)$，對應陣列索引 $(v, u) = (299, 399), (299, 400), (300, 399), (300, 400)$。因為螢幕半徑 $r_{screen}=20$ 遠大於 1，這四個像素都應被覆蓋，深度皆為 2.0，ID 皆為 1。**預期**斷言：\n\n```python\nassert id_map[299, 399] == 1\nassert depth_map[299, 399] == 2.0\nassert id_map[300, 400] == 1\nassert depth_map[300, 400] == 2.0\n```\n\n**雙魚遮擋測試**：設定兩條魚投影中心相同：魚 A 的相機座標為 $(0, 0, -2)$，ID 為 1；魚 B 的相機座標為 $(0, 0, -4)$，ID 為 2。中心重疊像素應被較近的魚 A 佔據，**預期**：\n\n```python\nassert depth_map[299, 399] == 2.0\nassert id_map[299, 399] == 1\n```\n\n把 `self.fish` 列表的順序交換（先放 B 再放 A）後，結果仍應相同——因為 `get_annotations` 用 `z < depth_map[v_pix, u_pix]` 做深度比較，較近者在後處理時仍會覆蓋較遠者。另應測試 `z < z_near`、`z > z_far` 以及投影完全在影像外的魚，**預期**皆不產生任何非零 ID 像素。"
+      },
+      {
+        "chapter": 29,
+        "old": "        \"depth_encoding\": \"camera_forward_distance_m\",\n        \"background_depth\": \"infinity\",\n        \"seed\": 42,\n        \"dt\": sim.params['dt'],\n        \"frames\": sequence_manifest\n    }",
+        "new": "        \"depth_encoding\": \"camera_forward_distance_m\",\n        \"depth_dtype\": \"float32\",\n        \"background_depth\": \"infinity\",\n        \"id_encoding\": \"fish.id + 1\",\n        \"background_id\": 0,\n        \"id_dtype\": \"int32\",\n        \"camera_convention\": \"local axes aligned with world axes; looks toward -Z\",\n        \"focal_length_note\": \"f_x = f_y = focal_length\",\n        \"frame_state\": \"post_update\",\n        \"seed\": 42,\n        \"dt\": sim.params['dt'],\n        \"frames\": sequence_manifest\n    }"
+      },
+      {
+        "chapter": 29,
+        "old": "3.  **Python 與 NumPy**：能使用 NumPy 進行向量化的矩陣乘法與陣列操作。",
+        "new": "3.  **Python 與 NumPy**：能使用 NumPy 陣列與基本線性代數。本章範例為可讀性採**明確的 Python 迴圈**：對魚對做 $O(N^2)$ 鄰居搜尋，對每個圓盤逐像素填色，**不宣稱**已向量化或適合大量資料。"
+      },
+      {
+        "chapter": 29,
+        "old": "2.  **程式修改**：修改 `update` 函式，增加一個「捕食者」魚（ID=0），其目標是追擊最近的獵物。定義驗收條件為「50 幀內，捕食者與最近獵物的最小距離小於初始距離」。",
+        "new": "2.  **程式修改**：修改 `update` 函式，增加一個「捕食者」魚（ID=0），其目標是追擊最近的獵物。驗收條件為「50 幀內，捕食者與**當前最近**獵物的距離最小值小於初始距離」；若獵物會切換，必須記錄對當前最近獵物的距離，不能把它誤當成固定追蹤對象的距離。"
+      },
+      {
+        "chapter": 29,
+        "old": "2.  **程式修改**：\n    在 `update` 中，若 `fish.id == 0`，計算所有其他魚的距離，找到最近者 $j^*$，施加追擊力：\n    `acc_chase = k_chase * (p_j* - p_0)`。\n    驗證：在 `run_simulation` 中記錄每幀捕食者與最近獵物的距離，並檢查 50 幀後的最小值。",
+        "new": "2.  **程式修改**：\n    在 `update` 的加速度迴圈中，對 `i == 0` 的捕食者加上追擊項。完整片段如下（放在計算 `acc_sep / acc_ali / acc_coh` 之後、組合 `total_acc` 之前）：\n\n    ```python\n    k_chase = 1.5  # 反比於時間平方的權重，單位 1/s^2\n    if i == 0 and n > 1:\n        prey_indices = range(1, n)\n        target_j = min(\n            prey_indices,\n            key=lambda j: np.linalg.norm(old_pos[j] - p_i),\n        )\n        acc_chase = k_chase * (old_pos[target_j] - p_i)\n        total_acc = acc_sep + acc_ali + acc_coh + acc_chase\n    else:\n        total_acc = acc_sep + acc_ali + acc_coh\n    ```\n\n    注意力施加在舊狀態 `old_pos` 上，順序不依賴其他魚的更新；速度更新與位置更新維持同步半隱式 Euler 的既有順序。`k_chase` 與其他權重一樣僅是數值參數，須依場景尺度與 `dt` 選定，不是物理常數。\n\n    驗證：在 `run_simulation` 的每一幀之後，記錄「捕食者與當前最近獵物的歐氏距離」，取 50 幀的最小值；若小於初始距離即通過。**預期**此例中追擊力會單調縮短與最近獵物的距離（除非獵物切換），但不是嚴格單調下降，因為最近獵物可能改變。"
+      },
+      {
+        "chapter": 29,
+        "old": "4.  **整合應用**：修改 `get_annotations`，額外輸出每條魚中心的 OpenGL 深度緩衝值 $d \\in [0,1]$ 至 JSON 清單中，格式：`\"fish_depths\": [{\"id\": 0, \"d\": ...}, ...]`。",
+        "new": "4.  **整合應用**：修改 `get_annotations`，額外輸出每條魚中心的 OpenGL 深度緩衝值 $d \\in [0,1]$ 至 JSON 清單中，格式：`\"fish_depths\": [{\"id\": 0, \"u\": ..., \"v\": ..., \"depth_buffer\": ...}, ...]`。`id` 為內部 0-based 的 `fish.id`（與深度與 ID 圖中 1-based 的像素值不同），`u`、`v` 為投影中心（連續像素座標，非整數索引）。"
+      },
+      {
+        "chapter": 29,
+        "old": "4.  **整合應用**：\n    在 `get_annotations` 中，計算 $d = \\frac{far}{far-near} - \\frac{far \\cdot near}{(far-near) \\cdot z}$。\n    將結果存入列表並回傳，或在 `run_simulation` 中計算並附加至 manifest。",
+        "new": "4.  **整合應用**：\n    完整實作如下。只輸出在 $z_{near} \\le z \\le z_{far}$ 範圍內的中心；畫面外但深度通過裁切的中心仍保留，並明示其 $u$、$v$ 可能超出 $[0, W)$ 或 $[0, H)$。\n\n    ```python\n    def get_fish_depths(self):\n        \"\"\"回傳每條魚中心投影的 u, v 與 OpenGL 深度緩衝值。\"\"\"\n        out = []\n        for fish in self.fish:\n            p_cam = fish.pos - self.cam_pos\n            z = -p_cam[2]\n            if z < self.z_near or z > self.z_far:\n                continue\n            u = self.focal * (p_cam[0] / z) + self.principal_point[0]\n            v = self.principal_point[1] - self.focal * (p_cam[1] / z)\n            depth_buffer = (\n                self.z_far / (self.z_far - self.z_near)\n                - (self.z_far * self.z_near)\n                  / ((self.z_far - self.z_near) * z)\n            )\n            out.append({\n                \"id\": int(fish.id),\n                \"u\": float(u),\n                \"v\": float(v),\n                \"depth_buffer\": float(depth_buffer),\n                \"z_m\": float(z),\n            })\n        return out\n    ```\n\n    在 `run_simulation` 中把 `sim.get_fish_depths()` 的結果放入該幀的 manifest 條目（例如欄位名 `fish_depths`）。`id` 欄位採 0-based 內部 ID；深度與 ID 圖中的像素值使用 1-based，兩者必須區分。"
+      },
+      {
+        "chapter": 29,
+        "old": "**注意**：合成魚的游動姿態為質點運動，未模擬尾擺。若需更真實，需結合骨架動畫。",
+        "new": "**注意**：合成魚的游動姿態為質點運動，未模擬尾擺。若需更真實，需結合骨架動畫。這些深度與 ID 圖是**此幾何代理模型下的參考真值**；它們不對應任何水下成像感測器的實際輸出。真實相機的深度標註需要考慮折射、散射、感測器噪聲與校正誤差，這些都不在本章範圍內。\n\n**$\\mathrm{inf}$ 背景的讀取方式**：`.npy` 檔案中的 `float32` `inf` 會在 `np.load` 之後原樣讀回，可用 `np.isinf(depth)` 或 `np.isfinite(depth)` 判定。若下游以影像方式顯示，需先以對數或反比映射將 `inf` 換成可視值；若下游作為訓練標註，應在讀取後顯式排除 `inf` 像素，或另存遮罩。把 `inf` 直接送進梯度計算會汙染整批資料。\n\n**可重現性測試的固定初始狀態**：除了固定 `seed` 外，可重現實驗還應明確記錄：初始 `min_init_dist` 與 `max_attempts`、`dt`、`v_max`、各權重與半徑、相機內外參。不同初始位置集合若導致不同的群聚軌跡是預期行為，不是 bug；重點是**同一組初始化參數在同一 `seed` 下**必須逐位元可重現。\n\n**$O(N^2)$ 鄰居搜尋與圓盤代理的限制**：本章每步對所有魚對計算距離，總運算量為 $O(N^2)$；若 $N$ 大於數百條魚，需要空間雜湊或網格分桶。圓盤代理在螢幕空間是硬邊圓，與魚體實際剪影相差很大；對細長魚體，圓盤將高估垂直方向的覆蓋、低估前後方向的覆蓋。作為合成標註，圓盤足以驗證相機投影、z-buffer 與 ID 更新流程，但不可作為姿態估計題目的擬真輸入。"
+      },
+      {
+        "chapter": 29,
+        "old": "本章展示了如何利用局部規則生成可控的魚群動畫，並通過相機投影生成像素級深度和 ID 的合成標註資料。重點在於理解同步時間積分、正確的座標變換、OpenGL 深度映射、像素中心規則及像素級 Z-buffering。合成資料是驗證管線的強大工具，但需明確其簡化假設與真實生態的差距。",
+        "new": "本章展示了如何利用局部規則生成可控的魚群動畫，並通過相機投影生成像素級深度和 ID 的合成標註資料。重點在於理解同步半隱式 Euler 時間積分、正確的座標變換與量綱、OpenGL 深度映射、像素中心規則及像素級 Z-buffering。\n\n本模型明確的簡化包括：魚為質點（不含完整姿態與骨架）、鄰居搜尋為 $O(N^2)$、魚體剪影以圓盤代理、相機局部軸與世界軸對齊（尚未使用一般 view matrix）、未模擬水體吸收散射與感測器噪聲。這些限制決定它能驗證什麼、不能推論什麼：它可以驗證由已知 3D 狀態產生深度與 ID 標註的管線是否自洽，不能推論任何真實水下成像品質或生物行為。\n\n合成資料是驗證管線的強大工具，但需明確其簡化假設與真實生態的差距。所有輸出檔案與測試結果應標為「預期」，未實跑時不得宣稱已驗證。"
+      },
+      {
+        "chapter": 29,
+        "old": "## 參考來源\n\n1.  **G1** PBRT 4: Transformations. (座標變換基礎)\n2.  **G4** Ray Tracing in One Weekend. (相機投影與深度處理基礎)\n3.  **G7** NumPy 線性代數參考. (向量運算實現)",
+        "new": "## 參考來源\n\n1.  **G1** PBRT 4: Transformations — 支援一般座標變換概念；不特別支持群聚規則或 OpenGL 深度緩衝公式。\n2.  **G4** Ray Tracing in One Weekend — 提供相機與光線追蹤概念的入門背景；不等於本章 OpenGL 深度映射的直接依據。\n3.  **G7** NumPy 線性代數參考 — 支援 `np.linalg.norm`、`np.sum` 等 API 說明；不涉及本章群聚規則。\n\n本章的局部群聚規則（分離／對齊／聚合）、量綱分析、初始化 rejection sampling、遮擋測試設計、manifest 欄位規格與 $\\mathrm{inf}$ 深度背景讀取方式，皆為本章自行推導與整理，未逐條依賴上述來源。來源清單僅供延伸查閱，不表示相關論點已由外部獨立驗證。本審查未執行程式或開啟輸出檔案；所有檔案與測試結果目前只能標為預期。"
+      }
+    ],
+    "reason": "第 29 章依審稿逐項修正：(1) 在限制聲明中明確說明模型只提供位置、速度、近似深度與 ID，不提供完整姿態，並指出速度為零時前向未定義；(2) 修正「精確位置、姿態、深度及 ID」的敘述為「位置、速度、近似深度及識別碼」；(3) 以有上限的 rejection sampling 取代「簡化處理」的虛假宣稱，失敗時明確拋出 RuntimeError；(4) 在單魚測試中改以四個像素中心列出精確陣列索引與斷言，並補上雙魚遮擋測試（順序無關、near/far 外與畫面外魚皆不產生像素）；(5) 修正先備知識中的向量化宣稱，改為「能使用 NumPy 陣列與基本線性代數」並明示採 $O(N^2)$ 迴圈與逐像素圓盤填色；(6) 改寫習題 2 敘述與解答，給出可編譯的捕食者追擊片段，含 `k_chase`、同步半隱式 Euler 順序與「預期」驗收語意；(7) 改寫習題 4 敘述與解答，提供完整 `get_fish_depths` 函式，欄位包含 `id`、`u`、`v`、`depth_buffer`、`z_m`，並明示只輸出深度裁切內的魚、畫面外中心仍保留；(8) manifest 新增 `depth_dtype`、`id_encoding`、`background_id`、`id_dtype`、`camera_convention`、`focal_length_note`、`frame_state` 等欄位，讓下游可正確解讀；(9) 養殖案例段落補上「此幾何代理模型下的參考真值」限定、$\\mathrm{inf}$ 背景讀取方式、固定初始狀態的可重現性原則，與 $O(N^2)$ 鄰居搜尋及圓盤代理的限制；(10) 重寫小結，明確列出質點模型、$O(N^2)$、圓盤代理、軸對齊相機、未模擬水體與感測器噪聲等簡化；(11) 參考來源明示各來源支持範圍，並聲明局部群聚規則、量綱分析、manifest 規格等為本章自行推導。"
+  }
+}

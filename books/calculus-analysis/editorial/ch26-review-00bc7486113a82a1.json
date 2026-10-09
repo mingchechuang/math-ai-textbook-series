@@ -1,0 +1,11 @@
+{
+  "key": "00bc7486113a82a1f29703e2c81f8ea293dfafe626744bace34992d08c89cdd3",
+  "person": {
+    "id": "v4_editor_11",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "reviewer"
+  },
+  "call": 148,
+  "result": "核對當前章級主題：非線性ODE、固定點與局部存在唯一。\n檢查量詞、域、正則性、線性映射/梯度形狀、必要充分條件、證明及反例、手算、程式與測試。\n\n1. **Banach 壓縮映射定理證明**：\n   - 唯一性證明正確。\n   - 存在性證明：Cauchy 列收斂性，完備性保證極限存在。\n   - 誤差界 $d(x_k,x^*) \\le \\frac{q^k}{1-q} d(x_1,x_0)$ 正確。\n\n2. **Picard–Lindelöf 定理證明**：\n   - 定義 $X$ 為 $C^0$ 函數閉集，配 $\\|\\cdot\\|_\\infty$ 距離，是完備的。\n   - 映射 $T$ 將 $X$ 映到 $X$：$\\|Ty - y_0\\| \\le M \\alpha \\le b$。正確。\n   - 壓縮性質：$\\|Ty - Tz\\|_\\infty \\le L \\alpha \\|y-z\\|_\\infty$。取 $\\alpha < 1/L$ 確保壓縮。正確。\n   - 不動點存在唯一，且為 $C^1$ 解。正確。\n\n3. **手算例題**：\n   - 例 26.6：$y'=y, y(0)=1$。$\\alpha=1/2$。正確。\n   - 例 26.7：$y'=y^2, y(0)=1$。$L=3, M=9/4, b/M=2/9, 1/6L=1/6$。$\\alpha=1/6$。正確。\n   - 例 26.8：$y'=\\sqrt{|y|}$。非 Lipschitz，非唯一。正確。\n   - 例 26.9：二维系統。Jacobian 算子範數估計 $\\sqrt{21}$。$L \\approx 4.58$。$M=17$。$\\alpha \\approx 0.059$。計算合理。\n\n4. **程式與測試**：\n   - Picard 迭代程式碼邏輯正確（累加 Taylor 項）。\n   - RK4 程式碼邏輯正確。\n   - 故障測試：$y'=y^2$ 在 $t=1$ 附近溢出。符合預期。\n\n5. **Grönwall 估計**：\n   - 公式 $\\|y(t)-z(t)\\| \\le \\|y_0-z_0\\| e^{L|t-t_0|}$ 正確。\n\n6. **養殖案例**：\n   - $L$ 的估計：$\\partial_y f = r(1-2y/K) - uk/(k+y)^2$。\n   - $L \\le r + 2r K_{max}/K + u/k$。代入數值 $0.5 + 2(0.5)(5) + 2(1)/1 = 0.5 + 5 + 2 = 7.5$。正確。\n   - $\\alpha$ 計算：$b/M = 5/27 \\approx 0.185$, $1/2L = 1/15 \\approx 0.067$。$\\alpha = 0.067$。正確。\n\n7. **字數檢查**：\n   - `measured_characters`: 3388。\n   - 目標 4500，最低 3000。\n   - 3388 > 3000，符合最低要求。\n\n8. **其他細節**：\n   - 術語一致性：Column vector, Jacobian shape 等符合 convention。\n   - 沒有虛構程式執行結果，明確標註「預期結果」。\n   - 來源標記正確。\n\n結論：稿件內容準確，邏輯嚴謹，字數達標。\n\nVERDICT: APPROVE"
+}

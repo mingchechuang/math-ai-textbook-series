@@ -1,0 +1,49 @@
+# 第23章 KV cache 與推論等價性（第 15 輪修訂、第 472 回合）審稿意見
+
+## 一、自我更正
+
+我前兩輪把「`masked_attention` 未檢查 `tk >= query_start + tq`」列為小問題，這一輪重算後撤回：`allow = kpos[None,:] <= qpos[:,None]`，若 `tk-1 < query_start`（亦即 key 不足以覆蓋任何 query），`allow` 會全為 False，`np.all(allow.any(axis=-1))` 為 False，函式即以 `ValueError("all-masked query")` 拒絕。此檢查不是多餘的，它偵測的正是「cache 比 `start` 短」這類故障；只是訊息名稱會落在此處，而 `step` 內層的 `(b, H, start, dh)` 檢查通常會更早阻止該情形。前幾輪我把這項誤判為缺漏，現在更正。
+
+## 二、本輪重算重點
+
+### 1. 定義、遮罩、softmax
+
+$Q\in\mathbb R^{B\times H\times m\times d_h}$、$K,V\in\mathbb R^{B\times H\times(L+m)\times d_h}$、$M_{i,j}=[j\le L+i]$。$i$ 為區塊內索引，絕對位置為 $L+i$；$j$ 為 key 絕對位置；每列至少含自 key，故分母非零。$A_{b,h,i,j}$ 與 $O_{b,h,i,:}$ 中的 $(S-c)$ 為穩定平移，求和限於 $M_{i,r}$ 為 True 的 $r$，與程式 `np.where(..., scores, -np.inf)` 及 `weights.sum` 一致。
+
+### 2. 小命題與證明
+
+歸納鏈完整：輸入層 → 逐詞元投影得同一 $Q,K,V$ → 因果遮罩選出同一組 key → softmax 及加權和相同 → 逐詞元輸出投影、殘差、逐詞元非線性相同 → 逐層至 logits。結論限定實數算術。dropout、SDPA `dropout_p=0`、布林遮罩語義、跨平台逐位一致的分界均正確聲明。
+
+### 3. 規模尺度
+
+單層點積：完整重算 $\Theta(T^3)$、cache $\Theta(T^2)$；prefill $P$ 加生成 $G$ 為 $O(P^2)+O(PG+G^2)$；每層 $2BN_{\rm layer}TD$ 個數。$L$（前綴長度）與 $N_{\rm layer}$（層數）符號已切換。
+
+### 4. 手算例
+
+例一：位置 $(2,3)$ 對 key $(0,1,2,3)$，遮罩 $\begin{pmatrix}1&1&1&0\\1&1&1&1\end{pmatrix}$，輸出 $4$ 與 $5$；誤用 `tril(2,4)` 得 $2$。例二：位置錯位，$x_2=2+3=5$ 對 $2+0=2$。兩者與程式邏輯一致。
+
+### 5. 程式逐函式
+
+`layer_norm` 沿最後特徵軸；`masked_attention` 檢查維度與 `dh`；`allow` 依絕對位置；允許位置有限性檢查；`peak` 後 exp、正規化、`@ v`。`TinyDecoder.step` 檢查 `ids`、`start`、cache 層數與 shape；`full` 另建 cache；`cache_decode` 先 prefill 再逐詞元。`split`/`merge` 互逆，`reshape` 與 `transpose` 分開使用。未發現軸向錯誤。
+
+### 6. 測試
+
+正常：`full(ids)` 對 `cache_decode(..., prefill=2)`，形狀 $(2,5,11)$，cache 每層 $(2,2,5,2)$。邊界：$B=T=1$。故障：`start=2` 對長度 5 cache 拒絕；`b=1` 新樣本對 `b=2` cache 拒絕。因果測試逐位置掃描 $j=1,\ldots,T-1$，每次改動後同時比較早位置 logits 不變，並對改動後序列再比較完整與 cached 前向。前次指出的「因果測試過弱」在本輪已確實修正。
+
+### 7. 自足、來源、執行紀錄
+
+模型、資料、遮罩、故障測試均在章內自足；未下載權重、未載入 pickle、未執行外部工具。N1、N3 為可定位來源，N3 的 API 語義被列為版本資料而非本機執行證據；N4–N6 標為待核對。無虛構執行、時間、設備或收斂率。養殖案例標明合成、無真實閾值、不授權控制設備。習題涵蓋手算、程式、反例、整合，解答完整。
+
+### 8. 字數
+
+4023→4038 字，高於 3000 下限，未達 4500 目標。目標是軟性建議，不是阻擋條件。
+
+## 三、最小修法（不阻擋）
+
+僅一項仍可考慮：本章主題集中於推論，無自然空間塞入更多內容；若真想補到 4500，可在反例段加入「多層 cache 誤傳」的具體小例（例如兩層 $d_h=1$、K 不同時，用第一層 K 給第二層的偏差），但這是風格選項。除此之外未見需修正項。
+
+## 四、結論
+
+我對 `masked_attention` 的 `allow.any` 檢查的更正已如上；本章在定義、證明、手算、程式、測試、來源、資料邊界與執行紀錄上均自洽，未發現虛構執行或來源。前次指出的因果測試弱點已被本輪修訂直接回應，剩餘僅為字數與風格選項。
+
+VERDICT: APPROVE

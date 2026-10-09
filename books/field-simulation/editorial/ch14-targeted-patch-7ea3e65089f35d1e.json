@@ -1,0 +1,30 @@
+{
+  "key": "7ea3e65089f35d1e0c8790ba5dedfc8b9888f80842216b0296098a9c446060a6",
+  "person": {
+    "id": "v3_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 236,
+  "result": {
+    "patches": [
+      {
+        "chapter": 14,
+        "old": "    if N < 1:\n        raise ValueError(\"N must be >= 1\")",
+        "new": "    if (isinstance(N, (bool, np.bool_))\n            or not isinstance(N, (int, np.integer)) or N < 1):\n        raise ValueError(\"N must be a non-boolean integer >= 1\")"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   `residual < 1e-8`。",
+        "new": "    *   傳回的真殘差應滿足 `residual <= atol + rtol*np.linalg.norm(b)`；使用本程式預設容差與 $b=\\boldsymbol{1}\\in\\mathbb{R}^{10}$ 時，門檻約為 $3.17\\times10^{-8}$，不能直接宣稱小於 $10^{-8}$。"
+      },
+      {
+        "chapter": 14,
+        "old": "直接解差異：應為 $0$（在機精度內）。",
+        "new": "直接解差異不預設為零。若直接解的捨入誤差可忽略，$E_{\\mathrm{solve}}=\\|x_{\\mathrm{PCG}}-x_{\\mathrm{direct}}\\|_2$ 約受 $\\|b-Ax_{\\mathrm{PCG}}\\|_2/\\lambda_{\\min}(A)$ 控制；比較時仍須計入直接解本身的捨入誤差，並依實際停止容差判讀。"
+      }
+    ],
+    "reason": "使正常測試的預期真殘差符合程式的 atol/rtol 停止準則，移除對迭代解與直接解差異達機器精度的無條件宣稱；同時讓 CSR 建構函式於分配陣列前拒絕非整數與布林網格數。未執行程式。"
+  }
+}

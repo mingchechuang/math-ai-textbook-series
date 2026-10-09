@@ -1,0 +1,50 @@
+{
+  "key": "ffacd06a4633ff62ccc580644cefc7109a5eeac00d6123a93e4f2fc67899195b",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 350,
+  "result": {
+    "patches": [
+      {
+        "chapter": 24,
+        "old": "4. 學會使用合成數據進行校準（Calibration）與獨立驗證，避免過度擬合（Overfitting）。",
+        "new": "4. 學會使用合成數據進行校準（Calibration）與跨初值的合成獨立測試，避免把留出測試誤稱為物理確認（Validation）。"
+      },
+      {
+        "chapter": 24,
+        "old": "以下提供一個自足 NumPy 實作，演示製造解驗證與參數校準/留出評估流程，包含多 seed 測試、輸入驗證及完整診斷紀錄保存。",
+        "new": "以下提供一個自足 NumPy 實作，演示解析解核對與參數校準／留出評估流程，包含多 seed 測試、輸入驗證及診斷紀錄。程式把正弦初始模態的振幅 `1.0` 明定為 $1\\,\\mathrm{kg/m^3}$：解析解、數值場、觀測陣列及加性噪聲均以 $\\mathrm{kg/m^3}$ 表示，指數衰減因子則無因次；這不會將合成資料變成現場量測。"
+      },
+      {
+        "chapter": 24,
+        "old": "def synthetic_confidence_demo(D_true=0.1, sigma=0.01,\n                              n_build=200, n_check=200):\n    \"\"\"已知合成真值下的條件式估計界線與獨立覆蓋診斷。\"\"\"\n    if (np.ndim(D_true) != 0 or np.ndim(sigma) != 0\n            or not np.all(np.isfinite([D_true, sigma]))\n            or not 0.01 <= D_true <= 0.5 or sigma <= 0):\n        raise ValueError(\"真值或噪聲尺度不合契約\")\n    if (not isinstance(n_build, (int, np.integer)) or n_build < 20\n            or not isinstance(n_check, (int, np.integer)) or n_check < 20):\n        raise ValueError(\"兩組重複數均須至少 20\")\n    times = np.array([2.0, 4.0])\n    grid = np.linspace(0.01, 0.5, 50)\n    predictions = np.exp(-grid[:, None] * np.pi**2 * times)\n    truth = np.exp(-D_true * np.pi**2 * times)\n    def estimates(seed, count):\n        rng = np.random.default_rng(seed)\n        observed = truth + rng.normal(0.0, sigma, (count, 2))\n        scores = np.sum((observed[:, None, :] - predictions[None, :, :])**2,\n                        axis=2)\n        return grid[np.argmin(scores, axis=1)]\n    build = estimates(20001, n_build)\n    check = estimates(20002, n_check)\n    qlo, qhi = np.percentile(build - D_true, [2.5, 97.5])\n    lower = np.maximum(0.01, check - qhi)\n    upper = np.minimum(0.5, check - qlo)\n    return {\"construction_repetitions\": int(n_build),\n            \"coverage_repetitions\": int(n_check),\n            \"error_quantiles_m2_s\": [float(qlo), float(qhi)],\n            \"example_interval_m2_s\": [float(lower[0]), float(upper[0])],\n            \"empirical_coverage\": float(np.mean((lower <= D_true) &\n                                                  (D_true <= upper))),\n            \"bounds_m2_s\": [0.01, 0.5],\n            \"estimator\": \"two-time analytic grid least squares\",\n            \"assumption\": \"known synthetic truth; independent Gaussian noise\"}",
+        "new": "def synthetic_confidence_demo(D_true, sigma, n_build, n_check,\n                              seed_build, seed_check, times_s,\n                              D_min, D_max, n_search):\n    \"\"\"已知合成真值下的條件式界線；振幅及噪聲單位為 kg/m^3。\"\"\"\n    scalars = (D_true, sigma, D_min, D_max)\n    if (any(np.ndim(z) != 0 for z in scalars)\n            or not np.all(np.isfinite(scalars))\n            or not D_min <= D_true <= D_max or D_min <= 0\n            or D_max <= D_min or sigma <= 0):\n        raise ValueError(\"真值、噪聲或搜尋範圍不合契約\")\n    counts = (n_build, n_check, seed_build, seed_check, n_search)\n    if (any(isinstance(z, (bool, np.bool_))\n            or not isinstance(z, (int, np.integer)) for z in counts)\n            or n_build < 20 or n_check < 20 or n_search < 2\n            or seed_build < 0 or seed_check < 0\n            or seed_build == seed_check):\n        raise ValueError(\"重複數、格點數或種子不合契約\")\n    times = np.asarray(times_s, dtype=float)\n    if (times.shape != (2,) or not np.all(np.isfinite(times))\n            or np.any(times < 0) or times[0] == times[1]):\n        raise ValueError(\"需兩個不同的有限非負觀測時間\")\n    grid = np.linspace(D_min, D_max, n_search)\n    amplitude = 1.0  # kg/m^3\n    predictions = amplitude*np.exp(-grid[:, None]*np.pi**2*times)\n    truth = amplitude*np.exp(-D_true*np.pi**2*times)\n    def estimates(seed, count):\n        rng = np.random.default_rng(seed)\n        observed = truth + rng.normal(0.0, sigma, (count, 2))\n        scores = np.sum((observed[:, None, :] - predictions[None, :, :])**2,\n                        axis=2)\n        return grid[np.argmin(scores, axis=1)]\n    build = estimates(seed_build, n_build)\n    check = estimates(seed_check, n_check)\n    qlo, qhi = np.percentile(build - D_true, [2.5, 97.5])\n    lower = np.maximum(D_min, check - qhi)\n    upper = np.minimum(D_max, check - qlo)\n    return {\"construction_repetitions\": int(n_build),\n            \"coverage_repetitions\": int(n_check),\n            \"error_quantiles_m2_s\": [float(qlo), float(qhi)],\n            \"example_interval_m2_s\": [float(lower[0]), float(upper[0])],\n            \"empirical_coverage\": float(np.mean((lower <= D_true) &\n                                                  (D_true <= upper))),\n            \"bounds_m2_s\": [float(D_min), float(D_max)],\n            \"estimator\": \"two-time analytic grid least squares\",\n            \"assumption\": \"known synthetic truth; independent Gaussian noise\"}"
+      },
+      {
+        "chapter": 24,
+        "old": "    confidence_diagnostic = synthetic_confidence_demo()\n    print(\"Conditional synthetic coverage diagnostic:\", confidence_diagnostic)",
+        "new": "    confidence_config = {\n        \"D_true_m2_s\": 0.1, \"sigma_kg_m3\": 0.01,\n        \"n_build\": 200, \"n_check\": 200,\n        \"seed_build\": 20001, \"seed_check\": 20002,\n        \"times_s\": [2.0, 4.0], \"D_min\": 0.01,\n        \"D_max\": 0.5, \"n_search\": 50,\n        \"amplitude_kg_m3\": 1.0,\n        \"estimator\": \"two-time analytic grid least squares\",\n    }\n    confidence_diagnostic = synthetic_confidence_demo(\n        confidence_config[\"D_true_m2_s\"], confidence_config[\"sigma_kg_m3\"],\n        confidence_config[\"n_build\"], confidence_config[\"n_check\"],\n        confidence_config[\"seed_build\"], confidence_config[\"seed_check\"],\n        confidence_config[\"times_s\"], confidence_config[\"D_min\"],\n        confidence_config[\"D_max\"], confidence_config[\"n_search\"])\n    print(\"Conditional synthetic coverage diagnostic:\", confidence_diagnostic)"
+      },
+      {
+        "chapter": 24,
+        "old": "        \"D_true_m2_s\": 0.1, \"noise_std_dimensionless\": 0.01,\n        \"L_m\": 1.0, \"k_s_inv\": 0.0,",
+        "new": "        \"D_true_m2_s\": 0.1, \"noise_std_kg_m3\": 0.01,\n        \"L_m\": 1.0, \"k_s_inv\": 0.0,\n        \"conditional_confidence_config\": confidence_config,\n        \"experiment_b_n_points\": 51,"
+      },
+      {
+        "chapter": 24,
+        "old": "2. **獨立驗證**：使用實驗 B（不同初始條件 $c_1$）的 $t=4, 5$ 小時合成觀測數據進行驗證。\n3. **診斷**：\n   - 多 seed 生成觀測噪聲，計算 $D_{cal}, k_{cal}$ 的樣本分佈。\n   - 計算驗證 RMSE 與校準 RMSE。",
+        "new": "2. **合成獨立測試**：使用實驗 B（不同初始條件 $c_1$）的 $t=4, 5$ 小時合成觀測，檢查跨初值預測；這不是與獨立物理實驗比較的 Validation。\n3. **診斷**：\n   - 多 seed 生成觀測噪聲，檢查可辨識條件後才分別報告 $D_{cal}, k_{cal}$ 的樣本分佈。\n   - 分別計算合成測試 RMSE 與校準 RMSE。"
+      },
+      {
+        "chapter": 24,
+        "old": "- 預期：$D_{cal}$ 樣本標準差顯著增大，留出 RMSE 分佈廣泛。\n- 驗證：展示噪聲對校準結果不確定性的影響。",
+        "new": "- 預期診斷：比較高、低噪聲設定下的 $D_{cal}$ 樣本標準差及留出 RMSE 分佈；有限 seed、離散格點與參數邊界均可能影響比較，不能預先斷言一定「顯著」增大。\n- 檢查目的：由實際樣本評估噪聲對合成校準的影響，未執行時不報告差值。"
+      }
+    ],
+    "reason": "統一第24章合成濃度、實驗B振幅及噪聲的 SI 單位，區分跨初值合成測試與物理 Validation；將置信界線的重複數、種子、時間、搜尋格點及實驗B網格納入雜湊設定並顯式傳入，修正有限樣本的過強預測。未執行程式。"
+  }
+}

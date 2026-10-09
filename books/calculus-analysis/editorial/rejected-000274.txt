@@ -1,0 +1,310 @@
+```markdown
+# 第19章 多重積分、Riemann和與Fubini
+
+## 學習目標與先備知識
+
+本章將單變量Riemann積分推廣至二維區域。學習者需先掌握第6章的單變量Riemann積分定義、微積分基本定理，以及第7章的Fréchet可微性概念。本章核心任務是建立二重積分在矩形區域上的嚴格定義，證明連續函數在緊矩形上的可積性，並嚴謹推導Fubini定理（迭代積分定理）。
+
+本章嚴格限制在Riemann可積框架內，不探討Lebesgue積分。對於非矩形區域或瑕積分，我們將明確標示其所需的額外條件（如Jordan可測性、絕對收斂性），並區分「有限精度的數值求積」與「數學上的積分值」。特別地，對於瑕積分，交換順序需要額外的絕對收斂條件，否則可能導致錯誤結果。
+
+## 問題與直覺
+
+在單變量積分中，我們通過將區間分割成小段，計算矩形面積之和來逼近曲線下的面積。當分割細度趨向於零時，若極限存在，則定義該極限為Riemann和的積分。直覺上，這是一個「用有限個矩形拼出光滑曲線下區域」的過程。
+
+在二維情形，我們考慮區域 $D \subset \mathbb{R}^2$ 上的函數 $f(x,y)$。直覺上，多重積分 $I = \iint_D f(x,y) \, dA$ 代表以曲面 $z=f(x,y)$ 為頂、底面為 $D$ 的立體體積。如果 $f \ge 0$，則 $I$ 是正體積；如果 $f$ 可正可負，則 $I$ 是代數體積（正負相抵）。
+
+與單變量不同，二維區域的邊界可能複雜，且積分順序（先對 $x$ 積分再對 $y$ 積分，或反之）可能影響計算難度。Fubini定理保證在良好條件下，這兩種順序的結果相同。然而，如果 $D$ 是矩形 $[a,b] \times [c,d]$，則 $f$ 在 $D$ 上連續即足以保證可積分，且可以寫成迭代積分。如果 $D$ 不是矩形，則需要將積分區域拆分或使用指示函數。
+
+直覺陷阱在於：我們不能僅憑「畫圖看體積」來確定積分值。必須通過精確的Riemann和極限過程來定義。此外，當 $f$ 在邊界或奇異點不連續時，Riemann和可能收斂但取決於分割方式，或者根本不收斂。
+
+## 定義、定理與推導
+
+### 19.1 矩形分割與Riemann和
+
+設 $R = [a,b] \times [c,d]$ 是 $\mathbb{R}^2$ 中的閉矩形。設 $P$ 是 $R$ 的一個分割（Partition）。分割將 $R$ 投影到 $x$ 軸和 $y$ 軸，形成矩形網格。具體地，設 $x$ 軸分割為 $a = x_0 < x_1 < \dots < x_m = b$，$y$ 軸分割為 $c = y_0 < y_1 < \dots < y_n = d$。這定義了 $m \times n$ 個子矩形 $R_{ij} = [x_{i-1}, x_i] \times [y_{j-1}, y_j]$。
+
+令 $\Delta x_i = x_i - x_{i-1}$，$\Delta y_j = y_j - y_{j-1}$，子矩形面積 $\Delta A_{ij} = \Delta x_i \Delta y_j$。
+分割的範數（Norm）定義為 $\|P\| = \max_{i,j} \{\Delta x_i, \Delta y_j\}$。
+
+在每個子矩形 $R_{ij}$ 中任取一點 $(x_{ij}^*, y_{ij}^*)$。Riemann和定義為：
+$$
+S(P, f) = \sum_{i=1}^m \sum_{j=1}^n f(x_{ij}^*, y_{ij}^*) \Delta A_{ij}
+$$
+當 $\|P\| \to 0$ 時，若 $S(P, f)$ 的極限存在且與分割 $P$ 及取點 $(x_{ij}^*, y_{ij}^*)$ 的選擇無關，則稱 $f$ 在 $R$ 上Riemann可積，該極限記為：
+$$
+\iint_R f(x,y) \, dA
+$$
+
+**非矩形區域**：對於非矩形區域 $D \subset R$，定義 $F(x,y) = f(x,y) \cdot \mathbb{1}_D(x,y)$。若 $F$ 在 $R$ 上Riemann可積，則定義 $\iint_D f \, dA = \iint_R F \, dA$。此定義要求 $D$ 為Jordan可測區域（邊界面積為零），以確保 $F$ 的可積性。
+
+### 19.2 可積條件
+
+**定理 19.1（可積性充要條件）**：設 $f$ 在有界矩形 $R$ 上有界。則 $f$ 在 $R$ 上Riemann可積，當且僅當對任意 $\epsilon > 0$，存在分割 $P$ 使得上和 $U(P, f)$ 與下和 $L(P, f)$ 之差異小於 $\epsilon$。
+
+**證明**：
+設 $\underline{I} = \sup_P L(P, f)$，$\overline{I} = \inf_P U(P, f)$。
+若 $f$ 可積，則對於任意 $\epsilon > 0$，存在分割 $P$ 使得 $|U(P, f) - I| < \epsilon/2$ 且 $|I - L(P, f)| < \epsilon/2$，故 $U(P, f) - L(P, f) < \epsilon$。
+反之，若對任意 $\epsilon > 0$，存在分割 $P$ 使得 $U(P, f) - L(P, f) < \epsilon$，則對於任何分割 $P'$，有 $\overline{I} - \underline{I} \le U(P, f) - L(P, f) < \epsilon$。由於 $\epsilon$ 任意，$\overline{I} = \underline{I}$，故 $f$ 可積。
+$\blacksquare$
+
+**定理 19.2（連續函數可積性）**：若 $f$ 在緊矩形 $R$ 上連續，則 $f$ 在 $R$ 上Riemann可積。
+
+**證明**：
+由於 $f$ 在緊集上連續，故一致連續。對任意 $\epsilon > 0$，存在 $\delta > 0$ 使得對所有 $(x_1, y_1), (x_2, y_2) \in R$，若 $\|(x_1, y_1) - (x_2, y_2)\| < \delta$，則 $|f(x_1, y_1) - f(x_2, y_2)| < \epsilon / A(R)$，其中 $A(R)$ 是 $R$ 的面積。
+取分割 $P$ 使得 $\|P\| < \delta / \sqrt{2}$。則在每個子矩形 $R_{ij}$ 中，函數振盪 $\omega_{ij} < \epsilon / A(R)$。
+上和與下和之差為：
+$$
+U(P, f) - L(P, f) = \sum_{i,j} \omega_{ij} \Delta A_{ij} < \frac{\epsilon}{A(R)} \sum_{i,j} \Delta A_{ij} = \epsilon
+$$
+由定理 19.1，$f$ 可積。
+$\blacksquare$
+
+**反例**：Dirichlet函數 $f(x,y) = \mathbb{1}_{\mathbb{Q}^2}(x,y)$ 在矩形上處處不連續，任何分割的上和為 $A(R)$，下和為 $0$，故不可積。
+
+### 19.3 Fubini定理
+
+**定理 19.3（Fubini）**：設 $f$ 在矩形 $D = [a,b] \times [c,d]$ 上連續。則：
+1. 對所有 $x \in [a,b]$，函數 $g(x) = \int_c^d f(x,y) \, dy$ 存在且連續。
+2. $g(x)$ 在 $[a,b]$ 上Riemann可積。
+3. $\iint_D f(x,y) \, dA = \int_a^b \left( \int_c^d f(x,y) \, dy \right) dx = \int_c^d \left( \int_a^b f(x,y) \, dx \right) dy$。
+
+**證明**：
+由於 $f$ 連續，內層積分 $g(x)$ 作為連續函數的積分，關於 $x$ 連續。
+考慮Riemann和 $S(P, f) = \sum_{i} \left( \sum_{j} f(x_i^*, y_j^*) \Delta y_j \right) \Delta x_i$。
+當分割加細時，內部和收斂於 $\int_c^d f(x_i^*, y) \, dy$。外部和收斂於 $\int_a^b g(x) \, dx$。
+因此二重積分等於迭代積分。反向同理。
+$\blacksquare$
+
+### 19.4 瑕積分與交換順序
+
+對於無界區域或無界函數，定義瑕積分。
+**定理 19.4（瑕積分Fubini）**：若 $f$ 在區域 $D$ 上絕對可積（即 $\iint_D |f| \, dA < \infty$），則Fubini定理成立，且交換積分順序不改變結果。
+
+**反例**：設 $f(x,y) = \frac{x^2 - y^2}{(x^2 + y^2)^2}$ 在 $D = [0,1] \times [0,1] \setminus \{(0,0)\}$。
+$\iint_D |f| \, dA = \infty$（在 $(0,0)$ 附近行為像 $1/r^3 \cdot r dr d\theta = dr/r$，對數發散）。
+計算迭代積分：
+$\int_0^1 \left( \int_0^1 f(x,y) \, dx \right) dy = -\frac{\pi}{4}$
+$\int_0^1 \left( \int_0^1 f(x,y) \, dy \right) dx = \frac{\pi}{4}$
+兩者不等，證明非絕對可積時交換順序可能錯誤。
+
+## 逐步手算例題
+
+### 例 19.1：解析多項式二重積分
+
+計算 $I = \iint_D (3x^2 + 2y) \, dA$，其中 $D$ 為矩形 $[0,1] \times [0,2]$。
+
+**解**：
+$f(x,y) = 3x^2 + 2y$ 連續，應用Fubini。
+先對 $x$ 積分：
+$$
+\int_0^1 (3x^2 + 2y) \, dx = \left[ x^3 + 2yx \right]_0^1 = 1 + 2y
+$$
+再對 $y$ 積分：
+$$
+\int_0^2 (1 + 2y) \, dy = \left[ y + y^2 \right]_0^2 = 2 + 4 = 6
+$$
+結果一致，$I = 6$。
+
+### 例 19.2：非矩形區域的積分
+
+計算 $I = \iint_D (x + y) \, dA$，其中 $D$ 為三角形區域：$0 \le x \le 1$, $0 \le y \le x$。
+
+**解**：
+區域 $D$ 為Jordan可測。
+$$
+I = \int_0^1 \left( \int_0^x (x + y) \, dy \right) dx
+$$
+內層：
+$$
+\int_0^x (x + y) \, dy = \left[ xy + \frac{1}{2}y^2 \right]_0^x = x^2 + \frac{1}{2}x^2 = \frac{3}{2}x^2
+$$
+外層：
+$$
+\int_0^1 \frac{3}{2}x^2 \, dx = \frac{1}{2}
+$$
+結果 $I = 0.5$。
+
+## 實作與程式
+
+以下提供一個自足的Python程式，用於：
+1. 使用Riemann和（矩形法）進行數值近似。
+2. 區分cell中心取樣（Midpoint）與節點取樣（Trapezoidal）。
+3. 驗證誤差收斂率。
+
+```python
+import numpy as np
+
+def numeric_riemann_2d(f, x_range, y_range, nx, ny, method='midpoint'):
+    """
+    使用Riemann和近似二重積分。
+    method: 'midpoint' (Cell中心) 或 'trapezoidal' (Node節點加權)
+    """
+    x_min, x_max = x_range
+    y_min, y_max = y_range
+    
+    dx = (x_max - x_min) / nx
+    dy = (y_max - y_min) / ny
+    
+    if method == 'midpoint':
+        x_coords = np.array([x_min + (i + 0.5) * dx for i in range(nx)])
+        y_coords = np.array([y_min + (j + 0.5) * dy for j in range(ny)])
+        weights = np.ones((nx, ny)) * dx * dy
+    elif method == 'trapezoidal':
+        x_coords = np.linspace(x_min, x_max, nx + 1)
+        y_coords = np.linspace(y_min, y_max, ny + 1)
+        wx = np.ones(nx + 1)
+        wx[0] = 0.5
+        wx[-1] = 0.5
+        wy = np.ones(ny + 1)
+        wy[0] = 0.5
+        wy[-1] = 0.5
+        weights = np.outer(wx * dx, wy * dy)
+    else:
+        raise ValueError("Invalid method")
+    
+    X, Y = np.meshgrid(x_coords, y_coords, indexing='ij')
+    values = f(X, Y)
+    return np.sum(values * weights)
+
+def test_integration():
+    def f(x, y):
+        return 3 * x**2 + 2 * y
+    
+    x_range = (0, 1)
+    y_range = (0, 2)
+    exact_val = 6.0
+    
+    print(f"Exact Value: {exact_val}")
+    print(f"{'n':<5} | {'Midpoint':<15} | {'Trapezoidal':<15} | {'Err Mid':<10} | {'Err Trap':<10}")
+    
+    for n in [10, 20, 40, 80]:
+        approx_mid = numeric_riemann_2d(f, x_range, y_range, n, n, method='midpoint')
+        approx_trap = numeric_riemann_2d(f, x_range, y_range, n, n, method='trapezoidal')
+        
+        err_mid = abs(approx_mid - exact_val)
+        err_trap = abs(approx_trap - exact_val)
+        
+        print(f"{n:<5} | {approx_mid:<15.6f} | {approx_trap:<15.6f} | {err_mid:<10.2e} | {err_trap:<10.2e}")
+
+if __name__ == "__main__":
+    test_integration()
+```
+
+**預期結果分析**：
+- $f(x,y) = 3x^2 + 2y$。
+- Midpoint rule 對二次函數在單變量下誤差為 $O(n^{-2})$。二重積分亦為 $O(n^{-2})$。
+- Trapezoidal rule 對二次函數誤差亦為 $O(n^{-2})$。
+- $n=10$ 時，Midpoint 誤差應約為 $1/(2 \cdot 10^2) = 0.005$（常數取決於具體導數項）。
+- $n=200$ 時，Midpoint 誤差應約為 $1/(2 \cdot 200^2) = 1.25 \times 10^{-5}$。
+
+## 測試與預期結果
+
+1. **正常測試**：
+   - 輸入：$f(x,y) = 1$，區域 $[0,1] \times [0,1]$。
+   - 預期：Midpoint 與 Trapezoidal 均精確等於 $1.0$（線性/常數函數）。
+
+2. **邊界測試**：
+   - 輸入：$f(x,y) = 1$，區域 $[0, 1e-6] \times [0, 1e-6]$。
+   - 預期：積分值 $1e-12$。
+   - 注意：雙精度浮點數可正確表示 $1e-12$，無下溢問題。
+
+3. **故障測試**：
+   - 輸入：$nx=0$ 或 $ny=0$。
+   - 預期：程式應拋出異常或錯誤，避免除以零。
+   - 輸入：非法方法 `method='left'`。
+   - 預期：拋出 `ValueError`。
+
+## 反例與常見陷阱
+
+### 陷阱 1：交換積分順序不合法
+若 $f$ 非絕對可積，迭代積分可能不等於二重積分，甚至迭代積分本身收斂到不同值（見19.4節反例）。必須先驗證 $\iint |f| < \infty$。
+
+### 陷阱 2：混淆Cell與Node取樣
+- **Cell Center (Midpoint)**：取樣點在子矩形中心，權重均為 $\Delta A$。對線性函數精確。
+- **Node (Trapezoidal)**：取樣點在網格交點，邊界點權重為 $0.5 \Delta A$，內部為 $\Delta A$。對線性函數精確。
+若錯誤使用權重（例如對Midpoint使用Trapezoidal權重），將引入系統性誤差。
+
+### 陷阱 3：非矩形區域邊界處理
+直接使用矩形網格求積非矩形區域時，若未使用指示函數 $\mathbb{1}_D$ 或精確計算交集面積，會導致 $O(h)$ 或更高的邊界誤差。
+
+## AI、幾何與養殖案例
+
+### 養殖案例：水體溶氧量空間平均值
+
+假設一個長方形養殖池，長 $L=10$ m，寬 $W=5$ m。溶氧濃度模型（合成數據）：$C(x,y) = 5.0 - 0.1 x^2 - 0.05 y^2$ mg/L。
+
+**解析解**：
+$$
+\bar{C} = \frac{1}{50} \int_0^5 \int_0^{10} (5.0 - 0.1 x^2 - 0.05 y^2) \, dx \, dy
+$$
+內層對 $x$：
+$$
+\int_0^{10} (5.0 - 0.1 x^2 - 0.05 y^2) \, dx = \left[ 5x - \frac{0.1}{3}x^3 - 0.05 y^2 x \right]_0^{10}
+$$
+$$
+= 50 - \frac{100}{3} - 0.5 y^2 = 16.667 - 0.5 y^2
+$$
+外層對 $y$：
+$$
+\int_0^5 (16.667 - 0.5 y^2) \, dy = \left[ 16.667 y - \frac{0.5}{3} y^3 \right]_0^5
+$$
+$$
+= 83.335 - \frac{125}{6} = 83.335 - 20.833 = 62.502
+$$
+平均濃度：
+$$
+\bar{C} = \frac{62.502}{50} \approx 1.25 \, \text{mg/L}
+$$
+
+**注意**：此模型在角落 $(10,5)$ 處為 $5 - 10 - 1.25 = -6.25$ mg/L，為非物理負值。此案例僅供求積數學示範，實際操作中需使用符合物理約束的模型並進行現場驗證。AI可輔助優化網格密度以減少數值誤差，但無法替代現場量測與安全程序。
+
+## 習題
+
+1. **手算**：計算 $I = \iint_D (x^2 + y) \, dA$，其中 $D$ 為矩形 $[0,2] \times [0,1]$。
+2. **程式**：修改上述程式，計算 $f(x,y) = \sin(xy)$ 在 $[0,1] \times [0,1]$ 上的積分。比較 $n=10$ 與 $n=50$ 的誤差。
+3. **反例**：解釋為什麼 $\int_0^1 \int_0^1 \frac{1}{x} \, dy \, dx$ 發散，但 $\int_0^1 \int_0^1 \frac{1}{x} \, dx \, dy$ 形式上看似收斂（注意：其實兩者都發散，但若改為 $\frac{y-x}{(x+y)^2}$ 則有有限值但依賴順序，請構造一個具體例子）。
+   *修正：請解釋 $\frac{x^2-y^2}{(x^2+y^2)^2}$ 在 $[0,1]^2 \setminus \{(0,0)\}$ 上的兩個迭代積分為何不等。*
+4. **整合**：一個圓形養殖池半徑 $R=10$ m。溶氧模型 $C(x,y) = C_0 - k r^2$。使用極座標積分計算平均溶氧量。說明為什麼矩形網格求積需要特殊邊界處理。
+
+## 習題解答
+
+1. **手算**：
+   $$
+   \int_0^1 \left( \int_0^2 (x^2 + y) \, dx \right) dy = \int_0^1 \left[ \frac{x^3}{3} + xy \right]_0^2 dy
+   $$
+   $$
+   = \int_0^1 \left( \frac{8}{3} + 2y \right) dy = \left[ \frac{8}{3}y + y^2 \right]_0^1 = \frac{8}{3} + 1 = \frac{11}{3}
+   $$
+
+2. **程式**：
+   $f(x,y) = \sin(xy)$。
+   解析值：$\int_0^1 (1 - \cos(y)) dy = [y - \sin(y)]_0^1 = 1 - \sin(1) \approx 0.1585$。
+   預期：$n=10$ 誤差較大，$n=50$ 誤差顯著減小。
+
+3. **反例**：
+   見19.4節。$\int_0^1 \left( \int_0^1 f \, dx \right) dy = -\pi/4$，$\int_0^1 \left( \int_0^1 f \, dy \right) dx = \pi/4$。原因是 $|f|$ 不可積，Fubini定理條件不滿足。
+
+4. **整合**：
+   極座標：$dA = r dr d\theta$。
+   $$
+   \iint C \, dA = \int_0^{2\pi} \int_0^R (C_0 - k r^2) r dr d\theta = 2\pi \left[ \frac{C_0 r^2}{2} - \frac{k r^4}{4} \right]_0^R
+   $$
+   $$
+   = 2\pi \left( \frac{C_0 R^2}{2} - \frac{k R^4}{4} \right) = \pi R^2 \left( C_0 - \frac{k R^2}{2} \right)
+   $$
+   平均濃度 $\bar{C} = C_0 - \frac{k R^2}{2}$。
+   矩形網格求積圓形區域時，角落網格會超出圓界，需使用 $\mathbb{1}_{D}$ 或計算交集面積，否則會高估/低估體積。
+
+## 本章小結
+
+本章建立了多重積分、Riemann和與Fubini定理的嚴格基礎。重點回顧：
+1. **Riemann和**定義於矩形區域，非矩形區域需通過指示函數擴展。
+2. **可積性**：連續函數在緊矩形上必可積；不連續點多（如Dirichlet函數）則不可積。
+3. **Fubini定理**：連續函數可交換積分順序；瑕積分需絕對可積性。
+4. **數值求積**：Midpoint與Trapezoidal規則均具二階收斂率 $O(n^{-2})$。
+5. **應用**：空間平均值計算需注意模型有效範圍與邊界處理。
+
+## 參考來源
+
+[1] Jiří Lebl. *Basic Analysis*. [A1]
+[2] MIT OpenCourseWare. *18.02SC Multivariable Calculus*. [A3]

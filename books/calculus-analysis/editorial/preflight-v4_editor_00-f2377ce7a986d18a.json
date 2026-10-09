@@ -1,0 +1,11 @@
+{
+  "key": "f2377ce7a986d18a0e00afe8c1be69ec4796b8491d9bf61c0c1e77a51faca132",
+  "person": {
+    "id": "v4_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 2,
+  "result": "READY"
+}

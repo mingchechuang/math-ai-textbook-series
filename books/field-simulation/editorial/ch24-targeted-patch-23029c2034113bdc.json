@@ -1,0 +1,90 @@
+{
+  "key": "23029c2034113bdcf4b4435f96a2b5ce2e7e1bee00ccf8e19a3cdc17a6538b57",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 193,
+  "result": {
+    "patches": [
+      {
+        "chapter": 24,
+        "old": "    # 使用較小的 n_points 和適中 dt 以加速校準搜索\n    dt_safe = 0.4 * dx**2 / D_max",
+        "new": "    # 以最大候選 D 與反應率共同限制步長，保留非負係數裕度。\n    dt_safe = 0.8 / (2.0 * D_max / dx**2 + k)"
+      },
+      {
+        "chapter": 24,
+        "old": "    n_steps = int(np.ceil(t_end / dt))\n    dt = t_end / n_steps\n    \n    t_values = [0.0]",
+        "new": "    n_steps = int(np.ceil(t_end / dt))\n    dt = t_end / n_steps\n    if (2.0 * D / dx**2 + k) * dt > 1.0 + 1.0e-12:\n        raise ValueError(\"重分步後違反非負係數條件\")\n    \n    t_values = [0.0]"
+      },
+      {
+        "chapter": 24,
+        "old": "        c = c.copy()\n    \n    if t_end == 0:",
+        "new": "        c = c.copy()\n    if not np.isclose(c[0], 0.0, atol=1.0e-12, rtol=0.0) or not np.isclose(c[-1], 0.0, atol=1.0e-12, rtol=0.0):\n        raise ValueError(\"初值端點須與齊次 Dirichlet 邊界相容\")\n    \n    if t_end == 0:"
+      },
+      {
+        "chapter": 24,
+        "old": "def multi_seed_calibration_holdout(num_seeds=10, D_true=0.1, noise_std=0.01, k_true=0.0):\n    \"\"\"多 seed 參數試驗，展示校準結果的分佈 (Hold-out Test)\"\"\"\n    D_cal_list = []\n    holdout_rmse_list = []\n    seeds_used = []\n    \n    for seed in range(num_seeds):\n        np.random.seed(seed)\n        seeds_used.append(seed)\n        # 生成觀測數據 (校準 t=2,4; 留出 t=6)\n        obs_times = [2.0, 4.0, 6.0]\n        obs_vals_true = [np.exp(-D_true * (np.pi)**2 * t) * np.exp(-k_true * t) for t in obs_times]\n        obs_vals_noisy = [v + np.random.normal(0, noise_std) for v in obs_vals_true]\n        \n        cal_times = np.array(obs_times[:2])\n        cal_vals = np.array(obs_vals_noisy[:2])\n        val_times = np.array(obs_times[2:])\n        val_vals = np.array(obs_vals_noisy[2:])\n        \n        D_cal = calibrate_diffusion_coefficient(cal_times, cal_vals, k=k_true)\n        D_cal_list.append(D_cal)\n        \n        # 留出評估\n        _, t_vals_pred, c_pred_hist = simulate_diffusion(D_cal, t_end=max(val_times), dt=None, n_points=51, k=k_true, save_history=True)\n        idx_mid = 25\n        pred_val = c_pred_hist[np.argmin(np.abs(np.asarray(t_vals_pred) - val_times[0]))][idx_mid]\n        rmse_holdout = compute_rmse(val_vals, [pred_val])\n        holdout_rmse_list.append(rmse_holdout)\n        \n    return np.array(D_cal_list), np.array(holdout_rmse_list), seeds_used",
+        "new": "def multi_seed_calibration_holdout(num_seeds=10, D_true=0.1, noise_std=0.01, k_true=0.0):\n    \"\"\"回傳參數樣本、留出誤差、種子及逐 seed 診斷。\"\"\"\n    if not isinstance(num_seeds, (int, np.integer)) or isinstance(num_seeds, (bool, np.bool_)) or num_seeds <= 0:\n        raise ValueError(\"num_seeds 必須為正整數\")\n    if not np.all(np.isfinite([D_true, noise_std, k_true])) or D_true <= 0 or noise_std < 0 or k_true < 0:\n        raise ValueError(\"真值與噪聲尺度不合契約\")\n    D_cal_list, holdout_rmse_list, records = [], [], []\n    obs_times = np.array([2.0, 4.0, 6.0])\n    true_values = np.exp(-(D_true * np.pi**2 + k_true) * obs_times)\n    for seed in range(num_seeds):\n        rng = np.random.default_rng(seed)\n        observed = true_values + rng.normal(0.0, noise_std, len(obs_times))\n        D_cal = calibrate_diffusion_coefficient(obs_times[:2], observed[:2], k=k_true)\n        # 使用同一個已校準的數值正向模型取得所有預測。\n        _, t_values, history = simulate_diffusion(\n            D_cal, t_end=float(obs_times[-1]), n_points=51,\n            k=k_true, save_history=True)\n        t_array = np.asarray(t_values)\n        predictions = np.array([\n            history[int(np.argmin(abs(t_array - t)))][25]\n            for t in obs_times\n        ])\n        residuals = predictions - observed\n        D_cal_list.append(float(D_cal))\n        holdout_rmse_list.append(abs(float(residuals[-1])))\n        records.append({\n            \"seed\": seed, \"times_s\": obs_times.tolist(),\n            \"observed\": observed.tolist(), \"predicted\": predictions.tolist(),\n            \"residual_pred_minus_obs\": residuals.tolist(),\n        })\n    return np.array(D_cal_list), np.array(holdout_rmse_list), list(range(num_seeds)), records"
+      },
+      {
+        "chapter": 24,
+        "old": "    D_cal_samples, rmse_samples, seeds = multi_seed_calibration_holdout(num_seeds=10, D_true=0.1, noise_std=0.01)",
+        "new": "    D_cal_samples, rmse_samples, seeds, seed_records = multi_seed_calibration_holdout(num_seeds=10, D_true=0.1, noise_std=0.01)"
+      },
+      {
+        "chapter": 24,
+        "old": "    # 先建立完整配置，再對整個配置物件取雜湊，避免只雜湊少數欄位而不可稽核。\n    cfg_full = {\n        \"D_true\": 0.1,\n        \"noise_std\": 0.01,\n        \"n_points_calibration\": 51,\n        \"n_points_verification\": 51,\n        \"calibration_times\": [2.0, 4.0],\n        \"holdout_times\": [6.0],\n        \"seeds\": [int(s) for s in seeds],\n        \"D_min\": 0.01,\n        \"D_max\": 0.5,\n        \"n_search\": 50,\n        \"k\": 0.0,\n        \"dt_rule\": \"0.8 / (2*D/dx**2 + k)\",\n        \"python_version\": sys.version,\n        \"numpy_version\": np.__version__,\n        \"platform\": platform.platform() if hasattr(platform, \"platform\") else \"\",\n    }\n    # 建立診斷紀錄\n    diagnostic_data = {\n        \"experiment_name\": \"Ch24_Diffusion_Calibration\",\n        \"timestamp\": str(np.datetime64('now')),\n        \"config\": cfg_full,\n        \"results\": {\n            \"D_cal_samples\": D_cal_samples.tolist(),\n            \"holdout_rmse_samples\": rmse_samples.tolist(),\n            \"D_cal_mean\": float(np.mean(D_cal_samples)),\n            \"D_cal_std\": float(np.std(D_cal_samples))\n        },\n        \"assumptions\": [\n            \"Linear diffusion model\",\n            \"Additive Gaussian noise\",\n            \"Dirichlet boundary conditions\",\n            \"Hold-out test only; independent validation (experiment B) is not performed in this run\"\n        ],\n        \"config_hash\": hash_config(cfg_full)\n    }",
+        "new": "    # 實驗 B：另一個初值及另一組噪聲；真值只生成資料，不參與擬合。\n    def initial_b(x):\n        return np.sin(np.pi * x) + 0.3 * np.sin(2.0 * np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_true = (np.exp(-0.1 * np.pi**2 * b_times)\n              + 0.3 * np.sin(np.pi) * np.exp(-0.4 * np.pi**2 * b_times))\n    # 中點處第二模態為零；改在 x=0.5 以外的點觀測才能辨識其貢獻。\n    # 本函式固定觀測中點，故實驗 B 改用不同第一模態幅度。\n    def initial_b(x):\n        return 0.7 * np.sin(np.pi * x)\n\n    b_true = 0.7 * np.exp(-0.1 * np.pi**2 * b_times)\n    b_observed = b_true + np.random.default_rng(10000).normal(0.0, 0.01, len(b_times))\n    b_rmse, b_pred = independent_validation(\n        float(D_cal_samples[0]), 0.0, b_times, b_observed, initial_b)\n    b_residual = b_pred - b_observed\n\n    cfg_full = {\n        \"D_true_m2_s\": 0.1, \"noise_std_kg_m3\": 0.01,\n        \"L_m\": 1.0, \"k_s_inv\": 0.0,\n        \"verification_n_points\": resolutions,\n        \"verification_dt_rule\": \"0.1*dx**2\",\n        \"verification_t_end_s\": 0.1,\n        \"calibration_n_points\": 51,\n        \"calibration_dt_rule\": \"0.8/(2*D_max/dx**2+k); rescale last step\",\n        \"prediction_dt_rule\": \"0.8/(2*D/dx**2+k); rescale last step\",\n        \"calibration_times_s\": [2.0, 4.0], \"holdout_times_s\": [6.0],\n        \"experiment_b_times_s\": b_times.tolist(),\n        \"experiment_b_initial\": \"0.7*sin(pi*x/L)\",\n        \"experiment_b_seed\": 10000,\n        \"seeds\": [int(s) for s in seeds],\n        \"D_search_m2_s\": np.linspace(0.01, 0.5, 50).tolist(),\n        \"python_version\": sys.version, \"numpy_version\": np.__version__,\n        \"platform\": platform.platform(),\n    }\n    diagnostic_data = {\n        \"experiment_name\": \"Ch24_Diffusion_Calibration\",\n        \"timestamp\": str(np.datetime64('now')),\n        \"config\": cfg_full,\n        \"observations\": {\"seed_records\": seed_records,\n                         \"experiment_b_observed\": b_observed.tolist()},\n        \"results\": {\n            \"D_cal_samples\": D_cal_samples.tolist(),\n            \"holdout_rmse_samples\": rmse_samples.tolist(),\n            \"experiment_b_rmse\": float(b_rmse),\n            \"experiment_b_prediction\": b_pred.tolist(),\n            \"experiment_b_residual_pred_minus_obs\": b_residual.tolist(),\n            \"D_cal_mean\": float(np.mean(D_cal_samples)),\n            \"D_cal_std\": float(np.std(D_cal_samples)),\n        },\n        \"assumptions\": [\"Linear diffusion model\", \"Additive Gaussian noise\",\n                        \"Homogeneous Dirichlet boundary\", \"Experiment B uses a distinct synthetic initial condition; not physical validation\"],\n        \"config_hash\": hash_config(cfg_full),\n    }"
+      },
+      {
+        "chapter": 24,
+        "old": "    # 實驗 B：另一個初值及另一組噪聲；真值只生成資料，不參與擬合。\n    def initial_b(x):\n        return np.sin(np.pi * x) + 0.3 * np.sin(2.0 * np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_true = (np.exp(-0.1 * np.pi**2 * b_times)\n              + 0.3 * np.sin(np.pi) * np.exp(-0.4 * np.pi**2 * b_times))\n    # 中點處第二模態為零；改在 x=0.5 以外的點觀測才能辨識其貢獻。\n    # 本函式固定觀測中點，故實驗 B 改用不同第一模態幅度。\n    def initial_b(x):\n        return 0.7 * np.sin(np.pi * x)\n\n    b_true = 0.7 * np.exp(-0.1 * np.pi**2 * b_times)",
+        "new": "    # 實驗 B：獨立的合成初值及噪聲；真值僅用於資料生成。\n    def initial_b(x):\n        return 0.7 * np.sin(np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_true = 0.7 * np.exp(-0.1 * np.pi**2 * b_times)"
+      },
+      {
+        "chapter": 24,
+        "old": "**可辨識性討論**：對單一模態衰減，$\\sin(\\pi x/L)e^{-(D\\pi^2+k)t}$ 的衰減率僅取決於線性組合 $D\\pi^2+k$。在校準目標函數的參數平面上，等值線 $D\\pi^2+k=\\text{const}$ 形成「等價脊線」；因此，僅憑單一空間頻率、單一位置的時間序列，無法同時識別 $D$ 與 $k$。任何沿脊線的組合都能擬合同一組數據，最佳解不唯一，不應回報單點估計為唯一真值。要辨識兩者，需其一：(1) 多位置資料，使擴散效應（空間 Laplacian 的 $\\pi^2$ 權重）與反應項分離；(2) 多頻率模態的衰減差異；(3) 或在不同初始條件下的獨立實驗。若資料僅覆蓋單一模態，正確作法是以組合值 $D\\pi^2+k$ 及其不確定性作為可辨識量，並明確聲明 $D$ 與 $k$ 在此實驗下不可獨立辨識。",
+        "new": "**可辨識性討論**：對單一模態衰減，$\\sin(\\pi x/L)e^{-[D(\\pi/L)^2+k]t}$ 的衰減率僅取決於組合 $D(\\pi/L)^2+k$。因此單一空間頻率的時間序列，即使增加觀測位置，仍不能分開識別兩參數；等價組合形成參數脊線，格點搜尋回傳的一組最小值不代表唯一真值。要分辨兩者，需觀測至少兩個具有不同非零波數且可區分其貢獻的模態，例如設計含多頻率、具足夠空間解析度的初值與量測；或者以額外獨立資訊固定其中一個參數。僅改變初值的幅度、但始終只量同一模態，也不足以解除退化。若資料僅含一個模態，應報告可識別的衰減率組合及其不確定性。"
+      },
+      {
+        "chapter": 24,
+        "old": "t_val = np.array([3.0])\ny_val = np.array([exact_midpoint(t_val[0], D_true, k_true)]) + np.array([0.0005])",
+        "new": "t_val = np.array([3.0])\n# 同一初值、同一模態的後續時刻：此處只是留出測試。\ny_val = np.array([exact_midpoint(t_val[0], D_true, k_true)]) + np.array([0.0005])"
+      },
+      {
+        "chapter": 24,
+        "old": "   - 驗證數據：$t=3$，$x=0.5$ 處的觀測值（不同初始條件）。",
+        "new": "   - 留出數據：同一初始條件下 $t=3$、$x=0.5$ 處的觀測值；此題不進行獨立物理驗證。"
+      },
+      {
+        "chapter": 24,
+        "old": "   - 任務：使用網格搜索校準 $D, k$，並計算驗證 RMSE。討論 $D$ 和 $k$ 在短時間觀測下的可辨識性問題。",
+        "new": "   - 任務：使用網格搜索校準 $D,k$，並計算留出 RMSE；說明單一模態下即使增加觀測時間，兩參數仍不可分開識別。"
+      },
+      {
+        "chapter": 24,
+        "old": "**測試2：多 Seed 校準分佈**",
+        "new": "**測試2：多 Seed 校準分佈與條件式置信界線**"
+      },
+      {
+        "chapter": 24,
+        "old": "- 驗證：描述性區間（2.5%-97.5%）應包含真值附近區域。注意：N=10 的區間僅具描述性，不代表統計上的 95% 置信區間。",
+        "new": "- 檢查：10 個估計值的百分位區間僅描述模擬分佈；不得預先斷言它必含真值。若需對估計量建立置信界線，須先固定估計程序與覆蓋對象，在明示的獨立高斯噪聲假設及相同設計下重複生成、校準大量合成資料，對誤差 $D_{cal}-D_{true}$ 的分位數作模型條件式覆蓋檢查；10 個 seed 不足以宣稱精確覆蓋率，且這不包含模型形式不確定性。"
+      },
+      {
+        "chapter": 24,
+        "old": "- `hash_config`：生成配置的雜湊值，確保實驗可重現性。",
+        "new": "- `hash_config`：生成配置雜湊以辨識設定；雜湊本身不保證資料完整或實驗可重現。"
+      },
+      {
+        "chapter": 24,
+        "old": "    if len(errors) >= 2:\n        p_obs_space = np.log(errors[0] / errors[1]) / np.log(2)\n        print(f\"Observed spatial order (coupled refinement): {p_obs_space:.2f}\")",
+        "new": "    for j in range(len(errors) - 1):\n        if errors[j] > 0 and errors[j + 1] > 0:\n            p_obs_space = np.log(errors[j] / errors[j + 1]) / np.log(2)\n            print(f\"Observed coupled-refinement order {j}: {p_obs_space:.2f}\")"
+      }
+    ],
+    "reason": "修補反應步長、邊界相容性與多 seed 輸入契約；補上獨立合成實驗及逐點殘差，校正實際配置紀錄、同模態可辨識性及留出測試名稱。十個樣本百分位數仍須明確區別於具有覆蓋意義的置信界線；所有新增程式與結果均未執行。"
+  }
+}

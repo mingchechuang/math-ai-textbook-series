@@ -1,0 +1,55 @@
+{
+  "key": "13e5fa9db42e0660b62cab333b50519a15d20dd6c24dd9763064473b67e1e185",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 232,
+  "result": {
+    "patches": [
+      {
+        "chapter": 24,
+        "old": "def independent_validation(D_cal, k_cal, val_times, val_vals,\n                           ic_val, L=1.0, n_points=51):\n    \"\"\"以不同初始條件（實驗 B）計算獨立驗證 RMSE。\n\n    與留出測試不同，此函式使用獨立初始條件，避免同一物理軌跡上的記憶性。\n    回傳 (RMSE, 預測陣列)。\n    \"\"\"\n    val_times = np.asarray(val_times, dtype=float).ravel()\n    val_vals = np.asarray(val_vals, dtype=float).ravel()\n    if val_times.size == 0 or val_times.shape != val_vals.shape:\n        raise ValueError(\"驗證時間與觀測值必須等長非空\")\n    if not np.all(np.isfinite(val_times)) or not np.all(np.isfinite(val_vals)):\n        raise ValueError(\"獨立驗證資料必須有限\")\n    if np.any(val_times < 0.0):\n        raise ValueError(\"驗證時間必須非負\")\n\n    _, t_vals, c_hist = simulate_diffusion(\n        D_cal, L=L, n_points=n_points, t_end=float(np.max(val_times)),\n        k=k_cal, save_history=True, initial_cond=ic_val,\n    )\n    idx_mid = n_points // 2\n    t_arr = np.asarray(t_vals)\n    preds = []\n    for t_obs in val_times:\n        idx = int(np.argmin(np.abs(t_arr - t_obs)))\n        preds.append(c_hist[idx][idx_mid])\n    return compute_rmse(val_vals, preds), np.asarray(preds)",
+        "new": "def independent_synthetic_test(D_cal, k_cal, val_times, val_vals,\n                               ic_val, x_obs, L=1.0, n_points=51):\n    \"\"\"跨初值合成測試，非物理 Validation；時空皆採線性插值。\"\"\"\n    val_times = np.asarray(val_times, dtype=float).ravel()\n    val_vals = np.asarray(val_vals, dtype=float).ravel()\n    if val_times.size == 0 or val_times.shape != val_vals.shape:\n        raise ValueError(\"時間與觀測值須等長非空\")\n    if (not np.all(np.isfinite(val_times)) or not np.all(np.isfinite(val_vals))\n            or np.any(val_times < 0)):\n        raise ValueError(\"合成觀測須有限且時間非負\")\n    if (np.ndim(x_obs) != 0 or not np.isfinite(x_obs)\n            or x_obs < 0 or x_obs > L):\n        raise ValueError(\"x_obs 須為域內有限純量\")\n    x, times, history = simulate_diffusion(\n        D_cal, L=L, n_points=n_points, t_end=float(np.max(val_times)),\n        k=k_cal, save_history=True, initial_cond=ic_val)\n    sampled = np.array([np.interp(float(x_obs), x, state)\n                        for state in history])\n    preds = np.interp(val_times, np.asarray(times), sampled)\n    return compute_rmse(val_vals, preds), np.asarray(preds)"
+      },
+      {
+        "chapter": 24,
+        "old": "    # 實驗 B 使用不同波數初值與獨立噪聲；仍是合成資料檢查而非物理 Validation。\n    def initial_b(x):\n        return 0.7 * np.sin(2.0 * np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_truth = 0.7 * np.exp(-(0.1 * (2.0 * np.pi)**2) * b_times)\n    b_observed = b_truth + np.random.default_rng(10000).normal(0.0, 0.01, b_times.size)\n    b_rmse_samples, b_prediction_samples, b_residual_samples = [], [], []\n    for D_cal in D_cal_samples:\n        b_rmse, b_predicted = independent_validation(\n            float(D_cal), 0.0, b_times, b_observed, initial_b)\n        b_rmse_samples.append(float(b_rmse))\n        b_prediction_samples.append(b_predicted.tolist())\n        b_residual_samples.append((b_predicted - b_observed).tolist())",
+        "new": "    # 實驗 B 在 x=0.25 m 觀測不同波數的合成初值。\n    def initial_b(x):\n        return 0.7 * np.sin(2.0 * np.pi * x)\n\n    b_x_obs = 0.25\n    b_times = np.array([1.0, 2.0])\n    b_truth = (0.7 * np.sin(2.0 * np.pi * b_x_obs)\n               * np.exp(-0.1 * (2.0 * np.pi)**2 * b_times))\n    b_observed = b_truth + np.random.default_rng(10000).normal(\n        0.0, 0.01, b_times.size)\n    b_rmse_samples, b_prediction_samples, b_residual_samples = [], [], []\n    for D_cal in D_cal_samples:\n        b_rmse, b_predicted = independent_synthetic_test(\n            float(D_cal), 0.0, b_times, b_observed, initial_b, b_x_obs)\n        b_rmse_samples.append(float(b_rmse))\n        b_prediction_samples.append(b_predicted.tolist())\n        b_residual_samples.append((b_predicted - b_observed).tolist())"
+      },
+      {
+        "chapter": 24,
+        "old": "        \"experiment_b_times_s\": b_times.tolist(),\n        \"experiment_b_initial\": \"0.7*sin(pi*x/L)\",\n        \"experiment_b_seed\": 10000,",
+        "new": "        \"experiment_b_times_s\": b_times.tolist(),\n        \"experiment_b_initial\": \"0.7 kg/m^3 * sin(2*pi*x/L)\",\n        \"experiment_b_wave_number\": 2,\n        \"experiment_b_amplitude_kg_m3\": 0.7,\n        \"experiment_a_amplitude_kg_m3\": 1.0,\n        \"experiment_b_x_obs_m\": b_x_obs,\n        \"experiment_b_sampling\": \"linear interpolation in space and time\",\n        \"experiment_b_seed\": 10000,"
+      },
+      {
+        "chapter": 24,
+        "old": "def save_diagnostic_record(filename, data):\n    \"\"\"保存診斷紀錄到 JSON\"\"\"",
+        "new": "def synthetic_confidence_demo(D_true=0.1, sigma=0.01,\n                              n_build=200, n_check=200):\n    \"\"\"已知合成真值下的條件式估計界線與獨立覆蓋診斷。\"\"\"\n    if (np.ndim(D_true) != 0 or np.ndim(sigma) != 0\n            or not np.all(np.isfinite([D_true, sigma]))\n            or not 0.01 <= D_true <= 0.5 or sigma <= 0):\n        raise ValueError(\"真值或噪聲尺度不合契約\")\n    if (not isinstance(n_build, (int, np.integer)) or n_build < 20\n            or not isinstance(n_check, (int, np.integer)) or n_check < 20):\n        raise ValueError(\"兩組重複數均須至少 20\")\n    times = np.array([2.0, 4.0])\n    grid = np.linspace(0.01, 0.5, 50)\n    predictions = np.exp(-grid[:, None] * np.pi**2 * times)\n    truth = np.exp(-D_true * np.pi**2 * times)\n    def estimates(seed, count):\n        rng = np.random.default_rng(seed)\n        observed = truth + rng.normal(0.0, sigma, (count, 2))\n        scores = np.sum((observed[:, None, :] - predictions[None, :, :])**2,\n                        axis=2)\n        return grid[np.argmin(scores, axis=1)]\n    build = estimates(20001, n_build)\n    check = estimates(20002, n_check)\n    qlo, qhi = np.percentile(build - D_true, [2.5, 97.5])\n    lower = np.maximum(0.01, check - qhi)\n    upper = np.minimum(0.5, check - qlo)\n    return {\"construction_repetitions\": int(n_build),\n            \"coverage_repetitions\": int(n_check),\n            \"error_quantiles_m2_s\": [float(qlo), float(qhi)],\n            \"example_interval_m2_s\": [float(lower[0]), float(upper[0])],\n            \"empirical_coverage\": float(np.mean((lower <= D_true) &\n                                                  (D_true <= upper))),\n            \"bounds_m2_s\": [0.01, 0.5],\n            \"estimator\": \"two-time analytic grid least squares\",\n            \"assumption\": \"known synthetic truth; independent Gaussian noise\"}\n\n\ndef save_diagnostic_record(filename, data):\n    \"\"\"保存診斷紀錄到 JSON\"\"\""
+      },
+      {
+        "chapter": 24,
+        "old": "    print(f\"D_cal descriptive range (2.5%-97.5%): [{ci_lower:.4f}, {ci_upper:.4f}]\")",
+        "new": "    print(f\"D_cal descriptive range (2.5%-97.5%): [{ci_lower:.4f}, {ci_upper:.4f}]\")\n    confidence_diagnostic = synthetic_confidence_demo()\n    print(\"Conditional synthetic coverage diagnostic:\", confidence_diagnostic)"
+      },
+      {
+        "chapter": 24,
+        "old": "        \"results\": {\n            \"D_cal_samples\": D_cal_samples.tolist(),",
+        "new": "        \"results\": {\n            \"conditional_synthetic_confidence\": confidence_diagnostic,\n            \"D_cal_samples\": D_cal_samples.tolist(),"
+      },
+      {
+        "chapter": 24,
+        "old": "- 初步的 10 個 seed 分位範圍只作描述，不宣稱可靠覆蓋率。若要估計模型條件式置信界線，固定估計程序、噪聲模型與真值，進行多次獨立合成重複並保存 $e_b=\\widehat D_b-D_{\\rm true}$。以誤差分位數 $q_{0.025},q_{0.975}$ 建立估計區間 $[\\widehat D-q_{0.975},\\widehat D-q_{0.025}]$，並按參數範圍處理邊界。另用獨立外層重複檢查真值落入區間的經驗比例，報告重複數及覆蓋比例。有限次試驗只能估計覆蓋率；此界線只適用於指定噪聲與模型假設，不含模型形式誤差。",
+        "new": "- 十個校準樣本的分位範圍只作描述。新增的 `synthetic_confidence_demo` 以兩組獨立種子各作兩百次合成重複：第一組建立估計誤差分位界線，第二組檢查截斷區間的經驗覆蓋率，並記錄重複數與示範區間。此函數採解析解格點估計器，**不同於**主實驗的數值 FTCS 校準；界線不可互用。其程序須已知合成真值及高斯噪聲尺度，且尚未執行；未取得實際覆蓋比例前不能宣稱達到標稱覆蓋率。即使執行，結論亦僅限所設模型、真值、搜尋邊界及噪聲假設，不包括模型形式不確定性。"
+      },
+      {
+        "chapter": 24,
+        "old": "    for _name, _val in ((\"D\", D), (\"L\", L), (\"t_end\", t_end), (\"k\", k)):\n        if not np.isfinite(_val):\n            raise ValueError(f\"{_name} 必須為有限值\")\n    if dt is not None and not np.isfinite(dt):\n        raise ValueError(\"dt 必須為有限值\")",
+        "new": "    for _name, _val in ((\"D\", D), (\"L\", L), (\"t_end\", t_end), (\"k\", k)):\n        if np.ndim(_val) != 0 or not np.isfinite(_val):\n            raise ValueError(f\"{_name} 必須為有限純量\")\n    if dt is not None and (np.ndim(dt) != 0 or not np.isfinite(dt)):\n        raise ValueError(\"dt 必須為有限純量\")"
+      }
+    ],
+    "reason": "僅修本輪有證據的觀測位置錯誤、配置不符及缺少可執行合成置信界線診斷；明確標示非物理驗證。所有 old 均取自本輪原稿，彼此不重疊，未執行程式。"
+  }
+}

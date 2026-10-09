@@ -1,0 +1,11 @@
+{
+  "key": "55fe7bcbd09830a8fb6a85224fda5a9c20567de078b6ee108e89da02ad0626dd",
+  "person": {
+    "id": "v4_editor_29",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "reviewer"
+  },
+  "call": 68,
+  "result": "**需修訂手算與預期測試的起點數值。** 對程式所用的 $f(x)=x_1^2+4x_2^2$，起點 $(4,-2)^T$ 給出 $f=16+16=32$、$\\nabla f=(8,-16)^T$，故梯度範數為 $8\\sqrt5$。第一步 $(3,0)^T$ 及其函數值 $9$ 則正確。\n\n稿件寫道：「函數值由 $20$ 降至 $9$；梯度範數由 $16\\sqrt2$ 降至 $6$。」最小修法是將 $20$ 改為 $32$、$16\\sqrt2$ 改為 $8\\sqrt5$；其餘更新式及所列第一、二步結果不必改動。\n\nVERDICT: REVISE"
+}

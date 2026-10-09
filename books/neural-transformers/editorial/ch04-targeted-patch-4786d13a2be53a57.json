@@ -1,0 +1,11 @@
+{
+  "key": "4786d13a2be53a57ab49e5f7eace28e3bb88f0a5582fde425555a73a82abf79a",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 510,
+  "result": "<<<PATCH 04>>>\n<<<OLD>>>\n3.  **邊界（零機率）**：驗證 `inf` 返回，且僅影響特定樣本。純機率域可直接觀察到 $+\\infty$；由有限 logits 出發的 CE（見第 6 章 `cross_entropy_loss_and_grad`）於本卷核心實作拒絕非有限輸入，不會由有限 logits 產生 `inf`。\n4.  **邊界（KL）**：驗證支撐集不含時返回 `inf`，相同分布返回 0。\n5.  **整合（Perplexity）**：驗證 token 加權平均的正確性。\n6.  **故障（驗證）**：驗證負概率、非布林 mask 等非法輸入被拒絕。\n7.  **邊界（NaN 與 inf）**：有效 NLL 同時含 `inf` 與 `nan` 時預期拋出 `ValueError`（NaN 優先拒絕），不靜默回傳 `inf`。\n<<<NEW>>>\n3.  **邊界（零機率）**：驗證 `inf` 返回，且僅影響特定樣本。純機率介面允許正確類別機率精確為零；logits 介面的數值策略與極端有限輸入行為須另行定義，不能由此測試推斷。\n4.  **邊界（KL）**：驗證支撐集不含時返回 `inf`，相同分布返回 0。\n5.  **整合（Perplexity）**：驗證 token 加權平均的正確性。\n6.  **故障（驗證）**：驗證負概率、非布林 mask 等非法輸入被拒絕。\n另可增加尚未列入 `run_expected_tests()` 的測試：有效 NLL 同時含 `inf` 與 `nan` 時，預期優先拒絕 NaN 並拋出 `ValueError`。\n<<<END>>>"
+}

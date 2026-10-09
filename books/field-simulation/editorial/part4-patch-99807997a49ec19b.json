@@ -1,0 +1,30 @@
+{
+  "key": "99807997a49ec19bbbe722ad75580c80dd785d5c5b4e2d1a99c245389e731011",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 342,
+  "result": {
+    "patches": [
+      {
+        "chapter": 21,
+        "old": "溫度與溶氧的邊界條件依物理情境。水面熱交換常用 Robin 條件：$-k_{\\text{th}}\\partial_n T = h_{\\text{th}}(T_{\\text{air}} - T)$，其中 $k_{\\text{th}}$ 為熱傳導率（W/(m·K)），$h_{\\text{th}}$ 為熱交換係數（W/(m$^2\\cdot$K)）。水面復氧常用 $-D\\partial_n c = h_m(c_{\\text{sat}} - c)$，$h_m$ 單位 m/s。池底若為不透水且無通量則用 Neumann 零通量。固體壁面通常也是零通量。若採用 Dirichlet 條件（例如邊界處濃度固定），需檢查與來源項及穩態的相容性。純 Neumann 條件下若來源項非零則穩態不存在，這與第 13 章 Poisson 零空間相同。Robin 條件的離散需注意半格邊界位置：水面通常位於 cell 面而非 cell 中心，因此邊界通量是面通量，與 cell 體積的通量散度要正確對齊。",
+        "new": "溫度與溶氧的邊界條件依物理情境。令 $\\partial_n$ 沿水域的單位外法向，向外通量取正。水面熱交換常用 Robin 條件：$-k_{\\text{th}}\\partial_n T=h_{\\text{th}}(T-T_{\\text{air}})$，其中 $k_{\\text{th}}$ 為熱傳導率（W/(m·K)），$h_{\\text{th}}$ 為熱交換係數（W/(m$^2\\cdot$K)）；水比空氣熱時，右端為正，表示熱向外流。水面復氧可寫為 $-D\\partial_n c=h_m(c-c_{\\text{sat}})$，$h_m$ 單位 m/s；水中濃度較低時，外向溶質通量為負，表示氧進入水域。池底若為不透水且無通量則用 Neumann 零通量。固體壁面通常也是零通量。若採用 Dirichlet 條件（例如邊界處濃度固定），需檢查與來源項及穩態的相容性。純 Neumann 條件下，穩態須滿足來源體積積分與邊界通量的收支相容條件；若全部邊界通量為零而淨來源不為零，則不存在穩態。Robin 條件的離散需注意半格邊界位置：水面通常位於 cell 面而非 cell 中心，因此邊界通量是面通量，與 cell 體積的通量散度要正確對齊。"
+      },
+      {
+        "chapter": 21,
+        "old": "邊界測試：(1) $N_x=N_y=2$ 應被 `make_grid` 拒絕，因為無法離散二階 Laplacian；",
+        "new": "邊界測試：(1) $N_x=N_y=2$ 應被 `make_grid` 接受；程式的零通量邊界差分仍有定義，但格網過粗，不宜用來宣稱二階收斂；"
+      },
+      {
+        "chapter": 24,
+        "old": "\"D_true_m2_s\": 0.1, \"noise_std_kg_m3\": 0.01,",
+        "new": "\"D_true_m2_s\": 0.1, \"noise_std_dimensionless\": 0.01,"
+      }
+    ],
+    "reason": "依跨章審查，統一第21章兩種 Robin 條件的外法向通量方向、修正兩格網格測試與實作不符處，並將第24章無因次模態噪聲標為無因次；未執行程式。"
+  }
+}

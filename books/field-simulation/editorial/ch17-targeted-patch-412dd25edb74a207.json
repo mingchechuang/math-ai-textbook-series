@@ -1,0 +1,14 @@
+{
+  "key": "412dd25edb74a207c1f26c7c5e3adef62772ad613dae1b21214a40d9ba1131f5",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 283,
+  "result": {
+    "patches": [],
+    "reason": "重新按 JSON 跳脫規則核對：原稿中的 `\\n` 是換行，其後的 `u` 才是公式變數。三處解碼後分別為 $u=g_D$、$u_h=\\sum_{a=1}^3U_aN_a$、$u=0$，並無希臘字母 $\\nu$。本次審稿沒有指出實際錯誤；依「只修真錯誤」原則不提出補丁。未執行程式。"
+  }
+}

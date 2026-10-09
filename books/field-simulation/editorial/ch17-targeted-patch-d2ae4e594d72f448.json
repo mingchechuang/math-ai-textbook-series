@@ -1,0 +1,45 @@
+{
+  "key": "d2ae4e594d72f4485f785c3d9b5216d7c63c48cf9de22a83b3626b475eb7cd66",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 176,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "若 Neumann 邊由節點 $i,j$ 構成，邊長為 $L_e$，且 $q_N$ 為常數，則邊界負載為\n\n$$\nF_\\Gamma^{(e)}\n=\n\\frac{q_NL_e}{2}\n\\begin{bmatrix}\n1\\\\1\n\\end{bmatrix}.\n$$",
+        "new": "若 Neumann 邊由節點 $i,j$ 構成，邊長為 $L_e$，且 $q_N$ 為常數，則**邊上兩個節點**的負載列向量為\n\n$$\nF_\\Gamma^{\\mathrm{edge}}\n=\n\\frac{q_NL_e}{2}\n\\begin{bmatrix}\n1\\\\1\n\\end{bmatrix}.\n$$\n\n組裝到三角形的三個局部自由度時，將上述兩個分量分別加到該邊所對應的局部節點位置，第三個局部分量為零；再依元素連接表散佈至全域右端。不可將二維邊負載直接當作三維元素負載相加。"
+      },
+      {
+        "chapter": 17,
+        "old": "    if atol < 0.0 or rtol < 0.0:\n        raise ValueError(\"atol 與 rtol 必須非負\")\n\n    defect = float(np.sum(b))\n    limit = atol + rtol * float(np.linalg.norm(b, ord=1))\n    if abs(defect) > limit:",
+        "new": "    tolerances = np.asarray([atol, rtol], dtype=float)\n    if not np.all(np.isfinite(tolerances)) or np.any(tolerances < 0.0):\n        raise ValueError(\"atol 與 rtol 必須有限且非負\")\n\n    defect = float(np.sum(b))\n    limit = float(tolerances[0] + tolerances[1] * np.linalg.norm(b, ord=1))\n    if not np.isfinite(defect) or not np.isfinite(limit):\n        raise ValueError(\"相容性缺陷或容差計算結果不是有限值\")\n    if abs(defect) > limit:"
+      },
+      {
+        "chapter": 17,
+        "old": "    # 故障示例：常數正來源、零 Neumann、c=0 不相容。\n    try:\n        check_pure_neumann_compatibility(b)\n    except ValueError as err:\n        print(\"expected rejection:\", err)",
+        "new": "    # 通過示例：零來源、零 Neumann、c=0 的右端相容。\n    _, b_zero, _ = assemble(\n        points, triangles, kappa=1.0, reaction=0.0, source=0.0\n    )\n    print(\"compatible defect, limit =\",\n          check_pure_neumann_compatibility(b_zero))\n\n    # 故障示例：常數正來源、零 Neumann、c=0 不相容。\n    # 檢查失敗後不得進入純 Neumann 求解流程。\n    try:\n        check_pure_neumann_compatibility(b)\n    except ValueError as err:\n        print(\"expected rejection; no Neumann solve attempted:\", err)"
+      },
+      {
+        "chapter": 17,
+        "old": "純 Neumann 檢查函式只驗證相容性，不負責求解奇異系統。相容後仍須使用零均值增廣系統、零均值子空間投影或其他明確規範。大型問題應使用稀疏矩陣，但同樣要保留資料、幾何與相容性檢查。",
+        "new": "純 Neumann 檢查函式只驗證相容性，不負責求解奇異系統。零來源、零邊界通量的示例應通過檢查；正來源示例應被拒絕，且拒絕後不得呼叫任何純 Neumann 求解流程。相容後仍須使用零均值增廣系統、零均值子空間投影或其他明確規範。大型問題應使用稀疏矩陣，但同樣要保留資料、幾何與相容性檢查。"
+      },
+      {
+        "chapter": 17,
+        "old": "主程式中的 $b$ 來自常數正來源 $f=1$。若將同一右端解釋為純 Neumann、$c=0$ 且所有邊界通量為零，則\n\n$$\n\\mathbf1^Tb=\\int_\\Omega1\\,d\\Omega=1,\n$$\n\n故 `check_pure_neumann_compatibility(b)` 應拒絕。這是相容性測試，不是純 Neumann 求解器測試。",
+        "new": "主程式先以 $f=0$、零 Neumann 通量及 $c=0$ 建立右端 $b_{\\rm zero}=0$；`check_pure_neumann_compatibility(b_zero)` 應通過，但這不等於已求出帶零均值規範的解。原本的 $b$ 來自常數正來源 $f=1$。若將它解釋為純 Neumann、$c=0$ 且所有邊界通量為零，則\n\n$$\n\\mathbf1^Tb=\\int_\\Omega1\\,d\\Omega=1,\n$$\n\n故 `check_pure_neumann_compatibility(b)` 應拒絕，後續不得嘗試以固定節點或增廣系統冒充原問題的解。這兩項是相容性測試，不是純 Neumann 求解器測試。"
+      },
+      {
+        "chapter": 17,
+        "old": "對無因次序參量 $\\phi$，取\n\n$$\nW(\\phi)=\\frac{(\\phi^2-1)^2}{4},",
+        "new": "此段改用**全套無因次相場變數**，不沿用前述以 m 計的池域座標。選參考長度 $\\ell_0>0$ 與能量密度 $f_0>0$，令 $\\hat x=x_{\\rm phys}/\\ell_0$、$\\hat y=y_{\\rm phys}/\\ell_0$，並以 $f_0\\ell_0^2$ 為每單位厚度自由能尺度。以下公式中的 $\\Omega$、$\\nabla$ 及面積元素均採無因次座標，$F$ 為依該尺度除過的自由能；$\\phi$、$\\kappa$ 均無因次。若有因次梯度能係數為 $K_g$，則此約定下 $\\kappa=K_g/(f_0\\ell_0^2)$。取\n\n$$\nW(\\phi)=\\frac{(\\phi^2-1)^2}{4},"
+      }
+    ],
+    "reason": "修補邊界負載的維度與散佈、純 Neumann 容差的非有限輸入及通過／拒絕測試，以及相場能量的無因次尺度。審稿所引的 `$$\\nu` 是原稿 JSON 中換行符 `\\n` 後接變數 `u`；原式實為 $u=g_D$ 與 $u=0$，不是梯度條件，因此不改動。以上為依原稿推導的修訂，未執行程式。"
+  }
+}

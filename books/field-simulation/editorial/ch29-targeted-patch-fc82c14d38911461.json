@@ -1,0 +1,35 @@
+{
+  "key": "fc82c14d3891146184e7aa6957d8cf2376b05f242eac0262eca59821a8748969",
+  "person": {
+    "id": "v3_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 208,
+  "result": {
+    "patches": [
+      {
+        "chapter": 29,
+        "old": "西面通量 $F_{i-1/2} = -k A \\frac{T_i - T_{i-1}}{\\Delta x}$，東面通量 $F_{i+1/2} = -k A \\frac{T_{i+1} - T_i}{\\Delta x}$。\n本節一律讓 $F_{i\\pm1/2}$ 沿 $+x$ 方向取正值：西面正值代表流入 cell，東面正值代表流出 cell，故 cell 的淨輸入仍為 $F_{i-1/2}-F_{i+1/2}$。不採「每一面流入 cell 為正」另一套局部符號，以免兩種定義混用。\n$$ C_{eff,i}^n \\frac{T_i^{n+1} - T_i^n}{\\Delta t} A \\Delta x = \\left( -k A \\frac{T_i^{n+1} - T_{i-1}^{n+1}}{\\Delta x} \\right) - \\left( -k A \\frac{T_{i+1}^{n+1} - T_i^{n+1}}{\\Delta x} \\right) $$\n兩邊除以 $A \\Delta x$：",
+        "new": "西面熱流密度 $q_{i-1/2}=-k\\frac{T_i-T_{i-1}}{\\Delta x}$，東面熱流密度 $q_{i+1/2}=-k\\frac{T_{i+1}-T_i}{\\Delta x}$，單位皆為 $\\mathrm{W/m^2}$。本節一律讓 $q_{i\\pm1/2}$ 沿 $+x$ 方向取正值：西面正值代表流入 cell，東面正值代表流出 cell，故每單位截面積的淨輸入率為 $q_{i-1/2}-q_{i+1/2}$。不採「每一面流入 cell 為正」另一套局部符號，以免兩種定義混用。\n$$ C_{eff,i}^n\\Delta x\\frac{T_i^{n+1}-T_i^n}{\\Delta t}=\\left(-k\\frac{T_i^{n+1}-T_{i-1}^{n+1}}{\\Delta x}\\right)-\\left(-k\\frac{T_{i+1}^{n+1}-T_i^{n+1}}{\\Delta x}\\right) $$\n兩邊除以 $\\Delta x$："
+      },
+      {
+        "chapter": 29,
+        "old": "    西面距離為 $\\Delta x/2$。通量 $F_{-1/2} = -k A \\frac{T_0^{n+1} - T_0^{bnd}}{\\Delta x/2} = \\frac{2kA}{\\Delta x}(T_0^{bnd} - T_0^{n+1})$。\n    東面距離為 $\\Delta x$。通量 $F_{1/2} = -k A \\frac{T_1^{n+1} - T_0^{n+1}}{\\Delta x}$。\n    方程：\n    $$ \\frac{C_{eff,0}^n}{\\Delta t} A \\Delta x (T_0^{n+1} - T_0^n) = \\frac{2kA}{\\Delta x}(T_0^{bnd} - T_0^{n+1}) - \\left( -k A \\frac{T_1^{n+1} - T_0^{n+1}}{\\Delta x} \\right) $$\n    除以 $A \\Delta x$：",
+        "new": "    西面距離為 $\\Delta x/2$。熱流密度 $q_{-1/2}=-k\\frac{T_0^{n+1}-T_0^{bnd}}{\\Delta x/2}=\\frac{2k}{\\Delta x}(T_0^{bnd}-T_0^{n+1})$。\n    東面距離為 $\\Delta x$。熱流密度 $q_{1/2}=-k\\frac{T_1^{n+1}-T_0^{n+1}}{\\Delta x}$。\n    每單位截面積的方程：\n    $$ \\frac{C_{eff,0}^n}{\\Delta t}\\Delta x(T_0^{n+1}-T_0^n)=\\frac{2k}{\\Delta x}(T_0^{bnd}-T_0^{n+1})-\\left(-k\\frac{T_1^{n+1}-T_0^{n+1}}{\\Delta x}\\right) $$\n    除以 $\\Delta x$："
+      },
+      {
+        "chapter": 29,
+        "old": "    西面通量 $F_{N-3/2} = -k A \\frac{T_{N-1}^{n+1} - T_{N-2}^{n+1}}{\\Delta x}$。",
+        "new": "    西面熱流密度 $q_{N-3/2}=-k\\frac{T_{N-1}^{n+1}-T_{N-2}^{n+1}}{\\Delta x}$，東面熱流密度為零。"
+      },
+      {
+        "chapter": 29,
+        "old": "    當 $L=0$，$\\phi$ 恆為 0，$C_{eff}=\\rho c_p$。\n    數值解應收斂於解析解。注意邊界條件需匹配（半無限域 vs 有限域）。",
+        "new": "    當 $L=0$ 時，$C_{eff}=\\rho c_p$，溫度方程退化為標準熱擴散。程式仍可由溫度重建診斷用的 $\\phi(T)$，但它不影響焓或溫度方程。細化網格與時間步時，數值解應趨近邊界條件相符的基準解；半無限域解析解僅適用於右端邊界影響可忽略的比較時段。"
+      }
+    ],
+    "reason": "統一有限體積矩陣推導為每單位截面積的熱流密度與蓄熱量，保留除以格距後正確的矩陣係數；並修正潛熱為零時液相分率仍可作診斷量的習題答案。未執行程式。"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "tokens": {
+    "input": 28064271,
+    "output": 2066768,
+    "cacheRead": 31232512,
+    "cacheWrite": 0,
+    "reasoning": 462076,
+    "totalTokens": 61363551
+  },
+  "estimated_cost_usd": {
+    "input": 47.91581790000005,
+    "output": 16.642077699999998,
+    "cacheRead": 5.221054208000005,
+    "cacheWrite": 0,
+    "total": 69.77894980799998
+  },
+  "assistant_messages": 572,
+  "note": "Pi模型目錄等值估價，非OAuth實際帳單；本地模型0報價不代表電力/硬體免費；失敗請求可能無完整用量。"
+}

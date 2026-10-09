@@ -1,0 +1,20 @@
+{
+  "key": "36b447b5305ed6b2107efd4835e043c199d9f22f399b193c0a5df4a83d73c234",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 289,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "將全域自由度分為自由集合 $F$ 與 Dirichlet 集合 $D$：\n\n$$\n\\begin{bmatrix}\nK_{FF}&K_{FD}\\\\\nK_{DF}&K_{DD}\n\\end{bmatrix}\n\\begin{bmatrix}\nU_F\\\\U_D\n\\end{bmatrix}\n=\n\\begin{bmatrix}\nb_F\\\\b_D\n\\end{bmatrix}.\n$$\n\n已知 $U_D=g_D$ 後，應求解",
+        "new": "將全域自由度分為自由集合 $F$ 與 Dirichlet 集合 $D$。在尚未消去固定自由度的組裝矩陣中，分塊記號為\n\n$$\nK=\n\\begin{bmatrix}\nK_{FF}&K_{FD}\\\\\nK_{DF}&K_{DD}\n\\end{bmatrix},\n\\qquad\nU=\\begin{bmatrix}U_F\\\\U_D\\end{bmatrix},\n\\qquad\nb=\\begin{bmatrix}b_F\\\\b_D\\end{bmatrix}.\n$$\n\nDirichlet 問題只要求原組裝方程的自由列成立；固定列已由指定邊界值取代，不應同時要求 $K_{DF}U_F+K_{DD}U_D=b_D$。已知 $U_D=g_D$ 後，應求解"
+      }
+    ],
+    "reason": "原分塊等式要求固定列也滿足原方程，與後文「只有自由列仍要求滿足原方程」矛盾；改為分塊記號並明確限定自由列。審稿所指 `\\nu` 則是 JSON 換行跳脫 `\\n` 緊接字母 `u` 的誤讀，解碼後三處公式無須修改。未執行程式。"
+  }
+}

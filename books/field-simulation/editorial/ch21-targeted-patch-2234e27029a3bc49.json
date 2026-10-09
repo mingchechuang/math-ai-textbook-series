@@ -1,0 +1,20 @@
+{
+  "key": "2234e27029a3bc4905db3dbcb7bd3e11867472691bed16d0b8fff3979e0894b3",
+  "person": {
+    "id": "v3_editor_32",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "author"
+  },
+  "call": 349,
+  "result": {
+    "patches": [
+      {
+        "chapter": 21,
+        "old": "當流速趨於零（$U\\to 0$）時，原參考時間 $T_{\\text{ref}}=L/U$ 不再適用。此時應改以擴散尺度為主：取 $T_{\\text{ref}} = L^2/D$，並保留 $U$ 作為參數。無因次方程變為\n$$ \\frac{\\partial c^*}{\\partial t^*} + \\mathrm{Pe}_c^{-1}\\,\\mathbf{u}^*\\cdot\\nabla^* c^* = \\nabla^{*2} c^* - \\mathrm{Da}_d^{(\\text{diff})} c^* + \\mathrm{Da}_a^{(\\text{diff})}(c^*_{\\text{sat}} - c^*), $$\n其中 $\\mathrm{Da}_d^{(\\text{diff})}=k_d L^2/D$、$\\mathrm{Da}_a^{(\\text{diff})}=k_a L^2/D$ 是相對於擴散時間尺度的 Damköhler 數。這個形式在無平流的池底耗氧或實驗室擴散槽中更自然。它同時說明：同一組物理係數在不同流況下需要用不同的無因次組合描述，否則比較會失真。",
+        "new": "當流速趨於零（$U\\to 0$）時，原參考時間 $T_{\\text{ref}}=L/U$ 不再適用。此時應改以擴散尺度為主：取 $T_{\\text{ref}}=L^2/D$，並以 $\\mathbf{u}=U\\mathbf{u}^*$ 定義無因次速度。因為平流項與擴散項的尺度比為 $UL/D=\\mathrm{Pe}_c$，無因次方程變為\n$$ \\frac{\\partial c^*}{\\partial t^*} + \\mathrm{Pe}_c\\,\\mathbf{u}^*\\cdot\\nabla^* c^* = \\nabla^{*2} c^* - \\mathrm{Da}_d^{(\\text{diff})} c^* + \\mathrm{Da}_a^{(\\text{diff})}(c^*_{\\text{sat}} - c^*). $$\n其中 $\\mathrm{Da}_d^{(\\text{diff})}=k_dL^2/D$、$\\mathrm{Da}_a^{(\\text{diff})}=k_aL^2/D$ 是相對於擴散時間尺度的 Damköhler 數。若嚴格取 $U=0$，則平流項直接消失，不必再定義 $\\mathbf{u}^*$；若 $U$ 只是很小但非零，則 $\\mathrm{Pe}_c\\ll1$ 表示平流相對擴散較弱。這個形式在弱平流的池底耗氧或實驗室擴散槽中更自然，也說明同一組物理係數在不同流況下需要用不同的無因次組合描述，否則比較會失真。"
+      }
+    ],
+    "reason": "依獨立審稿所指出的可定位錯誤，修正採擴散時間尺度 $L^2/D$ 時平流項的係數：在 $\\mathbf{u}=U\\mathbf{u}^*$ 的定義下應為 $\\mathrm{Pe}_c=UL/D$，不是其倒數；並補充 $U=0$ 時不應再以 $U$ 正規化速度。其餘已核對正確的邊界符號、數值計算與程式內容均保留，未執行程式。"
+  }
+}

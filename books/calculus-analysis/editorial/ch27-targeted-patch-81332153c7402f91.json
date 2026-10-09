@@ -1,0 +1,11 @@
+{
+  "key": "81332153c7402f915dbd62d4c8ed49f171bf8cea5d657748314bad307a0e0b84",
+  "person": {
+    "id": "v4_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 267,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n適當的Lyapunov函數則提供另一種加權幾何，使對應橢球半徑單調下降。\n<<<NEW>>>\n適當的正定二次Lyapunov函數則提供另一種加權幾何，使其橢球子水平集沿軌跡向內收縮；一般Lyapunov函數的子水平集不必是橢球。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\nV(x_\\ast)=0,\\qquad V(x)>0\\quad(x\\ne x_\\ast),\n<<<NEW>>>\nV(x_\\ast)=0,\\qquad V(x)>0\\quad(x\\in D\\setminus\\{x_\\ast\\}),\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n由$V(x_\\ast)=0$及連續性，可令初值充分接近$x_\\ast$，使$x_0\\in B_s(x_\\ast)$且$V(x_0)<c$。\n<<<NEW>>>\n由$V(x_\\ast)=0$及連續性，可取$0<\\delta<s$，使$\\|x_0-x_\\ast\\|_2<\\delta$同時保證$x_0\\in B_s(x_\\ast)$及$V(x_0)<c$。因先前已選$s<\\varepsilon$，這也明確給出穩定性定義所需的$\\delta$。\n<<<END>>>"
+}

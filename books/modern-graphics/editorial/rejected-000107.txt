@@ -1,0 +1,327 @@
+# 第二十九章 魚群動畫與合成資料標註
+
+## 學習目標與先備知識
+本章建立以「局部規則」驅動的多體運動模擬框架，並將其離散化結果轉化為包含幾何位置、深度與識別碼（ID）的合成標註數據。讀者需掌握 Volume I 的向量運算、NumPy 矩陣操作，以及 Volume II 中相機投影與深度緩衝（Depth Buffer）的計算原理。
+
+**先備知識橋接：**
+*   **微積分**：理解常微分方程（ODE）的數值積分，特別是歐拉法（Euler's Method）在 $dt$ 有限時數值穩定性與能量漂移的關係。
+*   **幾何**：回顧第 4 章的視圖矩陣 $V$ 與第 5 章的透視投影矩陣 $P$。本卷採用右手系，世界座標 $+Z$ 指向觀者，相機局部座標看向 $-Z$。
+*   **程式設計**：使用 NumPy 進行向量化運算（Vectorization），避免在 Python 層面對 N 條魚進行 $O(N^2)$ 的雙重迴圈計算，以提升模擬效能。
+
+**目標能力：**
+1.  實作簡化的群聚行為模型（Boids 變體），包含分離（Separation）、對齊（Alignment）與聚合（Cohesion）。
+2.  實現碰撞近似與邊界約束，確保實體不穿模或逸出模擬域。
+3.  將 3D 狀態投影至 2D 影像平面，生成包含像素座標、深度值與 ID 的標註清單。
+4.  區分「動畫行為」與「真實生態」的差異，明確標註合成資料的限制。
+
+## 問題與直覺
+在養殖場數位分身中，即時監控大量個體的精確 3D 姿態極為困難。透過合成資料，我們可以生成已知「Ground Truth」的序列影像，用於訓練目標偵測或姿態估計模型。
+
+**直覺模型：**
+將每條魚視為質點（Point Mass）。魚群運動由局部相互作用決定的。若兩魚過近，產生物理排斥力（分離）；若相鄰魚速度方向一致，則傾向於同步（對齊）；若群體中心有吸引力，則維持聚散（聚合）。這些力通過時間積分更新速度與位置。
+
+**核心問題：**
+1.  **時間離散化**：$dt$ 過大導致數值不穩或穿模；$dt$ 過小計算量過高。需選擇適合模擬尺度的 $dt$。
+2.  **標註一致性**：3D 位置需精確映射到 2D 像素，且深度值需符合渲染管線定義，以便後續 Z-buffering 或深度感知網絡訓練。
+3.  **ID 追蹤**：在多體交叉時，確保 ID 追蹤不發生跳變（ID Switching），需利用運動连续性。
+
+## 數學與幾何推導
+
+### 1. 局部規則力場
+設第 $i$ 條魚的位置為 $\mathbf{p}_i$，速度為 $\mathbf{v}_i$，質量 $m_i=1$。定義鄰域 $N(i)$ 為距離 $r < R_{neighbor}$ 的其他魚集合。
+
+**分離力 $\mathbf{F}_{sep}$**：
+針對鄰域內距離 $d_{ij} < R_{sep}$ 的魚 $j$，施加反向力：
+$$ \mathbf{F}_{sep, i} = \sum_{j \in N(i)} \frac{\mathbf{p}_i - \mathbf{p}_j}{d_{ij}^2 + \epsilon} $$
+$\epsilon$ 為避免除零的微小正數（如 $10^{-6}$）。此力隨距離平方反比遞減，近似庫侖斥力。
+
+**對齊力 $\mathbf{F}_{ali}$**：
+傾向於與鄰域平均速度一致：
+$$ \mathbf{v}_{avg} = \frac{1}{|N(i)|} \sum_{j \in N(i)} \mathbf{v}_j $$
+$$ \mathbf{F}_{ali, i} = k_{ali} (\mathbf{v}_{avg} - \mathbf{v}_i) $$
+
+**聚合力 $\mathbf{F}_{coh}$**：
+傾向於向鄰域質心移動：
+$$ \mathbf{c}_{avg} = \frac{1}{|N(i)|} \sum_{j \in N(i)} \mathbf{p}_j $$
+$$ \mathbf{F}_{coh, i} = k_{coh} (\mathbf{c}_{avg} - \mathbf{p}_i) $$
+
+**邊界與碰撞**：
+模擬域為邊界框（AABB）。若 $\mathbf{p}_i$ 接近邊界，施加彈性回弹力 $\mathbf{F}_{bound} = -k_{bound} (\mathbf{p}_i - \mathbf{p}_{wall})$。
+魚體間硬碰撞可近似為：若 $d_{ij} < r_{min}$，則強制分離並交換法向速度分量（簡化彈性碰撞）。
+
+### 2. 時間積分
+採用顯式歐拉法（Explicit Euler）更新狀態：
+$$ \mathbf{a}_i = \mathbf{F}_{sep} + \mathbf{F}_{ali} + \mathbf{F}_{coh} + \mathbf{F}_{bound} $$
+$$ \mathbf{v}_i^{(t+1)} = \mathbf{v}_i^{(t)} + \mathbf{a}_i \Delta t $$
+$$ \mathbf{p}_i^{(t+1)} = \mathbf{p}_i^{(t)} + \mathbf{v}_i^{(t+1)} \Delta t $$
+
+**注意**：為限制速度大小，需施加最大速度 $v_{max}$ 截斷：
+$$ \mathbf{v}_i = \mathbf{v}_i \cdot \min(1, \frac{v_{max}}{\|\mathbf{v}_i\|}) $$
+
+### 3. 投影與標註
+給定視圖矩陣 $V$（相機外參）與投影矩陣 $P$（內參與透視）。
+1.  **視圖座標**：$\mathbf{p}_{view} = V \mathbf{p}_{world}$。
+2.  **裁剪座標**：$\mathbf{p}_{clip} = P \mathbf{p}_{view}$。
+3.  **NDC 座標**：$\mathbf{p}_{ndc} = \mathbf{p}_{clip} / w$，其中 $w = p_{clip, z}$（透視除法）。
+4.  **像素座標**：
+    $$ u = \frac{W}{2} (x_{ndc} + 1) $$
+    $$ v = \frac{H}{2} (1 - y_{ndc}) $$
+    *(註：影像 $y$ 軸向下，NDC $y$ 軸向上，故需翻轉)*
+5.  **深度緩衝值**：
+    依據 OpenGL 約定，$z_{ndc} \in [-1, 1]$。
+    $$ d_{buffer} = \frac{z_{ndc} + 1}{2} $$
+    若 $d_{buffer} < 0$ 或 $> 1$，該點不可見。
+
+## 逐步手算例題
+
+### 例 1：雙魚互動與力計算
+**場景**：2D 平面（忽略 Z），兩條魚。
+*   魚 A：$\mathbf{p}_A = (0,0)$, $\mathbf{v}_A = (1,0)$
+*   魚 B：$\mathbf{p}_B = (1,0)$, $\mathbf{v}_B = (-1,0)$
+*   參數：$R_{sep}=2$, $R_{neighbor}=2$, $k_{ali}=1$, $k_{coh}=1$, $\Delta t=0.1$。
+
+**計算步驟**：
+1.  **鄰域**：$d_{AB} = 1 < 2$，互為鄰居。
+2.  **分離力**：
+    $\mathbf{p}_A - \mathbf{p}_B = (-1, 0)$。
+    $\mathbf{F}_{sep, A} = \frac{(-1,0)}{1^2 + \epsilon} \approx (-1, 0)$。
+    $\mathbf{F}_{sep, B} = \frac{(1,0)}{1^2 + \epsilon} \approx (1, 0)$。
+3.  **對齊力**：
+    $\mathbf{v}_{avg} = \frac{(1,0) + (-1,0)}{2} = (0,0)$。
+    $\mathbf{F}_{ali, A} = 1 \cdot ((0,0) - (1,0)) = (-1, 0)$。
+    $\mathbf{F}_{ali, B} = 1 \cdot ((0,0) - (-1,0)) = (1, 0)$。
+4.  **聚合力**：
+    $\mathbf{c}_{avg} = \frac{(0,0) + (1,0)}{2} = (0.5, 0)$。
+    $\mathbf{F}_{coh, A} = 1 \cdot ((0.5,0) - (0,0)) = (0.5, 0)$。
+    $\mathbf{F}_{coh, B} = 1 \cdot ((0.5,0) - (1,0)) = (-0.5, 0)$。
+5.  **合力**（忽略邊界）：
+    $\mathbf{F}_A = (-1) + (-1) + (0.5) = (-1.5, 0)$。
+    $\mathbf{F}_B = (1) + (1) + (-0.5) = (1.5, 0)$。
+6.  **更新**：
+    $\mathbf{a}_A = (-1.5, 0)$。
+    $\mathbf{v}_A^{new} = (1,0) + (-1.5, 0) \cdot 0.1 = (1 - 0.15, 0) = (0.85, 0)$。
+    $\mathbf{p}_A^{new} = (0,0) + (0.85, 0) \cdot 0.1 = (0.085, 0)$。
+    *(同理計算 B)*
+
+**結論**：魚 A 向左加速，但速度減慢（因對齊力與分離力方向相反，聚合力較小）。這展示了多力場耦合的複雜性。
+
+### 例 2：投影與深度標註
+**場景**：單個魚位於世界座標 $\mathbf{p} = (1, 1, 5)$。
+**相機**：位於 $(0,0,0)$，看向 $+Z$ 軸（注意：本卷約定相機看向 $-Z$，故若相機在 $(0,0,-10)$ 看向原點，需調整。此处簡化：相機在原點，看向 $+Z$，則視圖矩陣 $V$ 需旋轉。為符合本卷約定「相機看向 $-Z$」，設相機在 $(0,0,10)$，看向原點，即看向 $-Z$）。
+**修正設定**：相機 $\mathbf{c} = (0,0,10)$，看向 $\mathbf{t} = (0,0,0)$，Up $= (0,1,0)$。
+視圖矩陣 $V$ 將世界 $(0,0,5)$ 轉至相機座標：
+$\mathbf{p}_{view} = (0,0,5) - (0,0,10) = (0,0,-5)$。
+$z_{view} = -5$。
+**投影**：
+假設 $f=1$（簡化），$near=1, far=10$。
+$z_{ndc}$ 公式（OpenGL）：
+$$ z_{ndc} = \frac{z_{near} + z_{far}}{z_{far} - z_{near}} - \frac{2 z_{near} z_{far}}{(z_{far} - z_{near})(-z_{view})} $$
+代入 $z_{view} = -5$，$-z_{view} = 5$：
+$$ z_{ndc} = \frac{1+10}{10-1} - \frac{2(1)(10)}{(9)(5)} = \frac{11}{9} - \frac{20}{45} = 1.222 - 0.444 = 0.778 $$
+$$ d_{buffer} = \frac{0.778 + 1}{2} = 0.889 $$
+**像素**：
+$x_{view}=0, y_{view}=0 \implies u=W/2, v=H/2$。
+**標註**：$ID=1, u=W/2, v=H/2, depth=0.889$。
+
+## 實作與程式
+以下程式使用 NumPy 實現 N 條魚的模擬與標註輸出。
+
+```python
+import numpy as np
+import json
+
+class FishSchool:
+    def __init__(self, num_fish=10, bounds=np.array([10, 10, 5]), dt=0.1):
+        self.N = num_fish
+        self.bounds = bounds
+        self.dt = dt
+        # 初始化位置與速度
+        rng = np.random.default_rng(42) # 可重現性
+        self.pos = rng.uniform(-bounds/2, bounds/2, size=(num_fish, 3))
+        self.vel = rng.normal(0, 0.5, size=(num_fish, 3))
+        
+        # 參數
+        self.R_sep = 1.0
+        self.R_neigh = 2.0
+        self.k_ali = 0.5
+        self.k_coh = 0.5
+        self.v_max = 2.0
+        self.epsilon = 1e-6
+
+    def compute_forces(self):
+        forces = np.zeros_like(self.vel)
+        # 向量化計算鄰域 (簡化版，實際可用水桶網格加速)
+        # 距離矩陣 (N, N)
+        diff = self.pos[:, np.newaxis, :] - self.pos[np.newaxis, :, :]
+        dist_sq = np.sum(diff**2, axis=2)
+        
+        # 分離力：僅當 dist < R_sep 且 i != j
+        mask_sep = (dist_sq < self.R_sep**2) & (dist_sq > self.epsilon)
+        # 避免對角線
+        np.fill_diagonal(mask_sep, False)
+        
+        # 計算分離向量加權和
+        # diff 是 (N, N, 3)，除以 dist_sq
+        inv_dist_sq = np.zeros_like(dist_sq)
+        np.divide(1.0, dist_sq, out=inv_dist_sq, where=mask_sep)
+        sep_force = np.sum(diff * inv_dist_sq[:, :, np.newaxis], axis=1)
+        
+        # 對齊與聚合：基於鄰域平均
+        mask_neigh = (dist_sq < self.R_neigh**2) & (dist_sq > self.epsilon)
+        np.fill_diagonal(mask_neigh, False)
+        counts = np.sum(mask_neigh, axis=1, keepdims=True)
+        counts = np.maximum(counts, 1) # 避免除零
+        
+        avg_vel = np.sum(self.vel[mask_neigh], axis=1) / counts
+        avg_pos = np.sum(self.pos[mask_neigh], axis=1) / counts
+        
+        ali_force = self.k_ali * (avg_vel - self.vel)
+        coh_force = self.k_coh * (avg_pos - self.pos)
+        
+        # 邊界力
+        bound_force = np.zeros_like(self.vel)
+        for i in range(3):
+            if self.pos[:, i] > self.bounds[i]/2:
+                bound_force[:, i] -= (self.pos[:, i] - self.bounds[i]/2) * 10
+            elif self.pos[:, i] < -self.bounds[i]/2:
+                bound_force[:, i] += (-self.bounds[i]/2 - self.pos[:, i]) * 10
+
+        forces = sep_force + ali_force + coh_force + bound_force
+        return forces
+
+    def step(self):
+        forces = self.compute_forces()
+        # 更新速度
+        self.vel += forces * self.dt
+        # 速度截斷
+        v_norms = np.linalg.norm(self.vel, axis=1)
+        mask = v_norms > self.v_max
+        if np.any(mask):
+            self.vel[mask] *= (self.v_max / v_norms[mask])[:, np.newaxis]
+        # 更新位置
+        self.pos += self.vel * self.dt
+
+    def project_to_2d(self, cam_pos, cam_target, focal=500, width=800, height=600, near=0.1, far=10.0):
+        # 簡化視圖矩陣構建 (Look-At)
+        # 假設相機看向 cam_target, up 為 +Y
+        f = cam_target - cam_pos
+        f = f / np.linalg.norm(f)
+        r = np.cross(f, np.array([0, 1, 0])) # Right
+        r = r / np.linalg.norm(r)
+        u = np.cross(r, f) # Up
+        # 視圖矩陣 (3x4)
+        V = np.array([
+            [r[0], r[1], r[2], -np.dot(r, cam_pos)],
+            [u[0], u[1], u[2], -np.dot(u, cam_pos)],
+            [-f[0], -f[1], -f[2], np.dot(f, cam_pos)] # 注意：OpenGL 相機看向 -Z，故 Z 軸取負
+        ])
+        
+        annotations = []
+        for i in range(self.N):
+            p_view = V @ np.array([self.pos[i], 1.0])
+            x_v, y_v, z_v = p_view[:3]
+            
+            if z_v >= 0: # 在相機後方
+                continue
+            if z_v < -near or z_v > -far:
+                continue
+            
+            # 透視投影
+            u_pix = width / 2 * (x_v / -z_v) + width / 2
+            v_pix = height / 2 * (1 - (y_v / -z_v)) # y 翻轉
+            
+            # 深度緩衝 (OpenGL)
+            z_ndc = (near + far) / (far - near) - (2 * near * far) / ((far - near) * (-z_v))
+            depth_buf = (z_ndc + 1) / 2
+            
+            annotations.append({
+                "id": i,
+                "u": float(u_pix),
+                "v": float(v_pix),
+                "depth": float(depth_buf),
+                "visible": True
+            })
+        return annotations
+
+def main():
+    sim = FishSchool(num_fish=5, bounds=np.array([10, 10, 5]), dt=0.1)
+    cam_pos = np.array([0, 0, 15])
+    cam_target = np.array([0, 0, 0])
+    
+    frames = []
+    for t in range(10):
+        sim.step()
+        annots = sim.project_to_2d(cam_pos, cam_target)
+        frames.append({
+            "frame": t,
+            "fish_positions": sim.pos.tolist(),
+            "annotations": annots
+        })
+    
+    # 輸出 JSON
+    with open("fish_annotations.json", "w") as f:
+        json.dump(frames, f, indent=2)
+    print("Generated fish_annotations.json with 10 frames.")
+    # 預期：前 1-2 幀可能部分魚不可見（在視錐體外或 z 範圍外），隨後進入視野。
+
+if __name__ == "__main__":
+    main()
+```
+
+## 測試與預期結果
+1.  **可重現性**：使用 `rng = np.random.default_rng(42)` 確保每次運行結果一致。
+2.  **標註檢查**：
+    *   `u, v` 應在 $[0, W]$ 和 $[0, H]$ 範圍內（若不可見則過濾）。
+    *   `depth` 應在 $[0, 1]$ 範圍內。
+    *   檢查 `depth` 隨 $z$ 增加而遞減（Near 處 depth 接近 1，Far 處接近 0，依 OpenGL 定義需確認符號方向）。
+    *   *預期*：距離相機較近的魚，$|z_v|$ 小，$z_{ndc}$ 接近 $-1$，$d_{buffer}$ 接近 0。距離遠的魚，$z_{ndc}$ 接近 $1$，$d_{buffer}$ 接近 1。
+3.  **行為觀察**：魚群應在邊界內運動，偶爾聚散。若 $k_{coh}$ 過大，可能聚集中心；$k_{ali}$ 過大，可能形成定向流。
+
+## 除錯與常見陷阱
+1.  **除零錯誤**：距離平方為零時，必須使用 $\epsilon$ 保護。
+2.  **座標系混淆**：確認相機看向 $-Z$。若視圖矩陣 Z 軸方向錯誤，深度計算將完全錯誤。
+3.  **速度爆炸**：若 $dt$ 過大或力過強，速度可能指數增長。務必實施 $v_{max}$ 截斷。
+4.  **ID 追蹤**：本例中 ID 固定。在更複雜的場景中，若魚交換位置，需利用運動預測（如 Kalman Filter）保持 ID 穩定。
+5.  **單位一致性**：確保位置（公尺）、時間（秒）、速度（m/s）單位一致。$\Delta t$ 為秒。
+
+## 養殖數位分身案例
+在養殖場數位分身中，此合成數據可用於：
+1.  **檢測器訓練**：生成帶有 2D 框（由 $u,v$ 及魚體長寬推算）和 3D 中心點的標註，訓練 3D 目標偵測網絡。
+2.  **姿態估計**：雖然本例僅模擬質點，但可擴充至剛體或骨骼動畫，提供旋轉矩陣標註。
+3.  **深度感知**：提供精確的 $z$ 值，訓練單目深度估計模型（Monocular Depth Estimation），使其學會從 2D 影像推斷 3D 深度。
+4.  **限制聲明**：這些數據是「動畫行為」，非「真實生態」。真實魚的游動受水動力學、代謝及社會層級影響，Boids 模型僅捕捉幾何群聚特性，不模擬生物物理。
+
+## 習題
+1.  **手算**：若魚 A 位於 $(1,0,0)$，速度 $(0,1,0)$，魚 B 位於 $(1,2,0)$，速度 $(0,0,0)$。$R_{neigh}=2$。計算 $t=0.1$ 後魚 A 的速度（僅考慮對齊力，$k_{ali}=1$，忽略其他）。
+2.  **程式測試**：修改程式，加入邊界碰撞反彈（當碰到邊界時速度反向）。觀察是否仍有魚穿模。
+3.  **反例/除錯**：若將 $dt$ 設為 $10.0$，觀察模擬結果。解釋為何模擬崩潰（數值不穩）。
+4.  **整合應用**：計算每幀魚群的平均速度向量。若平均速度模長小於 0.1，標記該幀為「靜止」。輸出所有靜止幀的索引。
+
+## 習題解答
+1.  **手算**：
+    *   $\mathbf{p}_A=(1,0,0), \mathbf{v}_A=(0,1,0)$。
+    *   $\mathbf{p}_B=(1,2,0), \mathbf{v}_B=(0,0,0)$。
+    *   $d_{AB} = 2$。若 $R_{neigh}=2$，需確認是否包含邊界。假設 $d < R$ 或 $d \le R$。若 $d=2$ 算鄰域。
+    *   $\mathbf{v}_{avg} = \frac{(0,1,0) + (0,0,0)}{2} = (0, 0.5, 0)$。
+    *   $\mathbf{F}_{ali, A} = 1 \cdot ((0, 0.5, 0) - (0, 1, 0)) = (0, -0.5, 0)$。
+    *   $\Delta \mathbf{v} = \mathbf{F} \cdot \Delta t = (0, -0.5, 0) \cdot 0.1 = (0, -0.05, 0)$。
+    *   $\mathbf{v}_A^{new} = (0, 1, 0) + (0, -0.05, 0) = (0, 0.95, 0)$。
+2.  **程式測試**：
+    *   在 `step` 函式中，更新位置後檢查邊界。
+    *   若 $p_x > bound_x$，則 $p_x = bound_x$, $v_x = -v_x$。
+    *   *預期*：魚在邊界反彈，但可能因反射後力場變化產生異常聚散。
+3.  **反例**：
+    *   $dt=10$ 時，$\Delta v = F \cdot 10$。若 $F$ 稍大，速度激增，下一步位置躍遷極大，可能瞬間穿越邊界或導致距離計算錯誤，產生更大反作用力，形成正反饋迴路，速度趨近無窮。
+4.  **整合應用**：
+    *   在 `main` 中，每步計算 `np.mean(sim.vel, axis=0)`。
+    *   若 `np.linalg.norm(mean_v) < 0.1`，加入靜止列表。
+    *   *預期*：初期魚隨機運動，平均速度可能接近 0；隨後群聚定向，平均速度增大。
+
+## 本章小結
+本章展示了如何從局部規則生成多體運動，並通過幾何投影轉化為合成標註數據。關鍵在於數值積分穩定性、座標系一致性與力場參數調試。合成數據為 AI 模型提供了完美 Ground Truth，但需明確其非生物真實性的限制。後續章節將探討更複雜的骨骼動畫與物理約束。
+
+## 參考來源
+*   **G1** PBRT 4: Transformations - 視圖與投影矩陣推導。
+*   **G4** Ray Tracing in One Weekend - 基礎幾何與座標系。
+*   **G7** NumPy Reference - 向量化運算與矩陣操作。
+*   **Reynolds, C. (1987).** Flocks, Herds, and Schools: A Distributed Behavioral Model. *Computer Graphics*. (Boids 模型原始參考)

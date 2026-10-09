@@ -1,0 +1,11 @@
+{
+  "key": "f6c85c98e2f1f2fc5d68648b626315e061580f704aee07848b76275c6fba58ed",
+  "person": {
+    "id": "v4_editor_17",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 342,
+  "result": "稿件仍未變更，阻擋項保持如下：\n\n1. 正文 2833 字，未達最低 3000 中文字。\n2. 鏈式法則證明未指定向量範數及誘導算子範數。\n3. VJP 定義仍混用 column 協向量與「視為行向量」。\n4. 「反向計算圖得出的梯度」仍把一般拉回協向量誤稱為梯度。\n5. `err_dom_vjp` 仍未列印或斷言。\n6. 邊界 $x_1=-1$ 仍未測試；$0.5$ 是內點，$-1.5$ 是域外點。\n7. 養殖案例形狀仍錯。公式的正確形狀為\n   $$\n   (1\\times2)(2\\times2)(2\\times1)=(1\\times1),\n   $$\n   不是稿中的\n   $$\n   (2\\times1)(1\\times2)(2\\times2)(2\\times1).\n   $$\n8. 反例中解碼後仍為錯誤的 `\\frac{x}{2|x|\\\\sqrt{2}}`，應為 `\\frac{x}{2|x|\\sqrt{2}}`。\n9. 測試段仍未明示程式未執行；`All tests passed.` 只能列為實際執行成功後的預期訊息。\n\nVERDICT: REVISE"
+}

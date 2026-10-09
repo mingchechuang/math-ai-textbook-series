@@ -1,0 +1,406 @@
+# 第10章 初始化、梯度尺度與正規化
+
+## 學習目標與先備知識
+
+讀完本章後，你應能：
+
+1. 說明權重初始化如何影響前向訊號與反向梯度的尺度。
+2. 在明列獨立性、零均值等近似假設後，推導 Xavier 與 He 初始化的方差公式。
+3. 手算線性層的輸出方差與偏置梯度，辨認 broadcasting 在反向傳播中的求和規則。
+4. 解釋 LayerNorm 與 BatchNorm 的統計軸、訓練／推論行為與資料洩漏風險。
+5. 寫出自足的 NumPy CPU 小程式，檢查初始化、正規化及其邊界行為。
+
+本章使用 NumPy 的矩陣約定：批次輸入 $X\in\mathbb{R}^{B\times D_{\mathrm{in}}}$，權重 $W\in\mathbb{R}^{D_{\mathrm{in}}\times D_{\mathrm{out}}}$，偏置 $b\in\mathbb{R}^{D_{\mathrm{out}}}$，輸出為 $Y=XW+b$。批次中的每筆樣本橫向儲存；特徵軸是最後一軸。此記法與微分時使用列向量表示不矛盾。
+
+先備知識包括矩陣乘法、期望值與方差、鏈式法則，以及小批次梯度下降。程式只依賴 NumPy；本章不安裝套件、不下載模型或語料，也不聲稱已執行任何程式。程式旁列出的測試結果均是預期，不是執行紀錄。
+
+---
+
+## 問題與直覺
+
+考慮一個沒有偏置的線性層。輸出第 $j$ 個特徵為
+
+$$
+Y_j=\sum_{i=1}^{D_{\mathrm{in}}}X_iW_{ij}.
+$$
+
+若輸入各維尺度正常，但權重太大，許多項相加可能使輸出尺度增大；若權重太小，訊號則可能迅速縮小。堆疊多層時，這類尺度改變會逐層傳遞。反向傳播也有相似問題：梯度經過每層的權重及局部導數相乘，可能逐漸放大或縮小。
+
+因此，初始化不是「找一組讓模型立即正確」的數值，而是為尚未訓練的網路選擇合理起點。合理尺度可以改善最佳化條件，卻不保證所有深度、資料分布、非線性與訓練設定都穩定。
+
+正規化提供另一種控制尺度的方式。LayerNorm 對每筆樣本、每個 token 的特徵做正規化；BatchNorm 通常以同一批樣本的統計量正規化特徵。兩者統計軸不同，因此依賴的資料與訓練／推論模式也不同。正規化不會修復錯誤標籤、資料洩漏或不適當模型，也不能取代明確的初始化與測試。
+
+本章的實驗契約如下：合成資料只用於核對公式和程式行為；若要比較方法，應先固定訓練、驗證、測試切分，再只用訓練集擬合會學習資料統計量的步驟。驗證集供模型選擇，測試集只作最後報告。低訓練誤差不代表泛化能力；若資料有群組或時間結構，應按群組或時間切分，不能把高度重疊的樣本隨機分散到不同集合。
+
+---
+
+## 定義、定理與推導
+
+### 初始化方差的近似推導
+
+令輸入各維為獨立、零均值、方差相同的隨機變數，且與權重獨立。對單一輸出單元，若權重也獨立、零均值，且每個權重方差為 $\sigma_W^2$，則
+
+$$
+\operatorname{Var}(Y_j)
+=
+\operatorname{Var}\left(\sum_{i=1}^{D_{\mathrm{in}}}X_iW_{ij}\right)
+\approx
+D_{\mathrm{in}}\sigma_X^2\sigma_W^2.
+$$
+
+這裡採用的簡化前提是各乘積項彼此不相關，且 $\mathbb{E}[X_i]=\mathbb{E}[W_{ij}]=0$。若輸入有相關性、非零均值或非同分布，公式不一定成立。
+
+向後看，線性映射對梯度的作用也會帶入權重。粗略地說，為避免前向與反向尺度同時偏離太多，可讓權重方差取決於輸入與輸出維度。
+
+- **Xavier／Glorot 初始化**常見形式為
+  $$
+  \operatorname{Var}(W_{ij})\approx\frac{2}{D_{\mathrm{in}}+D_{\mathrm{out}}}.
+  $$
+  均勻分布版本常取 $W_{ij}\sim U(-a,a)$，其中 $a=\sqrt{6/(D_{\mathrm{in}}+D_{\mathrm{out}})}$，因為均勻分布在 $[-a,a]$ 上的方差為 $a^2/3$。此設計常與近似線性的訊號傳播搭配；對非線性與實際網路，它是尺度準則而非精確保證。
+
+- **He／Kaiming 初始化**對 ReLU 類非線性常用
+  $$
+  \operatorname{Var}(W_{ij})\approx\frac{2}{D_{\mathrm{in}}}.
+  $$
+  其直覺是零均值對稱輸入經 ReLU 後，約一半訊號被截為零。這個「約一半」是分布假設下的近似，並非對所有資料或訓練狀態都成立。
+
+偏置通常初始化為零或小值。零偏置不會讓隨機權重失去初始差異；但若把一層中所有權重都初始化為零，神經元會對稱，學到相同方向，不能靠梯度自行打破對稱。初始化的獨立隨機性有助於不同單元採取不同的更新方向。
+
+### 小命題：獨立輸入下的加權和方差
+
+**命題。** 若隨機變數 $X_1,\ldots,X_n$ 相互獨立、期望值為零、方差皆為 $\sigma_X^2$，且常數權重為 $w_1,\ldots,w_n$，則
+
+$$
+\operatorname{Var}\left(\sum_{i=1}^{n}w_iX_i\right)
+=
+\sigma_X^2\sum_{i=1}^{n}w_i^2.
+$$
+
+**證明。** 由方差定義及 $X_i$ 的零均值，
+
+$$
+\operatorname{Var}\left(\sum_iw_iX_i\right)
+=
+\mathbb{E}\left[\left(\sum_iw_iX_i\right)^2\right].
+$$
+
+展開平方可得
+
+$$
+\mathbb{E}\left[\sum_iw_i^2X_i^2+
+\sum_{i\ne k}w_iw_kX_iX_k\right].
+$$
+
+第一項為 $\sum_iw_i^2\mathbb{E}[X_i^2]=\sigma_X^2\sum_iw_i^2$。對於 $i\ne k$，獨立性與零均值給出 $\mathbb{E}[X_iX_k]=\mathbb{E}[X_i]\mathbb{E}[X_k]=0$，所以交叉項總和為零。命題得證。$\square$
+
+若輸入彼此相關，交叉項通常不為零；因此不能不加檢查便把這條命題套用到任意資料。
+
+### 正規化與統計軸
+
+設單筆樣本的特徵向量為 $x\in\mathbb{R}^{D}$。LayerNorm 沿最後一軸計算均值與變異數：
+
+$$
+\mu(x)=\frac{1}{D}\sum_{j=1}^{D}x_j,\qquad
+v(x)=\frac{1}{D}\sum_{j=1}^{D}(x_j-\mu(x))^2.
+$$
+
+$$
+\operatorname{LN}(x)_j
+=
+\gamma_j\frac{x_j-\mu(x)}{\sqrt{v(x)+\epsilon}}+\beta_j.
+$$
+
+其中 $\epsilon>0$ 置於平方根內，$\gamma,\beta\in\mathbb{R}^{D}$ 是可學習參數。對形狀 $(B,T,D)$ 的序列張量，通常每個 $(b,t)$ 各自沿 $D$ 計算，不跨 batch 軸或時間軸。這表示某筆輸出的正規化統計不依賴同一批其他樣本。
+
+BatchNorm 對某個特徵維度使用 batch 統計量。簡化到輸入形狀 $(B,D)$ 時，對每個特徵 $d$ 沿 $B$ 軸計算均值與變異數。訓練時通常使用當前批次統計並更新 running statistics；推論時通常使用訓練階段累積的統計量。若驗證或測試資料參與 running statistics 的擬合或更新，就把評估資料資訊帶入模型流程。BatchNorm 在序列或小批次情境中還需要明確設計統計軸，不能只照搬二維例子。
+
+當 $v=0$ 且 $\epsilon>0$，正規化分母為 $\sqrt{\epsilon}$，輸出不會因除以零而變成無限大。若輸入每個特徵相同，中心化項為零；仿射縮放後輸出為 $\beta$。此時輸出對輸入的小變化如何反應仍取決於導數和 $\epsilon$，因此 $\epsilon$ 不應任意設為零。
+
+---
+
+## 逐步手算例題
+
+### 例一：線性層的方差與偏置
+
+令兩個輸入特徵 $X_1,X_2$ 相互獨立、均值為零、方差皆為 $4$。權重固定為 $w_1=0.5,w_2=1$，偏置 $b=3$。輸出為
+
+$$
+Y=0.5X_1+X_2+3.
+$$
+
+逐步計算：
+
+1. 常數偏置不改變方差，所以 $\operatorname{Var}(Y)=\operatorname{Var}(0.5X_1+X_2)$。
+2. 依命題，
+   $$
+   \operatorname{Var}(Y)
+   =4(0.5^2+1^2)
+   =4(0.25+1)=5.
+   $$
+3. 期望值為
+   $$
+   \mathbb{E}[Y]=0.5(0)+0+3=3.
+   $$
+4. 所以二階矩為 $\mathbb{E}[Y^2]=\operatorname{Var}(Y)+\mathbb{E}[Y]^2=5+9=14$。
+
+若錯誤地把偏置當成隨機輸入項來增加方差，便會混淆均值位移與變異程度。初始化偏置小或設為零，正是讓初始輸出均值不被大幅平移的常用做法。
+
+### 例二：LayerNorm 的零方差邊界
+
+令 $x=[2,2,2,2]$、$\gamma=[1,1,1,1]$、$\beta=[0,0,0,0]$，並取 $\epsilon=10^{-5}$。
+
+1. 特徵均值為 $\mu=2$。
+2. 每個中心化值為 $2-2=0$，故 $v=0$。
+3. 分母為 $\sqrt{0+10^{-5}}\approx0.0031623$。
+4. 每一維的正規化值皆為 $0/0.0031623=0$。
+5. 仿射後輸出仍為 $[0,0,0,0]$。
+
+若 $\beta=[1,-1,0.5,0]$，輸出則是 $\beta$。這顯示零方差不必造成 NaN，但也顯示正規化本身不會消除學得的偏移。
+
+---
+
+## 實作與程式
+
+以下程式涵蓋 He、Xavier 初始化，LayerNorm 前向與對輸入、縮放、偏移參數的反向傳播，並以固定合成資料示範統計軸差異。它只定義函式，不含隱藏依賴或外部檔案。此環境未執行程式，後文只描述應有行為。
+
+```python
+import numpy as np
+
+
+def initialize(rng, fan_in, fan_out, method):
+    if fan_in <= 0 or fan_out <= 0:
+        raise ValueError("fan_in and fan_out must be positive")
+    if method == "he":
+        std = np.sqrt(2.0 / fan_in)
+        return rng.normal(0.0, std, size=(fan_in, fan_out))
+    if method == "xavier":
+        limit = np.sqrt(6.0 / (fan_in + fan_out))
+        return rng.uniform(-limit, limit, size=(fan_in, fan_out))
+    raise ValueError("method must be 'he' or 'xavier'")
+
+
+def layer_norm_forward(x, gamma, beta, eps=1e-5):
+    x = np.asarray(x, dtype=np.float64)
+    gamma = np.asarray(gamma, dtype=np.float64)
+    beta = np.asarray(beta, dtype=np.float64)
+    if x.ndim < 1 or x.shape[-1] == 0:
+        raise ValueError("x must have a non-empty feature axis")
+    if gamma.shape != (x.shape[-1],) or beta.shape != (x.shape[-1],):
+        raise ValueError("gamma and beta must match the last feature axis")
+    if eps <= 0 or not np.isfinite(eps):
+        raise ValueError("eps must be finite and positive")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("x must contain only finite values")
+
+    mean = np.mean(x, axis=-1, keepdims=True)
+    centered = x - mean
+    var = np.mean(centered * centered, axis=-1, keepdims=True)
+    inv_std = 1.0 / np.sqrt(var + eps)
+    xhat = centered * inv_std
+    y = xhat * gamma + beta
+    cache = (xhat, inv_std, gamma)
+    return y, cache
+
+
+def layer_norm_backward(dy, cache):
+    xhat, inv_std, gamma = cache
+    dy = np.asarray(dy, dtype=np.float64)
+    if dy.shape != xhat.shape:
+        raise ValueError("dy must have the same shape as the output")
+
+    dxhat = dy * gamma
+    n = xhat.shape[-1]
+    sum_dxhat = np.sum(dxhat, axis=-1, keepdims=True)
+    sum_dxhat_xhat = np.sum(dxhat * xhat, axis=-1, keepdims=True)
+    dx = (inv_std / n) * (
+        n * dxhat - sum_dxhat - xhat * sum_dxhat_xhat
+    )
+    reduce_axes = tuple(range(dy.ndim - 1))
+    dgamma = np.sum(dy * xhat, axis=reduce_axes)
+    dbeta = np.sum(dy, axis=reduce_axes)
+    return dx, dgamma, dbeta
+
+
+def batch_norm_train(x, eps=1e-5):
+    x = np.asarray(x, dtype=np.float64)
+    if x.ndim != 2 or x.shape[0] == 0 or x.shape[1] == 0:
+        raise ValueError("x must have non-empty shape (B, D)")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("x must contain only finite values")
+    if eps <= 0 or not np.isfinite(eps):
+        raise ValueError("eps must be finite and positive")
+    mean = np.mean(x, axis=0, keepdims=True)
+    var = np.mean((x - mean) ** 2, axis=0, keepdims=True)
+    y = (x - mean) / np.sqrt(var + eps)
+    return y, mean, var
+
+
+def main():
+    rng = np.random.default_rng(2026)
+
+    # 初始化形狀：(Din, Dout)
+    w_he = initialize(rng, fan_in=4, fan_out=3, method="he")
+    w_xavier = initialize(rng, fan_in=4, fan_out=3, method="xavier")
+    assert w_he.shape == (4, 3)
+    assert w_xavier.shape == (4, 3)
+    assert np.all(np.isfinite(w_he))
+    assert np.all(np.isfinite(w_xavier))
+
+    # LayerNorm 支援任意前導軸；只沿最後的 D 軸正規化。
+    x = np.array([
+        [[1.0, 2.0, 3.0], [4.0, 4.0, 4.0]],
+        [[0.0, 1.0, 0.0], [2.0, -1.0, 1.0]],
+    ])
+    gamma = np.ones(3)
+    beta = np.zeros(3)
+    y, cache = layer_norm_forward(x, gamma, beta)
+    dy = np.ones_like(y)
+    dx, dgamma, dbeta = layer_norm_backward(dy, cache)
+    assert y.shape == x.shape
+    assert dx.shape == x.shape
+    assert dgamma.shape == (3,)
+    assert dbeta.shape == (3,)
+    assert np.all(np.isfinite(y))
+    assert np.all(np.isfinite(dx))
+
+    # BatchNorm 示範：同一特徵的統計沿 B 軸計算。
+    xb = np.array([[1.0, 10.0], [3.0, 14.0], [5.0, 18.0]])
+    yb, mean_b, var_b = batch_norm_train(xb)
+    assert yb.shape == xb.shape
+    assert mean_b.shape == (1, 2)
+    assert var_b.shape == (1, 2)
+
+    print("expected: initialization, LayerNorm, and BatchNorm checks pass")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+LayerNorm 的反向公式令 $xhat=(x-\mu)/\sqrt{v+\epsilon}$，並令 $g=dy\odot\gamma$。其中的求和都沿最後一軸，保留維度；因此 $dx$ 與輸入同形。$d\gamma$ 與 $d\beta$ 則要對所有前導軸求和，因為同一組參數被每筆樣本、每個 token 共用。若忘記這個 reduction，梯度就不符合參數原本的 shape。
+
+---
+
+## 測試與預期結果
+
+下列測試是可加入程式的規格；未執行，不可描述為已通過。
+
+- **正常測試：**輸入形狀為 $(2,2,3)$ 時，LayerNorm 輸出與 $dx$ 預期皆為 $(2,2,3)$；$d\gamma,d\beta$ 預期為 $(3,)$。不同 token 各自沿最後一軸正規化。
+- **邊界測試：**把一個 token 的輸入設為常數向量，方差為零；在正的有限 $\epsilon$ 下，輸出與反向結果預期維持有限。
+- **初始化測試：**$D_{\mathrm{in}}=4,D_{\mathrm{out}}=3$ 時，兩種初始化皆預期輸出 $(4,3)$ 的有限矩陣。固定 seed 只使同一隨機生成器與呼叫順序下的結果可重現，不保證跨 NumPy 版本或設備逐位相同。
+- **故障測試：**傳入零維度的 fan、未知初始化方法、特徵維不符的 $\gamma$，或含 NaN 的輸入，預期明確拋出 `ValueError`。
+- **梯度核對：**可選有限差分測試比較 $dx,d\gamma,d\beta$ 與標量函數 $\langle y,dy\rangle$ 的數值梯度。步長要足夠小但避免浮點消去；有限差分是實作核對，不替代反向公式推導。
+- **統計軸測試：**把 BatchNorm 輸入增加一筆樣本，訓練模式下同一特徵的批次均值通常會改變；對 LayerNorm 而言，既有樣本的輸出應不因加入另一筆樣本而改變。這是兩種統計軸的差異，不表示 BatchNorm 在所有工作負載都不適用。
+
+實務上還應測試訓練和推論模式：BatchNorm 訓練使用當前批次統計並更新 running statistics，推論則使用已擬合的統計量。若手寫版本沒有實作 running statistics，就不應宣稱具備完整 BatchNorm 推論流程。本章的 `batch_norm_train` 只是顯示訓練批次統計，不是完整訓練／推論模組。
+
+---
+
+## 反例與常見陷阱
+
+1. **把方差公式當作定理套用到所有輸入。**公式要求獨立、零均值或交叉項可忽略等條件；相關特徵會增加或抵消輸出方差。
+2. **認為 He 初始化必然令每層方差精確相同。**ReLU 的啟動比例受輸入分布與訓練狀態影響；偏置、正規化、殘差和權重相關性也會改變尺度。
+3. **把偏置併入權重方差。**偏置的確可能改變輸出均值與二階矩，但固定偏置不直接增加方差。
+4. **忘記偏置梯度要沿批次求和。**對 $Y=XW+b$，若損失對每筆輸出梯度為 $dY$，則 $db=\sum_{b=1}^{B}dY_{b,:}$；若損失已取 batch mean，這個縮放只應納入一次。
+5. **把 LayerNorm 寫成跨 batch 計算。**對 $(B,T,D)$ 張量，若目標是逐 token LayerNorm，應只沿 $D$ 軸計算；跨 $B$ 或 $T$ 會改變定義，也可能讓一筆樣本依賴其他樣本。
+6. **以驗證或測試統計量擬合正規化。**任何從資料估計的轉換都應先在訓練集擬合，再固定套用到驗證與測試。BatchNorm running statistics 亦屬模型訓練狀態，不能以測試批次更新後再報測試表現。
+7. **以極小 $\epsilon$ 掩蓋錯誤。**$\epsilon$ 是數值穩定設計，不應拿來消除 NaN、修補空批次或隱藏錯誤軸。
+8. **誤以為正規化自動防止梯度消失或爆炸。**正規化可能改善某些最佳化條件，但不提供任意深度、任意權重、任意學習率的穩定保證。
+
+---
+
+## AI、幾何與養殖案例
+
+假設要用感測器特徵預測合成養殖日誌中的事件。每筆樣本可包含水溫、溶氧等數值，形狀為 $(B,D)$；若輸入有時間窗口，則可用 $(B,T,D)$。這些數值只作教材合成資料，不代表現場警戒值或操作建議。訓練、驗證與測試應先依池區、設備來源或時間切分，再用訓練集估計特徵標準化統計量。若同一池區的重疊時間窗口落入不同集合，模型可能只是記住來源或鄰近紀錄。
+
+以幾何直覺來看，線性層將輸入特徵空間映射至另一個空間。權重初始化決定映射初始尺度；正規化則重整每個樣本或批次的座標尺度，再以可學習的 $\gamma,\beta$ 保留模型調整能力。但座標尺度不是資料品質：感測器單位、缺失值、時間錯位及來源差異都要獨立處理。
+
+在序列模型中，LayerNorm 通常沿每個 token 的特徵軸運作，因此一個樣本的輸出不依賴同批次其他樣本，適合批次大小變動的推論情境。若採 BatchNorm，必須明確記錄統計軸、批次大小、訓練／推論模式及 running statistics 的資料來源。兩者都不能取代按時間切分或洩漏稽核。模型輸出只應作為分析輔助；本章不提供真實養殖閾值，不應把預測直接連接到投餌、加藥、泵浦或其他設備控制。
+
+---
+
+## 習題
+
+### A. 手算題
+
+1. $X_1,X_2,X_3$ 相互獨立、均值為零，方差依序為 $1,4,9$。令 $Y=2X_1-X_2+0.5X_3+7$。求 $\mathbb{E}[Y]$ 與 $\operatorname{Var}(Y)$。
+2. 形狀為 $(2,3)$ 的輸入經 LayerNorm；$\gamma,\beta$ 皆為長度三的向量。指出均值、變異數及 $d\gamma$、$d\beta$ 各自的形狀或求和軸。
+3. 對 $D_{\mathrm{in}}=8,D_{\mathrm{out}}=12$，計算 Xavier 常用的權重方差近似，以及均勻版本的界限 $a$。再計算 He 權重方差。
+
+### B. 程式題
+
+4. 以有限差分核對 `layer_norm_backward` 的 $d\gamma$ 與 $dbeta$。選擇固定小張量及上游梯度，對每個參數位置比較解析梯度和差分梯度；說明誤差受浮點與差分步長影響。
+5. 擴充 BatchNorm 範例，使它保存訓練均值與變異數，另寫推論函式使用保存值、不從推論輸入重新估計。列出一個正常測試與一個防止測試資料更新統計量的測試。
+
+### C. 反例題
+
+6. 有人以「加權和方差公式」主張只要權重方差符合 Xavier，任意資料上的輸出方差就會保持不變。指出推論中至少一個未成立的條件，並舉一種會改變交叉項的輸入情形。
+7. 一名研究者對全部資料計算 BatchNorm 統計，再切成訓練、驗證、測試集。指出流程問題，並提出正確順序。
+
+### D. 整合題
+
+8. 設計一個不依賴外部語料的小型初始化比較實驗，使用合成特徵與兩種初始化。列出資料切分、量測內容、至少兩個失敗檢查，以及哪些結論不能由一次固定 seed 實驗推出。
+
+---
+
+## 習題解答
+
+### A. 手算題解答
+
+1. 線性組合的期望是常數偏置：
+   $$
+   \mathbb{E}[Y]=7.
+   $$
+   各輸入獨立，故
+   $$
+   \operatorname{Var}(Y)
+   =2^2(1)+(-1)^2(4)+(0.5)^2(9)
+   =4+4+2.25=10.25.
+   $$
+2. 每筆樣本沿特徵軸計算統計，因此 $\mu,v$ 形狀為 $(2,1)$，正規化輸出與輸入同為 $(2,3)$。$d\gamma$ 與 $d\beta$ 形狀皆為 $(3,)$，分別由 $dy\odot xhat$ 與 $dy$ 沿 batch 軸求和。
+3. Xavier 方差近似為
+   $$
+   \frac{2}{8+12}=0.1.
+   $$
+   均勻界限為
+   $$
+   a=\sqrt{\frac{6}{20}}=\sqrt{0.3}\approx0.5477.
+   $$
+   He 方差為 $2/8=0.25$。這些是初始化分布的尺度公式，不是一次抽樣後樣本方差必然恰好等於該數值。
+
+### B. 程式題解答
+
+4. 定義標量目標 $L=\sum y\odot dy$。對 $\gamma_j$，取擾動 $\delta$，差分估計為
+   $$
+   \frac{L(\gamma_j+\delta)-L(\gamma_j-\delta)}{2\delta}.
+   $$
+   對 $\beta_j$ 同理。解析值分別是 $\sum_{\text{前導軸}}dy\odot xhat$ 和 $\sum_{\text{前導軸}}dy$。可用兩三種 $\delta$ 比較趨勢；太大會有截斷誤差，太小會受浮點消去影響。測試應比較有限差異而非要求逐位相等。
+5. 訓練函式先用訓練資料沿 batch 軸計算均值、變異數並保存；推論函式只讀這兩個保存值，將輸入標準化。正常測試為推論輸出形狀與輸入相同且有限。防洩漏測試可保存統計量的副本，呼叫推論函式後確認副本逐元素不變；另外以兩組不同推論批次檢查單筆輸出的結果不會因同批其他推論樣本改變。
+
+### C. 反例題解答
+
+6. 推論未保證輸入特徵獨立、零均值或與權重獨立。若 $X_1=X_2$，則兩項完全相關，$\operatorname{Var}(w_1X_1+w_2X_2)$ 含 $2w_1w_2\operatorname{Var}(X_1)$ 的交叉項，不能只相加各項方差。
+7. 全資料統計已經使用驗證與測試分布資訊，造成評估洩漏。應先依預定的群組或時間規則切分，再只用訓練集估計統計量，固定套用於驗證與測試；測試集不參與擬合或選擇。
+
+### D. 整合題解答
+
+8. 先按合成資料生成群組切分，再固定訓練、驗證與測試資料；只用訓練集估計任何資料標準化統計。讓模型結構、初始化以外的超參數、訓練更新數與資料順序一致，分別記錄初始各層輸出均值與方差、反向梯度範數、非有限值比例及驗證損失。故障檢查至少包含錯誤輸入維度被拒絕，以及注入 NaN 後明確拒絕而非繼續訓練。單一 seed 不足以判定方法普遍較優；也不能推論對真實感測分布、其他模型深度或不同訓練設定有效。
+
+---
+
+## 本章小結
+
+- Xavier 與 He 初始化根據簡化的獨立性、零均值與方差假設設計尺度，不保證任意深度或資料下的訊號穩定。
+- 固定偏置改變均值但不直接改變方差；偏置梯度則需對共享它的批次樣本求和。
+- LayerNorm 沿特徵軸逐樣本或逐 token 計算；BatchNorm 常沿 batch 軸計算特徵統計，訓練與推論模式需分清。
+- 正的 $\epsilon$ 可避免零方差除零，但不能修復非有限輸入、錯誤統計軸或資料洩漏。
+- 資料切分應先於統計量擬合；固定 seed 有助重現，卻不等於統計顯著或跨環境逐位一致。
+
+---
+
+## 參考來源
+
+1. Glorot, X. & Bengio, Y. “Understanding the difficulty of training deep feedforward neural networks.” *AISTATS*, 2010. 本章 Xavier 方差式屬常用初始化近似說明，不宣稱已逐段核對論文。
+2. He, K. et al. “Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification.” *ICCV*, 2015. 本章 He 初始化式作為 ReLU 類網路常用尺度準則；此處不宣稱已完整核對論文。
+3. Ba, J. L., Kiros, J. R. & Hinton, G. E. “Layer Normalization.” 2016, arXiv:1607.06450. 本章僅以其作延伸閱讀入口，未宣稱完整閱讀。
+4. Ioffe, S. & Szegedy, C. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” *ICML*, 2015. 本章的訓練／推論區分為常見概念摘要，未宣稱已逐段核對。

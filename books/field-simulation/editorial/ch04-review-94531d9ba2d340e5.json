@@ -1,0 +1,11 @@
+{
+  "key": "94531d9ba2d340e5a62dd05ce9efa164c092eb695d7b7e5d4d128ee800388bb1",
+  "person": {
+    "id": "v3_editor_07",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 244,
+  "result": "## 重算與核對\n\n前次指出的例1、習題1、習題4及積分函數單位說明已大致修正。例1公式\n\n$$\nE(t)=\\frac{c_\\ast^2L}{2}e^{-2D(\\pi/L)^2t}\n$$\n\n及其單位 $\\mathrm{kg^2/m^5}$ 正確；習題4的尺度還原亦與既有數值係數一致。\n\n## 尚須修正\n\n### 1. 例2及測試2仍混用有因次位置與無因次公式\n\n> 「$L=1$」  \n> 「$f(x)=1+\\cos(2\\pi x)$」  \n> 「$M(t)=1$」\n\n**原因：** 本章以SI濃度與公尺位置為主。若 $x$ 有公尺單位，$\\cos(2\\pi x)$ 的引數不具無因次性；常數1也缺少濃度單位。因此 $M=1$ 的單位不明。\n\n**最小修法：** 定義濃度尺度，例如\n\n$$\nc(x,0)=c_\\ast\\left[1+\\cos\\left(\\frac{2\\pi x}{L}\\right)\\right],\n\\qquad c_\\ast=1\\,\\mathrm{kg/m^3}.\n$$\n\n則\n\n$$\nc(x,t)=c_\\ast\\left[1+\\cos\\left(\\frac{2\\pi x}{L}\\right)\ne^{-D(2\\pi/L)^2t}\\right],\n$$\n\n以及每單位截面積的質量\n\n$$\nM(t)=c_\\ast L=1\\,\\mathrm{kg/m^2}\n$$\n\n（代入本例 $L=1\\,\\mathrm m$）。測試2的輸入及預期也應同步補上 $c_\\ast$、$L$與單位。\n\n### 2. 積分輔助函數仍未拒絕不一致或非有限輸入\n\n> `def trapezoid_values(y, dx):`  \n> `return dx * (0.5 * y[0] + ... )`\n\n**原因：** `solve_diffusion_1d` 有完整驗證，但公開的 `compute_total_mass`、`compute_energy` 可直接接受空陣列、標量、多維陣列、非有限值或非法 `dx`。目前可能回傳 `nan`、產生非預期廣播，或拋出非契約性的索引例外，不符合核心程式拒絕非有限或不一致輸入的要求。\n\n**最小修法：** 在 `trapezoid_values` 中檢查：\n\n- `y.ndim == 1` 且 `y.size >= 2`\n- `np.all(np.isfinite(y))`\n- `dx` 是有限正純量\n\n不符合時統一拋出 `ValueError`。如此兩個積分包裝函數可共同繼承契約。\n\n### 3. 習題1近似式遺漏濃度尺度\n\n> 「$c(x,20)\\approx(1+4/\\pi)\\sin(\\pi x/2)\\times0.08480$」\n\n**原因：** 前文已指定完整濃度須乘 $c_\\ast$，但這個顯示公式漏寫，導致式面上仍是無因次量。\n\n**最小修法：** 在右側乘上 $c_\\ast$，並將後文的「$f(0)=f(2)=1$」改為「$f(0)=f(2)=c_\\ast$」。\n\n## 已通過核對\n\n- Fick通量及外法向符號一致。\n- 純Neumann零空間與反應解除零模態的敘述正確。\n- Robin左右端ghost離散及步長限制正確。\n- Neumann離散總量與梯形權重相容。\n- 反應擴展的總量遞推及非負係數條件正確。\n- 習題3的通量方向、收支與負濃度警告一致。\n- 未執行數值結果均標為預期。\n\nVERDICT: REVISE"
+}

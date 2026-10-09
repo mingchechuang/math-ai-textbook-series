@@ -1,0 +1,50 @@
+{
+  "key": "2979243180a0cdda8018566d415cbb616d12846b51436cd26425df6b7af6daf9",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 180,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "離散後為\n\n$$\n\\Pi_h(U)=\\frac12U^TKU-b^TU.\n$$\n\n固定 $U_D=g_D$ 後，自由變數的約化能量為",
+        "new": "將體來源與 $\\Gamma_N$ 上的 Neumann 邊負載一併組裝進全域右端 $b$；$K$ 則包含擴散及反應矩陣。對滿足 $U_D=g_D$ 的離散試探函數，完整能量記為\n\n$$\n\\Pi_h(U)=\\frac12U^TKU-b^TU.\n$$\n\n這裡的 $U_D$ 已固定，並非可任意變動的自由參數。將固定值代入完整能量後，自由變數的約化能量為"
+      },
+      {
+        "chapter": 17,
+        "old": "    if abs(detJ) <= relative_tol * local_scale2:\n        raise ValueError(\"退化或近退化三角形\")",
+        "new": "    # 局部最長邊平方提供平移與一致縮放下的簡單防護門檻；\n    # 通過門檻並不保證 Jacobian 條件數良好。\n    if abs(detJ) <= relative_tol * local_scale2:\n        raise ValueError(\"退化或低於指定面積門檻的三角形\")"
+      },
+      {
+        "chapter": 17,
+        "old": "    defect = float(np.sum(b))\n    limit = float(tolerances[0] + tolerances[1] * np.linalg.norm(b, ord=1))\n    if not np.isfinite(defect) or not np.isfinite(limit):\n        raise ValueError(\"相容性缺陷或容差計算結果不是有限值\")",
+        "new": "    # 先縮放再加總，避免有限但極大的分量直接相加而溢位。\n    scale = float(np.max(np.abs(b))) if b.size else 0.0\n    if scale == 0.0:\n        return 0.0, float(tolerances[0])\n    scaled = b / scale\n    defect_scaled = float(np.sum(scaled))\n    size_scaled = float(np.sum(np.abs(scaled)))\n    # 直接以無因次形式比較，避免還原 defect、limit 時溢位。\n    threshold_scaled = float(tolerances[0] / scale\n                             + tolerances[1] * size_scaled)\n    if not np.all(np.isfinite(\n            [defect_scaled, size_scaled, threshold_scaled])):\n        raise ValueError(\"相容性計算無法以有限值完成\")\n    if abs(defect_scaled) > threshold_scaled:\n        raise ValueError(\n            \"純 Neumann 右端不相容：\"\n            f\"scaled defect={defect_scaled}, scaled tolerance={threshold_scaled}\"\n        )\n    # 回傳縮放後的量，兩者均以 max(abs(b)) 為尺度。"
+      },
+      {
+        "chapter": 17,
+        "old": "    if abs(defect) > limit:\n        raise ValueError(\n            \"純 Neumann 右端不相容：\"\n            f\"sum(b)={defect}, tolerance={limit}\"\n        )\n    return defect, limit",
+        "new": "    return defect_scaled, threshold_scaled"
+      },
+      {
+        "chapter": 17,
+        "old": "    print(\"compatible defect, limit =\",\n          check_pure_neumann_compatibility(b_zero))\n\n    # 故障示例：常數正來源、零 Neumann、c=0 不相容。",
+        "new": "    print(\"compatible scaled defect, limit =\",\n          check_pure_neumann_compatibility(b_zero))\n    # 非零但相容的代數測試；正負負載相抵，不藉此宣稱已求解。\n    balanced = np.array([1.0, -1.0, 0.0, 0.0, 0.0])\n    print(\"nonzero compatible scaled defect, limit =\",\n          check_pure_neumann_compatibility(balanced))\n\n    # 故障示例：常數正來源、零 Neumann、c=0 不相容。"
+      },
+      {
+        "chapter": 17,
+        "old": "零來源、零邊界通量的示例應通過檢查；正來源示例應被拒絕，且拒絕後不得呼叫任何純 Neumann 求解流程。",
+        "new": "零來源、零邊界通量的示例及非零但正負相抵的右端，都應通過相容性檢查；正來源示例應被拒絕，且拒絕後不得呼叫任何純 Neumann 求解流程。函式回傳的是以最大右端絕對值縮放的缺陷與門檻，不是原單位的 $\\mathbf1^Tb$；此縮放避免有限輸入在直接求和時溢位。"
+      },
+      {
+        "chapter": 17,
+        "old": "### 4. 退化門檻依賴絕對座標\n\n使用絕對座標大小作門檻會使幾何判定隨整體平移改變。應使用局部邊長、局部面積或 Jacobian 條件數。",
+        "new": "### 4. 退化門檻與網格品質\n\n使用絕對座標大小作門檻會使幾何判定隨整體平移改變。本章程式改以最長局部邊的平方乘固定相對容差，作為拒絕零面積及極小相對面積元素的簡單防護；在精確算術下，此比值對一致縮放不變。但它不是通用的品質評分，也不保證通過檢查的 Jacobian 條件數良好。接近門檻的元素可能造成顯著捨入誤差；實務上仍需另外評估角度、長寬比及條件數，並記錄所採容差。"
+      }
+    ],
+    "reason": "原稿兩處 Dirichlet 公式實際上分別是換行後的 `u=g_D` 與 `u=0`；審稿引用中的 `\\nu` 是將換行轉義與字母 u 連讀，並非梯度符號，故不改動正確公式。其餘依證據局部補明能量中全域右端的組成、相容性計算的縮放語意與非零相容測試，以及退化門檻不等於網格品質保證。未執行程式。"
+  }
+}

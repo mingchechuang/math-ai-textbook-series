@@ -1,0 +1,14 @@
+{
+  "key": "9ca755e085a2a203c175e62c90cce9aa72582d23676c4aae93ab4d3649f2b288",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 250,
+  "result": {
+    "patches": [],
+    "reason": "所引 `$$\\nu` 是 JSON 跳脫序列 `\\n`（換行）後緊接字母 `u`；解碼後三式分別是 $u=g_D$、$u_h=\\sum_aU_aN_a$、$u=0$，並無希臘字母誤植。本卷共同契約明定「列向量(column vector)是直向量」，原稿稱頂點及負載為「列向量」符合該固定術語，不應擅改。未發現這份審稿意見所舉的實際錯誤；未執行程式。"
+  }
+}

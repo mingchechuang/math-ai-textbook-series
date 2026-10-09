@@ -1,0 +1,11 @@
+{
+  "key": "c58b253147b939e0e9c75f518818499558c7cfd5574ac4525b48d37ca1a09865",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 557,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n一般情況含偏置共\n<<<NEW>>>\n在預設 `dv=dh`（value 總寬度為 `D`）時含偏置共\n<<<END>>>"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "d252605e04646f72a2910c7085521d2afad5431853e3fb691e2c3006157bdd8e",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 179,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n**命題。** 若 $z_i,z_j\\in\\mathbb{R}$ 且 $T_{\\mathrm{temp}}>0$，則：\n<<<NEW>>>\n**命題（實數運算）。** 若 $z_i,z_j\\in\\mathbb{R}$ 且 $T_{\\mathrm{temp}}>0$，並以精確實數運算定義 softmax，則：\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。\n<<<NEW>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。\n\n這是實數命題，不是任意浮點輸入皆能成功計算的保證。程式採用 float64 計算 `logits / temperature`；即使原始 logits 與正溫度皆有限，極小溫度仍可能使縮放結果溢位。本章對這種情形明確拒絕，不以可能產生的無限值計算機率；呼叫者可改用 `greedy=True` 或本章定義的零溫度政策，但不能把它當成原正溫度分布的精確數值結果。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n    prob = stable_softmax(logits / temperature)\n    prob = apply_top_k(prob, top_k)\n<<<NEW>>>\n    scaled = logits / temperature\n    if not np.all(np.isfinite(scaled)):\n        raise ValueError(\"溫度縮放後 logits 非有限\")\n    prob = stable_softmax(scaled)\n    prob = apply_top_k(prob, top_k)\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([0.0, 1.0]), temperature=-1.0),\n        ValueError\n    )\n<<<NEW>>>\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([0.0, 1.0]), temperature=-1.0),\n        ValueError\n    )\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([0.0, 1.0]), temperature=1e-320),\n        ValueError\n    )\n<<<END>>>\n<<<PATCH 05>>>\n<<<OLD>>>\n- 負溫度；\n- 零溫度配非法 top-k 或 top-p；\n<<<NEW>>>\n- 負溫度，以及有限正溫度使浮點縮放溢位的情形；後者應拋出 `ValueError`，浮點環境也可能先發出溢位警告；\n- 零溫度配非法 top-k 或 top-p；\n<<<END>>>"
+}

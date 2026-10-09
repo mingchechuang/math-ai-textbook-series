@@ -1,0 +1,11 @@
+{
+  "key": "ff77c6e424659bf4049d95037e1aa7b7837da3bc5cb12af9ad78c62f24a59d66",
+  "person": {
+    "id": "v3_editor_19",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "reviewer"
+  },
+  "call": 137,
+  "result": "前輪指出的兩項缺漏已有實質修正：程式加入 `readonly_query`，並逐步記錄收支差、容差及 `balance_pass`。重算手算例，兩格末態為 $(0.8,0.2)\\,\\mathrm{kg}$；四格週期例為 $(0.8,0.1,0,0.1)\\,\\mathrm{kg/m^3}$，均與稿件相符。未執行程式。\n\n仍有兩處影響「可稽核」結論：\n\n1. **唯讀查詢未核對結果是否屬於該紀錄。**`readonly_query` 在 `result is not None` 後，直接由 `result` 算極值，卻由 `manifest` 回傳總量與摘要；未檢查 `result.shape`、有限性或其總量是否符合紀錄。傳入另一個形狀相異的陣列，也可能得到 `accepted`，且極值與總量來自不同資料。**最小修法：**接受前核對形狀、有限性與結果總量（按紀錄中的 `dx_m`、`dy_m` 及明示容差）；不符即拒絕，並加入錯配結果測試。若要驗證逐位元身分，另存最終陣列摘要。\n\n2. **收支判定失敗後仍可能作為正常結果供查詢。**`run_synthetic_case` 記錄 `balance_pass=False`，但照常回傳；`readonly_query` 也不查看此狀態。這與「實作與程式」所稱「保留失敗狀態供稽核」並不衝突，但查詢若回覆 `accepted` 而不揭露失敗，會把未通過診斷的結果呈作正常證據。**最小修法：**查詢時拒絕收支未通過的紀錄，或明確回傳失敗狀態及其誤差、容差，不以一般 `accepted` 回覆；補一項失敗紀錄測試。\n\nVERDICT: REVISE"
+}

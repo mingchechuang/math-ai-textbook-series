@@ -1,0 +1,11 @@
+{
+  "key": "5281cb6d510b3ae9dd052b3a2af5f6c3347058a24c9cf2b820a2242ee7ae4b4c",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 175,
+  "result": "<<<PATCH 17>>>\n<<<OLD>>>\ntry:\n    rope_with_start(x, -1)\n    raise AssertionError(\"negative start was not rejected\")\nexcept ValueError:\n    pass\n<<<NEW>>>\ncaught = False\ntry:\n    rope_with_start(x, -1)\nexcept ValueError:\n    caught = True\nassert caught, \"negative start was not rejected\"\n<<<END>>>"
+}

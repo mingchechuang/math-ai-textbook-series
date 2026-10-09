@@ -1,0 +1,75 @@
+{
+  "key": "eb08c32121d69ba1d767fae280aa6986864e28b097f7e0b8acff9c1fa604a9c3",
+  "person": {
+    "id": "v2_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 188,
+  "result": {
+    "patches": [
+      {
+        "chapter": 14,
+        "old": "    生成線性 RGB 的非對稱灰階條紋貼圖：每一橫列灰階值為 x / (W - 1)，\n    x=0 為黑、x=W-1 為白。用於偵測接縫取樣是否取到正確的紋素；",
+        "new": "    生成線性 RGB 的非對稱垂直灰階條紋：每一固定 x 的直欄\n    灰階值為 x / (W - 1)，x=0 為黑、x=W-1 為白。\n    用於辨認 Repeat 位址及連續分支插值的取樣位置；"
+      },
+      {
+        "chapter": 14,
+        "old": "    return tex\n\ndef sample_bilinear(tex, u, v, wrap=False):",
+        "new": "    return tex\n\ndef generate_orientation_texture(width=8, height=8):\n    \"\"\"影像上半紅、下半藍；用非對稱顏色檢查 UV 的 v 向上。\"\"\"\n    tex = np.zeros((height, width, 3), dtype=np.float32)\n    for y in range(height):\n        tex[y, :, :] = ([1.0, 0.0, 0.0] if y < height // 2\n                        else [0.0, 0.0, 1.0])\n    return tex\n\ndef sample_bilinear(tex, u, v, wrap=False):"
+      },
+      {
+        "chapter": 14,
+        "old": "    本函式不處理深度測試，先寫入者即保留；多個三角形時應按深度順序呼叫。",
+        "new": "    本函式沒有深度測試或 top-left 共邊歸屬規則；後寫入者會覆蓋\n    先寫入者。僅作不含透明混合及深度競爭的插值示範，不能靠呼叫\n    順序代替深度測試。"
+      },
+      {
+        "chapter": 14,
+        "old": "    # 預期：Correct 應取樣到 u=0.0 附近，Wrong 取樣到 u=0.5 附近\n    # 8x8 checker, u=0.0 -> x=-0.5 (clamped/wrapped to 0), u=0.5 -> x=3.5\n    # 注意 Repeat 模式下 u=1.0 等同 u=0.0\n\n    # 3. 簡化魚體：兩個共享邊的三角形構成菱形魚身。\n    #    魚身共用四個頂點 A、B、C、D；左右三角形共享對角線 B–D。\n    #    為了示範 UV 接縫，右三角形使用與左三角形不同的渲染頂點記錄，\n    #    但幾何位置在 B、D 兩點仍與左三角形相同。",
+        "new": "    # 對稱棋盤的 u=1.0 與 u=0.5 可能同色，不能據此判定分支正確。\n    # 另以非對稱 ramp 測位址：連續分支中點是 1.0，錯誤分支中點是 0.5。\n    seam_tex = generate_stripe_texture(8, 8)\n    seam_ok = sample_bilinear(seam_tex, 1.0, 0.5, wrap=True)\n    seam_bad = sample_bilinear(seam_tex, 0.5, 0.5, wrap=True)\n    assert np.allclose(seam_ok, sample_bilinear(seam_tex, 0.0, 0.5,\n                                                wrap=True))\n    assert not np.allclose(seam_ok, seam_bad)\n\n    # 影像陣列上方是紅色，但 UV 的 v 向上；兩處取樣不可顛倒。\n    orientation = generate_orientation_texture()\n    assert np.allclose(sample_bilinear(orientation, 0.5, 0.75),\n                       [1.0, 0.0, 0.0])\n    assert np.allclose(sample_bilinear(orientation, 0.5, 0.25),\n                       [0.0, 0.0, 1.0])\n\n    # 3. 低面數魚身代理：兩個共享邊的三角形構成菱形。\n    #    四個幾何頂點 A、B、C、D；左右三角形共享對角線 B–D。\n    #    此處兩側 UV 相同，並未建立魚身上的週期接縫；上面的\n    #    0.9→1.1 與 0.9→0.1 對照才是獨立的接縫分支測試。"
+      },
+      {
+        "chapter": 14,
+        "old": "    w1 = (1.0, 2.0, 3.0)\n    w2 = (1.5, 2.5, 3.5)",
+        "new": "    # 同一幾何位置的 clip w 必須相同；接縫複製屬性亦不改變它。\n    w_A, w_B, w_C, w_D = 1.0, 2.0, 3.5, 3.0\n    w1 = (w_A, w_B, w_D)\n    w2 = (w_B, w_C, w_D)"
+      },
+      {
+        "chapter": 14,
+        "old": "    # 輸出兩張 PPM 以供比對透視與仿射的差異。\n    # 本實驗直接將線性 RGB 值乘以 255 量化寫檔，因此檔案是線性 RGB 編碼，",
+        "new": "    # 兩種插值應產生不同影像；背景仍為黑。這些斷言不代替人工檢視。\n    assert np.any(img_pc != img_affine)\n    assert np.array_equal(img_pc[0, 0], [0, 0, 0])\n    assert np.any(img_pc[H_img // 2, W_img // 2] != 0)\n\n    # 輸出兩張 PPM 以供比對透視與仿射的差異。\n    # 本實驗直接將線性 RGB 值乘以 255 量化寫檔，因此檔案是線性 RGB 編碼，"
+      },
+      {
+        "chapter": 14,
+        "old": "    # 驗證接縫週期等價：Repeat 模式下 u=1.0 與 u=0.0 應取同一紋素。",
+        "new": "    # 驗證週期等價：Repeat 模式下 u=1.0 與 u=0.0 取樣結果相同；\n    # 雙線性取樣可能混合邊界兩側紋素，並非只取單一紋素。"
+      },
+      {
+        "chapter": 14,
+        "old": "    _ = sample_bilinear(tiny_tex, 12.3, -4.5, wrap=True)\n    _ = sample_bilinear(tiny_tex, 12.3, -4.5, wrap=False)",
+        "new": "    assert np.allclose(sample_bilinear(tiny_tex, 12.3, -4.5,\n                                       wrap=True), [0.25, 0.25, 0.25])\n    assert np.allclose(sample_bilinear(tiny_tex, 12.3, -4.5,\n                                       wrap=False), [0.25, 0.25, 0.25])"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   接縫測試改採非對稱灰階條紋貼圖 `generate_stripe_texture`。該貼圖每一橫列的灰階為 $x / (W-1)$，因此不同 $u$ 會對應不同灰階，能清楚區分接縫位置。改寫後的主程式以條紋貼圖光柵化簡化魚身，輸出 `fish_pc.ppm` 與 `fish_affine.ppm` 供比對。如果接縫處理正確，接縫附近的像素灰階應連續；若實作錯誤地把接縫兩側 UV 分別化為 $0.9$ 與 $0.1$，中點會被誤插成 $0.5$，取樣結果就會突然跳躍。",
+        "new": "    *   獨立的接縫分支測試改採非對稱灰階條紋 `generate_stripe_texture`：每一固定 $x$ 的直欄灰階為 $x/(W-1)$。程式比較連續分支 $0.9\\to1.1$ 的中點 $u=1.0$，與錯誤分支 $0.9\\to0.1$ 的中點 $u=0.5$；Repeat 下兩者取樣不同。這測的是**位址與插值分支**，不是外觀無縫。此 ramp 左右邊界內容不相容，不能據其魚身影像宣稱接縫附近天然平滑；若要檢查外觀無縫，另須使用邊界內容相容的週期貼圖。魚身的兩三角形保留相同的共享邊 UV，用於比較透視與仿射插值，並未刻意在魚身建立週期接縫。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   若貼圖上半紅、下半藍，且 $v$ 計算正確，則 $v < 0.5$ 時應為藍。\n    *   若 V 軸翻轉錯誤，$v$ 值會被解讀為相反區域，顏色將顛倒。",
+        "new": "    *   `generate_orientation_texture` 建立影像上半紅、下半藍的非對稱貼圖。程式分別斷言 $v=0.75$ 取到紅色、$v=0.25$ 取到藍色；若漏掉影像列號與向上 UV 之間的翻轉，兩項結果會顛倒。灰階垂直條紋不隨影像列號變化，不能單獨承擔此測試。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   **對策**：確保數據層面複製完整渲染頂點，且 UV 展開時選擇連續分支（如 $0.9 \\to 1.1$）。",
+        "new": "    *   **對策**：接縫兩側建立各自的完整渲染頂點記錄，保留相同幾何位置及其 clip $w$，並按需要分別指定 UV 與法線；跨週期邊界的三角形選擇連續 UV 分支（如 $0.9\\to1.1$）。兩側貼圖內容若不相容，即使 Repeat 位址正確仍可能顯出接縫。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   **陷阱**：兩個相鄰三角形共享一條邊時，若不統一內外判定規則，共享邊上的像素可能被兩三角形重複塗寫、或兩者皆放行而產生縫隙。本節以 `area2` 的符號為依據、三條邊函數皆採**嚴格** $\\geq 0$ 或 $\\leq 0$，共享邊可能被兩邊各寫一次，但因兩次取樣值相同，結果不變。若之後加入深度或 alpha 混合，需明定 shared-edge 或 top-left 規則。\n    *   **對策**：在引入深度測試或混合前，先明確記錄共享邊的歸屬規則；本章實驗不做深度比較，因此兩次寫入相同值並不影響結果。",
+        "new": "    *   **陷阱**：本節依 `area2` 的符號使用非嚴格的 $\\geq0$ 或 $\\leq0$ 邊測試，並**未**實作 top-left 規則；共享邊上的像素可能被兩側都涵蓋，後繪三角形會覆寫前者。即使幾何位置與 clip $w$ 一致，刻意設置 UV 接縫時兩側取樣也未必相同，不能聲稱重複寫入必然不影響結果。\n    *   **對策**：非接縫共享邊須保持兩側位置、$w$ 與 UV 一致；刻意的 UV 接縫另檢查貼圖內容是否相容。要處理透明混合、深度競爭或嚴格的共邊覆蓋，須加入深度測試及一致的 top-left 歸屬規則。本節僅作無透明混合的簡化示範。"
+      }
+    ],
+    "reason": "修正共享頂點 clip w 不一致、覆寫行為及共邊敘述錯誤；將週期分支測試與未設接縫的魚身影像分開，並補上非對稱上下翻轉、影像差異與單紋素回傳值斷言。保留原有手算、取樣公式及其餘正確推導；未執行程式或宣稱修訂已通過驗證。"
+  }
+}

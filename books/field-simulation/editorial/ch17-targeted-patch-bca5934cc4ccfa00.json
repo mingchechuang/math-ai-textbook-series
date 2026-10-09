@@ -1,0 +1,20 @@
+{
+  "key": "bca5934cc4ccfa0028a72e132500661741521d84aaeacf7982d86e1d46a50e73",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 316,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "def triangle_matrices(xy, kappa, reaction, source,\n                      relative_tol=1.0e-14):\n    e01 = xy[1] - xy[0]",
+        "new": "def triangle_matrices(xy, kappa, reaction, source,\n                      relative_tol=1.0e-14):\n    if not np.isscalar(relative_tol) or not np.isfinite(relative_tol) or relative_tol < 0:\n        raise ValueError(\"relative_tol 必須是有限的非負純量\")\n    e01 = xy[1] - xy[0]"
+      }
+    ],
+    "reason": "`triangle_matrices` 是可直接呼叫的函式，原稿未檢查面積門檻 `relative_tol`；負值會使退化判斷失效，非有限值亦可能使判斷失效。補上門檻輸入檢查。審稿所引三處 `\\nu` 是 JSON 換行跳脫 `\\n` 後接 `u`，解碼後均為正確的 $u$，不修改。未執行程式。"
+  }
+}

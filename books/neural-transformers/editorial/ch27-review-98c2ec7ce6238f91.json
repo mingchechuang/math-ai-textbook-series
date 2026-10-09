@@ -1,0 +1,11 @@
+{
+  "key": "98c2ec7ce6238f91a7bb3119cc52dc9b110e16e74529f012d5c9f9c720a5014e",
+  "person": {
+    "id": "v5_editor_13",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 216,
+  "result": "1. **本輪仍未修正非有限超參數檢查。**  \n   原句：「`if sigma <= 0 or window < 0:`」及「`if temperature <= 0:`」  \n   原因：`NaN` 與正無限值不會被這些比較完整拒絕。`sigma=NaN` 可使時間權重變成 NaN；`temperature=NaN` 則會把錯誤延後到 logits 檢查，無法落實「非法參數在入口拒絕」的契約。正無限的時間窗或溫度也會被接受。  \n   最小修法：先檢查 `sigma`、`window`、`temperature` 均為有限純量，再檢查正值／非負條件；加入 NaN 與正無限值的故障測試，核對錯誤原因。\n\n其餘主要修訂——穩定時間權重、雙向手算、有效配對遮罩與來源切分——已補入；未執行聲明也清楚。此參數驗證缺口仍需修正。\n\nVERDICT: REVISE"
+}

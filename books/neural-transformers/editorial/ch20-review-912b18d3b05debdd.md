@@ -1,0 +1,18 @@
+我先重算主要張量與反傳路徑。`q @ k.transpose(0,2,1)` 得 $(B,T,T)$，`att @ v` 得 $(B,T,D)$；softmax 的 VJP `att * (datt - sum(datt*att, key軸))`、$Q/K/V$ 的矩陣乘法及第一個殘差的兩路梯度，在目前形狀下相符。切窗從 `start` 取至 `start+window+1`，下一窗從前窗最後一個目標詞元開始，沒有漏掉邊界相鄰對。修訂版亦已把有限極端 logits 的 NLL 改為直接從 logits 計算，並修正了先前 PAD 分母手算錯誤；這些疑慮不再阻擋。
+
+**尚有一項會直接破壞訓練的反傳錯誤。**原句：
+
+> `dn2 = dgelu * dgelu_dpre`  
+> `dn2, g["g2"], g["b2"] = layer_norm_backward(dn2, c2)`  
+> `da += dn2`
+
+前向路徑是 `n2 @ W1 + b1f → GELU → @ W2 + b2f`。令 GELU 輸入的梯度為 `dpre = dgelu * dgelu_dpre`，則它的 shape 是 $(B,T,ff)$；送入 `layer_norm_backward` 的梯度卻必須是對 `n2` 的梯度，shape 為 $(B,T,D)$。本程式預設 `d=16, ff=32`，因此此處不能正確廣播，預期會在訓練反傳時因 shape 不合而失敗。即使恰好設 `ff=d` 避開 shape 錯誤，`g["W1"]`、`g["b1f"]` 仍始終為初始化的零，且梯度少乘了 `W1.T`，不能學到第一層 FFN。**最小修法：**在進入 LayerNorm 反傳前，計算 `g["W1"] = n2.reshape(-1,D).T @ dpre.reshape(-1,ff)`、`g["b1f"] = dpre.sum(axis=(0,1))`，再以 `dn2 = dpre @ W1.T` 傳給 `layer_norm_backward`。加入 `ff != d` 的一次前反傳 shape 測試，並對 `W1`、`b1f` 做有限差分或至少非零梯度檢查；不能只檢查梯度「有限」，因錯誤的全零梯度也有限。
+
+另有兩處小但明確的自足程式問題，宜一併修正：
+
+- 原句：「`B, T = ids.shape`」位於「`if ids.ndim != 2:`」之前。傳入一維或三維 `ids` 時，程式可能先拋出解包錯誤，而非所承諾的 `ValueError("token IDs 必須是 (B,T)")`。**最小修法：**先驗證 `ndim`，再解包 shape。
+- 原句：「`except ValueError:\n        pass`」在 `expected_tests()` 出現兩次。這是測試中的預期例外處理，並非未完成的演算法；但本卷明定程式不得留 `pass`，而目前寫法也沒有核對例外是否來自預期的故障位置。**最小修法：**改用明確的捕獲旗標及斷言，或以小型預期例外輔助函式檢查例外類型與訊息。
+
+修訂稿已有完整的合成資料、模型、loss、optimizer、CPU 訓練 loop 與保留集評估，且沒有虛構執行、收斂或來源核對。可是預設模型的 FFN 反傳目前不能完成，故「完整可訓練」仍未成立；修好該路徑並補上針對性測試後即可重新審核。
+
+VERDICT: REVISE

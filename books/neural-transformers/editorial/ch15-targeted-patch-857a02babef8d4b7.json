@@ -1,0 +1,11 @@
+{
+  "key": "857a02babef8d4b7f599558ead8c809882f38ae035485a485696bba26fa60b93",
+  "person": {
+    "id": "v5_editor_32",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "author"
+  },
+  "call": 530,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\ndef run_checks():\n    # 正常：三個 token，最後一個是 padding key。\n<<<NEW>>>\ndef assert_raises_value_error(fn, message):\n    try:\n        fn()\n    except ValueError:\n        return\n    raise AssertionError(message)\n\n\ndef run_checks():\n    # 正常：三個 token，最後一個是 padding key。\n<<<END>>>\n\n<<<PATCH 02>>>\n<<<OLD>>>\n    # 故障：全遮罩列、零有效目標、畸形遮罩均須拒絕。\n    for bad_mask in (\n        np.zeros((3, 3), dtype=bool),\n        np.ones(3, dtype=bool),\n        np.ones((3, 2), dtype=bool),\n    ):\n        try:\n            attention(x, x, x, bad_mask)\n        except ValueError:\n            pass\n        else:\n            raise AssertionError(\"非法遮罩應被拒絕\")\n\n    try:\n        masked_token_mean(\n            np.array([0.2, 0.4]), np.array([False, False])\n        )\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"零有效 token 應被拒絕\")\n\n    # 有限但極大的輸入可能使點積溢位；應拒絕非有限分數。\n    huge = np.array([[1e308]])\n    try:\n        attention(huge, huge, np.array([[1.0]]),\n                  np.array([[True]]))\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"非有限注意力分數應被拒絕\")\n<<<NEW>>>\n    # 故障：全遮罩列、零有效目標、畸形遮罩均須拒絕。\n    for bad_mask in (\n        np.zeros((3, 3), dtype=bool),\n        np.ones(3, dtype=bool),\n        np.ones((3, 2), dtype=bool),\n    ):\n        assert_raises_value_error(\n            lambda bad_mask=bad_mask: attention(x, x, x, bad_mask),\n            \"非法遮罩應被拒絕\"\n        )\n\n    assert_raises_value_error(\n        lambda: masked_token_mean(\n            np.array([0.2, 0.4]), np.array([False, False])\n        ),\n        \"零有效 token 應被拒絕\"\n    )\n\n    # 有限但極大的輸入可能使點積溢位；應拒絕非有限分數。\n    huge = np.array([[1e308]])\n    assert_raises_value_error(\n        lambda: attention(\n            huge, huge, np.array([[1.0]]), np.array([[True]])\n        ),\n        \"非有限注意力分數應被拒絕\"\n    )\n<<<END>>>"
+}

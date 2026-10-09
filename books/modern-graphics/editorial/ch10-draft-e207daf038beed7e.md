@@ -1,0 +1,455 @@
+# 第 10 章　參數曲面與曲面離散化
+
+## 學習目標與先備知識
+
+本章從連續的參數曲面出發，推導切向量、切平面與法線，再將曲面取樣成可供渲染使用的三角網格。完成後，你應能：
+
+- 用參數方程描述一個曲面，並以偏導數取得局部切向量。
+- 由兩個切向量的外積計算法線，判斷其方向與退化情形。
+- 選擇取樣數與索引連接方式，建立頂點、三角形及UV座標。
+- 處理旋轉曲面的極點、週期接縫及退化三角形。
+- 用標準庫 Python 產生簡化魚體的OBJ檔，並以測試檢查網格基本性質。
+
+先備為向量、內積、外積、三角函數及矩陣的基本概念。本文用公尺表示長度、用弧度表示角度；座標遵守右手系，三角形外向前面依外向法線觀看時為逆時針。網格取樣只近似幾何，不會自動保證模型符合真實魚類形態或生理特性。
+
+## 問題與直覺
+
+一條魚的表面可視為連續曲面，但圖形管線通常以有限個三角形表示它。曲面參數方程回答「怎麼從參數得到位置」；離散化回答「取哪些參數位置、如何把它們連成面」。
+
+想像魚身沿著X軸延伸。每個X位置都有一個橫截面；橫截面可以是橢圓，半長軸與半短軸沿魚身變化。再以角度繞X軸掃過一圈，就能生成整個魚身表面。這是旋轉曲面的簡化形式。
+
+離散化時，兩個問題特別重要：
+
+1. **取樣密度**：參數取樣過疏時，曲面會呈現多邊形折角；取樣加密則增加頂點與面數。
+2. **邊界與退化**：角度繞一圈後首尾相接；截面半徑若在魚嘴或魚尾縮為零，整圈的頂點會重合，形成極點。若仍以一般四邊形方式連接，就可能產生零面積三角形。
+
+因此，網格不能只看起來像魚；還要檢查索引、三角形面積、繞序與接縫。
+
+## 數學與幾何推導
+
+### 參數曲面與偏導數
+
+令參數為 \(u,v\)，定義連續曲面
+
+$$
+\mathbf{S}(u,v)=
+\begin{pmatrix}
+x(u,v)\\
+y(u,v)\\
+z(u,v)
+\end{pmatrix}.
+$$
+
+對 \(u\) 與 \(v\) 分別微分，得到偏導向量
+
+$$
+\mathbf{S}_u=\frac{\partial \mathbf{S}}{\partial u},
+\qquad
+\mathbf{S}_v=\frac{\partial \mathbf{S}}{\partial v}.
+$$
+
+偏導向量描述位置隨一個參數微小變化時的方向。若曲面可微，且兩向量不平行，便張成局部切平面。以參數點 \((u_0,v_0)\) 為基準，切平面可寫成
+
+$$
+\mathbf{X}(a,b)=\mathbf{S}(u_0,v_0)+a\mathbf{S}_u(u_0,v_0)+b\mathbf{S}_v(u_0,v_0),
+$$
+
+其中 \(a,b\) 是任意實數。因為兩個切向量都在平面內，其外積垂直於切平面：
+
+$$
+\mathbf{n}=
+\frac{\mathbf{S}_u\times\mathbf{S}_v}
+{\|\mathbf{S}_u\times\mathbf{S}_v\|}.
+$$
+
+這個單位向量是幾何法線。若外積長度為零，兩個切向量平行或有一個為零；該處沒有由此參數化定義出的唯一法線，不能直接正規化。
+
+### 旋轉曲面模型
+
+以 \(x\) 作為沿魚身的參數，以 \(\theta\) 作為繞魚身的角度。令 \(r_y(x)\) 為橫截面的垂直半徑，\(r_z(x)\) 為深度方向半徑，曲面為
+
+$$
+\mathbf{S}(x,\theta)=
+\begin{pmatrix}
+x\\
+r_y(x)\cos\theta\\
+r_z(x)\sin\theta
+\end{pmatrix},
+\qquad 0\leq\theta<2\pi.
+$$
+
+此式以橢圓作橫截面；若 \(r_y=r_z\)，截面便是圓。對參數微分：
+
+$$
+\mathbf{S}_x=
+\begin{pmatrix}
+1\\
+r_y'(x)\cos\theta\\
+r_z'(x)\sin\theta
+\end{pmatrix},
+\qquad
+\mathbf{S}_\theta=
+\begin{pmatrix}
+0\\
+-r_y(x)\sin\theta\\
+r_z(x)\cos\theta
+\end{pmatrix}.
+$$
+
+外積為
+
+$$
+\mathbf{S}_x\times\mathbf{S}_\theta=
+\begin{pmatrix}
+r_y'r_z\cos^2\theta+r_z'r_y\sin^2\theta\\
+-r_z\cos\theta\\
+-r_y\sin\theta
+\end{pmatrix}.
+$$
+
+外積的方向由參數順序決定。換成 \(\mathbf{S}_\theta\times\mathbf{S}_x\) 會反向。實際網格的面法線也取決於索引繞序，實作時應用簡單位置或參考方向檢查。
+
+### 取樣、面片與接縫
+
+將 \(x\) 分成 \(N_x\) 段、將 \(\theta\) 分成 \(N_\theta\) 段：
+
+$$
+x_i=x_{\min}+\frac{i}{N_x}(x_{\max}-x_{\min}),
+\quad i=0,\ldots,N_x,
+$$
+
+$$
+\theta_j=\frac{2\pi j}{N_\theta},
+\quad j=0,\ldots,N_\theta.
+$$
+
+頂點索引可寫成
+
+$$
+k(i,j)=i(N_\theta+1)+j.
+$$
+
+雖然 \(\theta=0\) 與 \(\theta=2\pi\) 的位置相同，這裡仍保留兩份頂點。這使UV的 \(u\) 可以由0走到1而不在貼圖座標上跳回0。幾何位置首尾重合，UV則分開；這稱為接縫。若不需要UV接縫，也可只存 \(N_\theta\) 個角度頂點，並在索引中以模數回接。
+
+令四邊形的角點依序為
+
+$$
+a=k(i,j),\quad b=k(i+1,j),\quad
+c=k(i+1,j+1),\quad d=k(i,j+1).
+$$
+
+可以用三角形 \((a,b,c)\) 與 \((a,c,d)\) 填滿四邊形。這個繞序是否符合所需外向法線，仍需依參數方向檢查；若發現面法線指向魚身內側，交換每個三角形的後兩個索引。
+
+### 極點退化
+
+若某個端點半徑同時為零，對所有 \(\theta\)，該端的曲面位置都相同。此時一整圈頂點重疊，該圈周圍的部分三角形面積為零。通常有兩種處理方式：
+
+- **共用單一極點**：端點只建立一個頂點，讓相鄰環帶的三角形都連到它。需處理不同三角形的UV與法線需求。
+- **保留重複極點並跳過零面積三角形**：實作直接，但索引網格可能留下非標準拓撲；法線與UV也須在後續明確處理。
+
+本章程式採第二種方式，並在產生三角形時略過面積接近零的面。這不是通用的修補法；若後續需要封閉流形網格，應另外構造極點拓撲並檢查邊鄰接。
+
+取樣間距不等於固定的表面誤差。曲率較大的區域通常需要較密取樣；只增加整體 \(N_x,N_\theta\) 雖簡單，卻可能造成平坦區域過度細分。後續可用弦高誤差或曲率資訊自適應取樣。
+
+## 逐步手算例題
+
+### 例一：計算切向量與法線
+
+考慮半徑固定為1公尺的圓柱：
+
+$$
+\mathbf{S}(x,\theta)=
+\begin{pmatrix}
+x\\
+\cos\theta\\
+\sin\theta
+\end{pmatrix}.
+$$
+
+在 \(x=0,\theta=0\)：
+
+1. 對 \(x\) 微分，得 \(\mathbf{S}_x=(1,0,0)^T\)。
+2. 對 \(\theta\) 微分，得 \(\mathbf{S}_\theta=(0,-\sin\theta,\cos\theta)^T\)，因此此處 \(\mathbf{S}_\theta=(0,0,1)^T\)。
+3. 依參數順序計算外積：
+
+   $$
+   \mathbf{S}_x\times\mathbf{S}_\theta
+   =
+   \begin{pmatrix}1\\0\\0\end{pmatrix}
+   \times
+   \begin{pmatrix}0\\0\\1\end{pmatrix}
+   =
+   \begin{pmatrix}0\\-1\\0\end{pmatrix}.
+   $$
+
+   它長度為1，但方向朝向 \(-Y\)。若此圓柱預期在 \(\theta=0\) 的外向方向是 \(+Y\)，就應將參數順序反過來，或在面片索引中反轉繞序。
+
+這說明「外積給法線」不代表「法線自動朝外」；方向取決於運算順序。
+
+### 例二：接縫上的離散取樣
+
+令 \(N_\theta=4\)，半徑為1，固定 \(x=0\)。角度取樣為
+
+$$
+0,\quad \frac{\pi}{2},\quad \pi,\quad
+\frac{3\pi}{2},\quad 2\pi.
+$$
+
+五個頂點的位置依序是
+
+$$
+(0,1,0),\ (0,0,1),\ (0,-1,0),\
+(0,0,-1),\ (0,1,0).
+$$
+
+首尾位置相同，但其角度參數相差 \(2\pi\)。若UV取 \(u=j/N_\theta\)，兩者分別有 \(u=0\) 和 \(u=1\)。建立四個角度區段時，最後一段連接第3點與第4點，不能漏掉接縫。此取樣只以四個面近似圓周；增加 \(N_\theta\) 會使輪廓更接近圓，但不改變接縫的處理原則。
+
+## 實作與程式
+
+以下程式只使用 Python 3.10+ 標準庫。它建立一個簡化魚體，寫出含頂點、UV與三角面的OBJ檔，並測試接縫、非法索引與退化面。程式假設魚身長軸為X軸，外側輪廓由兩端縮尖的橢圓截面近似。這是教學用合成幾何，不是生物量測模型。
+
+網格頂點以公尺儲存；OBJ中的索引從1開始。程式以內積與外積計算法線方向檢查用的三角形面積向量。面積向量長度為兩倍三角形面積。
+
+```python
+import math
+
+
+def cross(a, b):
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def sub(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def length(v):
+    return math.sqrt(sum(x * x for x in v))
+
+
+def fish_radii(x):
+    # 長度與半徑單位皆為公尺；端點為尖端。
+    t = (x + 1.0) / 2.0
+    profile = math.sin(math.pi * t)
+    return 0.34 * profile, 0.24 * profile
+
+
+def make_fish(nx=20, ntheta=24):
+    if nx < 2 or ntheta < 3:
+        raise ValueError("nx 至少為 2，ntheta 至少為 3")
+
+    vertices = []
+    uvs = []
+
+    # 保留角度接縫兩側的重複頂點，故角度欄數為 ntheta + 1。
+    for i in range(nx + 1):
+        x = -1.0 + 2.0 * i / nx
+        ry, rz = fish_radii(x)
+        for j in range(ntheta + 1):
+            theta = 2.0 * math.pi * j / ntheta
+            vertices.append((
+                x,
+                ry * math.cos(theta),
+                rz * math.sin(theta),
+            ))
+            uvs.append((i / nx, j / ntheta))
+
+    def index(i, j):
+        return i * (ntheta + 1) + j
+
+    faces = []
+    area_epsilon = 1e-12  # 公尺平方；只用於本例尺度的退化面測試。
+
+    for i in range(nx):
+        for j in range(ntheta):
+            a = index(i, j)
+            b = index(i + 1, j)
+            c = index(i + 1, j + 1)
+            d = index(i, j + 1)
+
+            for tri in ((a, b, c), (a, c, d)):
+                p0, p1, p2 = (vertices[k] for k in tri)
+                twice_area = length(cross(sub(p1, p0), sub(p2, p0)))
+                if twice_area > area_epsilon:
+                    faces.append(tri)
+
+    return vertices, uvs, faces
+
+
+def validate(vertices, uvs, faces):
+    assert len(vertices) == len(uvs)
+    assert all(len(p) == 3 for p in vertices)
+    assert all(len(uv) == 2 for uv in uvs)
+
+    for tri in faces:
+        assert len(set(tri)) == 3
+        assert all(0 <= k < len(vertices) for k in tri)
+        p0, p1, p2 = (vertices[k] for k in tri)
+        twice_area = length(cross(sub(p1, p0), sub(p2, p0)))
+        assert twice_area > 1e-12
+
+
+def write_obj(path, vertices, uvs, faces):
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("# 合成簡化魚體；長度單位為公尺\n")
+        for x, y, z in vertices:
+            f.write(f"v {x:.9g} {y:.9g} {z:.9g}\n")
+        for u, v in uvs:
+            f.write(f"vt {u:.9g} {v:.9g}\n")
+        # 每個頂點配有同索引UV；OBJ索引從1開始。
+        for a, b, c in faces:
+            a += 1
+            b += 1
+            c += 1
+            f.write(f"f {a}/{a} {b}/{b} {c}/{c}\n")
+
+
+def test_fish():
+    vertices, uvs, faces = make_fish()
+    validate(vertices, uvs, faces)
+
+    ntheta = 24
+    columns = ntheta + 1
+    for i in range(1, 20):
+        first = vertices[i * columns]
+        seam = vertices[i * columns + ntheta]
+        assert length(sub(first, seam)) < 1e-12
+        assert uvs[i * columns][1] == 0.0
+        assert uvs[i * columns + ntheta][1] == 1.0
+
+    # 確認端點縮至極點；其周圍的零面積面不應出現在輸出網格。
+    assert length(sub(vertices[0], vertices[1])) == 0.0
+    assert len(faces) > 0
+
+
+if __name__ == "__main__":
+    test_fish()
+    vertices, uvs, faces = make_fish()
+    write_obj("fish.obj", vertices, uvs, faces)
+    print(len(vertices), len(faces))
+```
+
+此程式在極點仍儲存多個重複位置，但略過面積不大於設定容差的三角形。由於容差以面積量綱計，單位為平方公尺；若魚體尺度改變，應重新選定合理容差，不能把固定數值當成適用所有模型的判準。
+
+程式輸出的OBJ只描述位置、UV與面索引，不含頂點法線。許多檢視器可用面法線顯示，但平滑著色需要額外計算法線並寫入 `vn`。計算法線時應先累加相鄰面的面積加權法線，再正規化；極點與接縫的平滑規則則要依模型需求處理。
+
+## 測試與預期結果
+
+將程式存為 `surface_fish.py`，在有 Python 3.10+ 的環境執行：
+
+```text
+python surface_fish.py
+```
+
+這會呼叫內建測試並寫出 `fish.obj`。依本程式的網格設定，頂點數由 \((N_x+1)(N_\theta+1)\) 決定；輸出的面數可能少於 \(2N_xN_\theta\)，因為尖端附近面積為零或低於容差的面會被略過。這裡提供的是程式邏輯推得的預期，不代表已實際執行或檢視OBJ。
+
+可用文字編輯器檢視OBJ的 `v`、`vt`、`f` 行；亦可在外部三維軟體中選擇性檢視，但本章核心測試不依賴該軟體。不要只以「能打開」作為品質檢查；至少確認：
+
+- `v` 行位置是有限數值，且範圍符合公尺尺度預期。
+- `f` 行索引未超過頂點數，沒有重複頂點索引構成的零面。
+- 每個接縫環的首尾位置相同，UV分別為0與1。
+- 魚體端點沒有大量極小三角形造成不穩定陰影。
+
+## 除錯與常見陷阱
+
+- **外積次序與面片繞序混淆**：\(\mathbf{a}\times\mathbf{b}\) 與 \(\mathbf{b}\times\mathbf{a}\) 相差負號。若網格背面可見或法線朝內，先檢查索引順序，不要任意取法線絕對值。
+- **接縫重複頂點被誤認為裂縫**：兩側幾何位置相同，但UV不同，這是常見且有意的參數化方式。若使用位置索引重合檢查，應容許這類重複；若必須焊接網格，則須另外管理UV接縫。
+- **極點退化被小容差掩蓋**：容差過大會刪去有效的小三角形；過小則保留數值上近零面積的面。容差必須配合網格尺度，並透過面積統計或幾何檢查作判斷。
+- **UV方向和影像方向不同**：本章令 \(v\) 隨角度增加，OBJ只保存數值，沒有統一規定貼圖影像的上下方向。讀入影像時要明示是否翻轉，不能把世界座標Y向上和影像列向下混為一談。
+- **參數取樣均勻不代表幾何品質均勻**：魚身輪廓快速縮小處可能需要較密取樣。若使用固定網格，應從低面數開始檢查輪廓和面積分布，再按誤差需求加密。
+
+## 養殖數位分身案例
+
+在合成養殖場場景中，可把魚體長度設定為2公尺，令X軸表示由尾至頭，魚身寬高則由 \(r_z(x)\)、\(r_y(x)\) 控制。生成後，可將模型放入池體場景圖，套用世界變換、材質與姿勢動畫。這裡的魚體只是用於測試渲染、遮擋、相機視角及幾何流程的簡化合成資產，不是對某一物種的量測或生物學驗證。
+
+資產檢查可分三層：
+
+1. **參數層**：半徑非負，長度與半徑使用相同單位。
+2. **網格層**：索引有效、三角形面積非零、繞序一致、接縫座標可對應。
+3. **場景層**：網格的局部到世界變換與池體、相機座標一致；若使用非均勻縮放，法線需以線性變換的逆轉置處理，詳見法線章。
+
+即使渲染出的魚體外形平滑，也不能由此推論其解剖形狀、運動或水中行為真實。若任務要求對照實際個體，必須另有量測資料與明確驗證方法。
+
+## 習題
+
+### 習題一：手算法線
+
+對曲面
+
+$$
+\mathbf{S}(u,v)=(u,\ 2\cos v,\ \sin v)^T
+$$
+
+計算 \(\mathbf{S}_u\)、\(\mathbf{S}_v\)，並求 \(v=0\) 時依照 \(\mathbf{S}_u\times\mathbf{S}_v\) 得到的未正規化法線與單位法線。
+
+### 習題二：程式測試
+
+在本章程式中，將 `ntheta` 改為12。寫出一個額外測試，逐一檢查每個相鄰角度取樣的接縫位置；指出應檢查哪些索引，以及應比較的位置與UV性質。答案不需執行程式。
+
+### 習題三：反例與除錯
+
+某人以頂點 \((a,b,c,d)\) 建立四邊形，只產生三角形 \((a,c,b)\)、\((a,d,c)\)，之後發現法線朝內。請說明為何不能只靠交換 `cross` 的運算順序修正網格，並給出一種可靠的診斷步驟。
+
+### 習題四：整合應用
+
+要建立一個局部魚身，長度1.6公尺，橫截面半徑沿X方向變化，角度取樣24段、長度取樣16段。說明如何決定頂點數、四邊形數與未處理極點時的理論三角形數；再說明魚嘴端為尖端時，至少兩種處理退化面的方式，並指出各自的一項代價。
+
+## 習題解答
+
+### 解答一
+
+$$
+\mathbf{S}_u=(1,0,0)^T,
+\qquad
+\mathbf{S}_v=(0,-2\sin v,\cos v)^T.
+$$
+
+在 \(v=0\)，\(\mathbf{S}_v=(0,0,1)^T\)，因此
+
+$$
+\mathbf{S}_u\times\mathbf{S}_v
+=(0,-1,0)^T.
+$$
+
+其長度為1，所以單位法線亦為 \((0,-1,0)^T\)。若模型期望該點法線朝 \(+Y\)，應反轉參數外積次序或面片繞序。
+
+### 解答二
+
+保留接縫頂點時，每一個長度環有 \(ntheta+1=13\) 個角度欄。對每個內部長度環 \(i\)，比較索引 `i * 13` 與 `i * 13 + 12` 的位置；兩者應相同或在浮點容差內相同，其UV角度分量分別應為0與1。也可以逐段檢查每個長度區間的角度索引從 \(j=0\) 連到 \(j=12\)，確認最後一段沒有因範圍錯誤而漏掉。只檢查首尾位置不夠：UV必須分開，才能保存貼圖接縫。
+
+### 解答三
+
+外積次序只改變由指定向量順序算出的向量方向，不會改變三角形頂點在空間中的繞序，也不會修正網格索引或相鄰面的不一致。可靠診斷可先選一個非退化三角形，依它的頂點順序計算
+
+$$
+(\mathbf{p}_1-\mathbf{p}_0)\times(\mathbf{p}_2-\mathbf{p}_0),
+$$
+
+再將面中心至預期外部的參考方向與此向量作內積。若內積為負，該面繞序與預期方向相反；交換後兩個頂點索引，再對相鄰面一致套用相同規則，並重新檢查接縫與封口。
+
+### 解答四
+
+有 \(N_x=16\)、\(N_\theta=24\)。若角度接縫保留重複頂點，頂點數為
+
+$$
+(16+1)(24+1)=425.
+$$
+
+長度環帶數為16，每環帶有24個角度區段，所以四邊形數為 \(16\times24=384\)。每個四邊形拆成兩個三角形，未略過退化面的理論數為 \(768\)。
+
+若魚嘴端為極點，可共用一個極點頂點，並將相鄰環帶三角形扇形連接；代價是接縫與極點UV、法線要仔細管理。也可保留一圈重複極點頂點，略過零面積或小於尺度容差的三角形；代價是需選擇合理容差，而且重複頂點不一定形成理想的流形拓撲。
+
+## 本章小結
+
+參數曲面以 \(\mathbf{S}(u,v)\) 將參數映射到三維位置；偏導向量張成切平面，外積給出依參數順序而定的法線方向。離散化則選取有限個參數樣本，將相鄰樣本連成三角形。旋轉曲面常見的角度接縫需要兼顧幾何閉合與UV連續表示；半徑縮至零的極點則可能產生退化面，須透過拓撲設計或面積檢查處理。取樣與容差都依幾何尺度和用途而定，網格可渲染並不等於模型經過生物或物理驗證。
+
+## 參考來源
+
+以下資料可供延伸閱讀；本章依自身符號與例子推導，未照錄來源段落。
+
+- [G1] PBRT 4：Transformations，https://pbr-book.org/4ed/Geometry_and_Transformations/Transformations
+- [G5] LearnOpenGL：Transformations，https://learnopengl.com/Getting-started/Transformations
+- [G7] NumPy 線性代數參考，https://numpy.org/doc/stable/reference/routines.linalg.html

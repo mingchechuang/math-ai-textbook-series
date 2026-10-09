@@ -1,0 +1,110 @@
+{
+  "volume": 2,
+  "chapter_count": 30,
+  "built_at": "2026-10-08T11:02:04.278Z",
+  "source_sha256": "b85d5b68a09eaecbaf2f366ada88bc9ce09847fd5dd0ebc7f8e8a5c161653185",
+  "source_files": {
+    "00-preface.md": "bdf8eedb6b5b12f096182b2a07428201bf44f96341acad0960a73887e1780e1b",
+    "chapters/01.md": "495577a93660ce8bc73099d4f9b053519cf82d6287e330e56df03f6377881976",
+    "chapters/02.md": "501e587ceedcaf2534e70323b5c3874b8b84af4bf9e1f0fb0ac6aed89f079896",
+    "chapters/03.md": "ddda67e564f1aad9f9b4a5d4466a55a7ddd564f0c37e8f989572869dd1edfa73",
+    "chapters/04.md": "ff833793f8bb67349c5b0047c6cadf30c977ce61608a085475f6d8903696923f",
+    "chapters/05.md": "41d560eac2b8bab7bd3946742b21a20ab73c043b44230f4ada2ac60e74c1130d",
+    "chapters/06.md": "8bdfca60004fa06cc99c72387269c9b931cefbab141423faac9b122e67b0f708",
+    "chapters/07.md": "0d3f7674bae5a6ee7e2345aa91772d48417a900e926e792520732f6b77679ffd",
+    "chapters/08.md": "c571f5fab66bacd7a63f48a7ac7672fea46742f1913999879dc4e7d04e07ceea",
+    "chapters/09.md": "46372aa1962a49d5322476503398ba91d8c8a6551bd77bf34023337d5d44dcff",
+    "chapters/10.md": "daebd89cb645cab10510e0f35a06cb7bc292785f18d633f356b602530db53054",
+    "chapters/11.md": "7e77b2e67cab0798f462defa8c779dbf56224ca8e32166d004d71ec09dab8542",
+    "chapters/12.md": "0977178223aaad3150543a008c4cd0e3bb4af45389af09a717984c9241817d69",
+    "chapters/13.md": "bf254feac17b94c93f66a4133d7d2ff006a9f9f6c873a21ac5a645024615e782",
+    "chapters/14.md": "5a5635c477214e853087cb6681b4b28c3cbbe3cf60f3c1dee9d1594fde89e113",
+    "chapters/15.md": "b9c0ba18a94c8549a4f6a616bc9eb0fd8b16afb619478dc7d34a3a642e24d16b",
+    "chapters/16.md": "4d045ef7b86db865334211bc8052cfaef05f5dbd1d50dbdc54b8c823aaac30d3",
+    "chapters/17.md": "f13aff857798ef19c95c8b111c0795c0293ce2de38284f68c33728de642f5ce1",
+    "chapters/18.md": "aa196029674c17541cfcfd0a075e1123b0851476583025a6fa7276819f7753c3",
+    "chapters/19.md": "ab4dd37533eb16716a4e13997c5aee65597925b3a3a68d94155e629cdf0681aa",
+    "chapters/20.md": "9e0a1f75bc0be61a31f5e803924bc0c0c5094fa430eb31bc8e65611a79b90a34",
+    "chapters/21.md": "02cd8ae4ca2c223b13bf2951bf7729cec241216e44aebffc6212cefa07309801",
+    "chapters/22.md": "8af76062e5194ecacedd867f325e156fdea3f0d9efb9b6b2f878f50451f3fcca",
+    "chapters/23.md": "667dde0a2f815ce74e40d5cd29f48cccfd59e722ec72728265ad1c6734fa4ec3",
+    "chapters/24.md": "7304cbd9455f09010d6f687e827873969e0255fa1faaa146ea5637b386f23b68",
+    "chapters/25.md": "fae8192d161971df9a0b93483b014901e192a21edfe9f23f0e42be9db934b9a5",
+    "chapters/26.md": "57cfe617692c0e24673c1b9c834a22ae1071ea7b3b11744eb8d68d241decdf93",
+    "chapters/27.md": "da3a8c51c331b536d1a5cdc9a914a1a5ad00746aef1451e4ba3cceff4b060ecc",
+    "chapters/28.md": "7b21319bcd336dfd065b0e85a4dbf2f2eb3c2f1f199e22a31d41231582b33e26",
+    "chapters/29.md": "4de2730a2a8259445154ffb6abd5ffe98dbdbc237a220c2e6c87a805c3c48311",
+    "chapters/30.md": "04595084668ee8657de91c149bcf5359988ec2ebe8510f416310193dc2cc1fb6",
+    "99-appendix.md": "ceed5da828de1b2186601cfc3e2ee6a450241f807eba5dfc0cfae0aa5050b900",
+    "REFERENCES.md": "3587ef04937722a7ae4d54914edf55f6f477b6e743e64d94472f56fca6f1a800",
+    "figures/animation.svg": "dffd18a147f435c0879364879c765d217e37c876c0f6f395003661548daccd67",
+    "figures/coordinates.svg": "10deaf750d1bd49310f0c314cb25d69186962f8951711dd45aacccf5763cfc50",
+    "figures/light.svg": "bbca172479e40cc891ef65b31d4791c6c36f3fda14c752eb05603d92dd842889",
+    "figures/pipeline.svg": "2caf02e3275fc69c7b7c3152ec44b72e80ab6795bceafe95520a60995fd3cc65",
+    "figures/surface.svg": "722fd24f59f49967821f4c6747b11292f66b9d5dac8171ad9b3162ef05ae91fd"
+  },
+  "renderer_normalizations": [
+    {
+      "chapter": "ch03",
+      "rule": "Join wrapped inline formula whitespace"
+    }
+  ],
+  "manuscript_sha256": "9518f0536d6a7d56f28c6a8391c60486f49e938112a369659d242245d74a7585",
+  "source_status": "completed_model_review_pending_human",
+  "characters": 111551,
+  "mathCount": 5351,
+  "inspection": {
+    "math": 5351,
+    "figures": 1,
+    "missingLinks": [],
+    "chapterCount": 30,
+    "unrenderedDollars": [],
+    "cjkFontLoaded": true,
+    "overflow": []
+  },
+  "mobile": {
+    "viewport": 390,
+    "bodyWidth": 390
+  },
+  "scaled_math": [
+    {
+      "text": "f×u=(0,−a,−a)×(0,1,0)=(a,0,0)f \\times u = (0, -a, -a) \\times (0,1,0) = (a, 0, 0)f×u=(0,−a,−a)×(0,1,0",
+      "scale": 0.992504177608021
+    },
+    {
+      "text": "ycam=(0,a,−a)⋅(10,−10,−5)=−10a+5a=−5a=−5/2y_{cam} = (0, a, -a) \\cdot (10, -10, -5) = -10a + 5a = -5a",
+      "scale": 0.9971937735351258
+    },
+    {
+      "text": "wc>0w_c>0wc​>0",
+      "scale": 0.992764870221352
+    },
+    {
+      "text": "0≤θ≤π/20\\leq\\theta\\leq\\pi/20≤θ≤π/2",
+      "scale": 0.9911791350784341
+    },
+    {
+      "text": "s0=(2,2)s_0=(2,2)s0​=(2,2)",
+      "scale": 0.9941179283630625
+    },
+    {
+      "text": "tmin≤t≤tmaxt_{min}\\leq t\\leq t_{max}tmin​≤t≤tmax​",
+      "scale": 0.990447149629559
+    },
+    {
+      "text": "R>0R>0R>0",
+      "scale": 0.9979357688061062
+    },
+    {
+      "text": "a=1a=1a=1",
+      "scale": 0.997696294874256
+    }
+  ],
+  "external_requests": [],
+  "files": {
+    "html": 11525290,
+    "pdf": 7842391
+  },
+  "html_sha256": "8b51d2c352e69dc6bdac97db34f666044ef38d70ca43c954a5265d5cffb46e1f",
+  "pdf_sha256": "acfcab053bb933352c0ee2bf211bf91dda37a900b5d1592255cdf95ba4507114"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "05831eb20d74dada72e4b6c058a804ddb541a3e937d79eb249c6c3bca433ff14",
+  "person": {
+    "id": "v4_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 175,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n在右端點 $(1,0)$，\n\n$$\nD_yF(1,0)=0.\n$$\n\n包含該端點的完整圓弧不能在此寫成定義於 $x=1$ 之開區間上的可微函數 $y=g(x)$。這不是只說單側公式的導數變大，而是說任何以 $x$ 為局部座標的圖形表示，都不能同時涵蓋端點兩側的完整曲線鄰域。因為\n\n$$\nD_xF(1,0)=2\\ne0,\n$$\n\n交換角色後可寫成\n\n$$\nx=h(y)=\\sqrt{1-y^2}.\n$$\n\n左端點 $(-1,0)$ 亦同：包含端點的完整圓弧不能以 $y=g(x)$ 作開區間上的可微局部表示，但可改以 $x=-\\sqrt{1-y^2}$ 表示。因此，秩失效有時表示所選座標失效，而非幾何物件不存在。\n<<<NEW>>>\n在右端點 $(1,0)$，\n\n$$\nD_yF(1,0)=0.\n$$\n\n不存在定義於包含 $x=1$ 的開區間、且在該區間處處滿足圓方程的實值函數 $y=g(x)$：任何這樣的區間都包含 $x>1$，而圓在該側沒有實點。在 $x<1$ 的一側，上、下半圓仍各有公式；只是單側公式不能在此提供開域上的隱函數分支。因為\n\n$$\nD_xF(1,0)=2\\ne0,\n$$\n\n交換角色後，包含端點的曲線鄰域可寫成\n\n$$\nx=h(y)=\\sqrt{1-y^2}.\n$$\n\n左端點 $(-1,0)$ 亦同：不存在定義於包含 $x=-1$ 的開區間上的圓方程實值分支 $y=g(x)$，但可改以 $x=-\\sqrt{1-y^2}$ 表示。因此，秩失效有時表示所選座標失效，而非幾何物件不存在。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n並假設\n\n$$\nD_yF(a,b)\\in\\mathbb R^{m\\times m}\n$$\n\n可逆。則存在 $a$ 的開鄰域 $V$ 與 $b$ 的開鄰域 $W$，以及唯一的 $C^1$ 函數 $g:V\\to W$，滿足\n\n$$\ng(a)=b\n$$\n\n且\n\n$$\nF(x,g(x))=0,\\qquad x\\in V.\n$$\n\n此唯一性是指：適當縮小 $V$ 與 $W$ 後，滿足 $g(a)=b$ 且其圖形位於 $V\\times W$ 的局部分支唯一；更精確地，\n\n$$\n\\mathcal Z\\cap(V\\times W)\n=\n\\{(x,g(x)):x\\in V\\}.\n$$\n<<<NEW>>>\n並假設\n\n$$\nD_yF(a,b)\\in\\mathbb R^{m\\times m}\n$$\n\n可逆。則可選取 $a$ 的開鄰域 $V$ 與 $b$ 的開鄰域 $W$，使 $V\\times W\\subset U$，並存在 $C^1$ 函數 $g:V\\to W$，滿足\n\n$$\ng(a)=b\n$$\n\n且\n\n$$\n\\mathcal Z\\cap(V\\times W)\n=\n\\{(x,g(x)):x\\in V\\}.\n$$\n\n因此，對每個 $x\\in V$，$g(x)$ 是 $W$ 中唯一滿足 $F(x,y)=0$ 的解。這是所選鄰域內的唯一性；若比較在不同鄰域上定義的分支，只能斷言它們在足夠小的共同鄰域內一致。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n當 $u\\to1$ 時，\n\n$$\nD_yF=\n\\begin{pmatrix}\n1&1\\\\\n2u&2\n\\end{pmatrix}\n$$\n\n的兩條方程橫列趨於線性相關，最小奇異值趨近零。預期條件數上升，靈敏度放大，最終觸發奇異門檻。\n<<<NEW>>>\n在本例沿 $u\\to1$ 連續變化時，\n\n$$\nD_yF=\n\\begin{pmatrix}\n1&1\\\\\n2u&2\n\\end{pmatrix}\n$$\n\n的兩條方程橫列趨於線性相關，最小奇異值趨近零。若所考慮的點仍位於相應平衡分支上，預期條件數上升，某些參數方向的靈敏度可能放大；達到程式設定的奇異門檻時，靈敏度計算會拒絕該候選點。門檻是數值判準，不等於精確秩失效的數學定義。\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n3. MIT OpenCourseWare，*18.02SC Multivariable Calculus*：<https://ocw.mit.edu/courses/18-02sc/multivariable-calculus-fall-2010/>\n<<<NEW>>>\n3. MIT OpenCourseWare，*18.02SC Multivariable Calculus*：<https://ocw.mit.edu/courses/18-02sc-multivariable-calculus-fall-2010/>\n<<<END>>>"
+}

@@ -1,0 +1,180 @@
+# 24. 渲染誤差、降噪與效能驗證
+
+## 學習目標與先備知識
+本章建立量化評估路徑追蹤品質與效能的方法論。讀者需具備第21章蒙特卡洛積分基礎及第22章路徑追蹤架構。重點在於區分「隨機噪聲」（Variance）與「系統性錯誤」（Bias），並透過指標客觀驗證算法正確性。本節定義核心符號：
+- $I_{true}$：真值亮度（線性 RGB）。
+- $\hat{I}$：單次取樣估計值。
+- $I_{avg}$：$N$ 次取樣平均結果。
+- **線性空間**：所有誤差計算皆在線性 RGB 空間進行，避免 sRGB 非線性失真影響統計意義。
+
+我們區分三種錯誤來源：
+1. **取樣噪聲**：隨機波動，隨樣本數 $N$ 增加而減小，標準誤差 $\propto 1/\sqrt{N}$。
+2. **算法偏誤**：系統性偏差，不隨 $N$ 增加而消失，例如幾何誤判或能量不守恆。
+3. **數值不穩**：浮點精度限制，通常極小，除非場景尺度極端。
+
+## 問題與直覺
+在合成養殖場场景中，我們無法獲得真實物理光場。因此，「正確性」定義為：**無偏估計**且**低變異數**。
+直覺上，增加每像素樣本數（spp）會平滑圖像。但單純的「看起來平滑」不足為證。例如，過度的Box Blur會降低噪聲但引入模糊（假細節），且可能掩蓋幾何錯誤。
+核心問題：如何證明渲染器在固定預算下，誤差主要來自隨機取樣而非算法缺陷？
+
+## 數學與幾何推導
+設參考圖 $R$ 為高樣本數（$N_{ref} \gg N_{test}$）或解析解。測試圖 $T$ 為低樣本數結果。
+
+1. **均方誤差 (MSE)**：
+   $$ MSE = \frac{1}{NP} \sum_{i=1}^{NP} (T_i - R_i)^2 $$
+   其中 $NP$ 為像素與通道總數。MSE 混合了偏誤與變異數：
+   $$ MSE = \text{Bias}^2 + \text{Variance} $$
+   若 $N \to \infty$，$MSE \to \text{Bias}^2$。若偏誤為零，則 $MSE \approx \text{Variance} \propto 1/N$。
+
+2. **平均絕對誤差 (MAE)**：
+   $$ MAE = \frac{1}{NP} \sum_{i=1}^{NP} |T_i - R_i| $$
+   MAE 對離群值較不敏感，適合檢測局部幾何錯誤（如漏光點）。
+
+3. **收斂速率驗證**：
+   理論上，蒙特卡洛估計的標準誤差 $SE \propto 1/\sqrt{N}$。
+   若渲染器正確，$N$ 加倍時，$MSE$ 應約減半。
+   定義收斂指數 $\alpha$：
+   $$ \alpha = \frac{\log(MSE_{N1}/MSE_{N2})}{\log(N2/N1)} $$
+   理想 $\alpha = 1$。若 $\alpha < 1$，可能存在系統性偏誤或收斂異常。
+
+## 逐步手算例題
+**案例1：收斂速率手算**
+假設真值 $I_{true} = 1.0$。
+- $N=1$ 時，取樣結果為 $0.5$ 和 $1.5$（各50%概率）。
+  $E[\hat{I}] = 1.0$（無偏）。
+  $Var(\hat{I}) = 0.5(0.5-1)^2 + 0.5(1.5-1)^2 = 0.25$。
+  $MSE_1 = 0.25$。
+- $N=4$ 時，取4次樣本平均。
+  變異數 $Var(\hat{I}_4) = Var(\hat{I})/4 = 0.25/4 = 0.0625$。
+  $MSE_4 = 0.0625$。
+- 驗證：$MSE_1 / MSE_4 = 0.25 / 0.0625 = 4$。
+  $N$ 從 1 變 4（倍增2次），$MSE$ 減小4倍。符合 $1/N$ 預期。
+
+**案例2：偏誤檢測**
+假設算法存在 $+0.1$ 的常數偏誤。
+- $N \to \infty$ 時，$\hat{I} \to 1.1$。
+- $MSE \to (1.1 - 1.0)^2 = 0.01$。
+- 若觀察到 $MSE$ 隨 $N$ 增加不低於 0.01，即證明存在偏誤。
+
+## 實作與程式
+Python 3.10+，使用 NumPy。此程式示範如何計算 MSE、MAE 並驗證收斂速率。
+*註：此處不執行完整路徑追蹤，而是模擬具有已知統計特性的信號，以驗證指標計算邏輯。讀者應將此框架套用到實際渲染輸出。*
+
+```python
+import numpy as np
+import time
+
+def simulate_render(N_spp, seed=42, bias=0.0):
+    """
+    模擬渲染輸出。
+    返回: (H, W, 3) 線性RGB影像
+    """
+    H, W = 16, 16
+    np.random.seed(seed)
+    # 真值：常數 0.5
+    true_val = 0.5
+    # 單次取樣標準差 sigma=0.2
+    noise = np.random.normal(0, 0.2, (H, W, 3))
+    # 取 N_spp 次平均
+    # 為簡化，直接生成均值變異數
+    # 實際中應取 N_spp 次隨機數並平均
+    avg_noise = noise * (0.2 / np.sqrt(N_spp)) # 近似標準誤差
+    img = np.full((H, W, 3), true_val)
+    img += avg_noise
+    img += bias
+    return np.clip(img, 0, 1)
+
+def calculate_metrics(test_img, ref_img):
+    """計算 MSE 和 MAE"""
+    diff = test_img - ref_img
+    mse = np.mean(diff ** 2)
+    mae = np.mean(np.abs(diff))
+    return mse, mae
+
+def experiment():
+    # 生成高樣本參考圖 (N=10000)
+    ref_img = simulate_render(10000, seed=42)
+    
+    print(f"{'N_spp':<8}{'MSE':<12}{'MAE':<12}{'Time(s)':<10}")
+    results = []
+    for N in [1, 4, 16, 64, 256]:
+        start = time.perf_counter()
+        # 為模擬時間，假設每樣本耗時 0.0001s
+        test_img = simulate_render(N, seed=42) 
+        elapsed = (time.perf_counter() - start) + (0.0001 * 16 * 16 * 3 * N)
+        
+        mse, mae = calculate_metrics(test_img, ref_img)
+        results.append((N, mse, elapsed))
+        print(f"{N:<8}{mse:<12.6f}{mae:<12.6f}{elapsed:<10.4f}")
+    
+    # 驗證收斂
+    for i in range(1, len(results)):
+        N1, mse1, _ = results[i-1]
+        N2, mse2, _ = results[i]
+        alpha = np.log(mse1/mse2) / np.log(N2/N1)
+        print(f"N={N1}->{N2}: Alpha={alpha:.2f} (Expected ~1.0)")
+
+if __name__ == "__main__":
+    experiment()
+```
+
+## 測試與預期結果
+1. **MSE 遞減**：$N$ 從 1 到 256，MSE 應大致按 $1/N$ 比例下降。
+2. **Alpha 值**：計算出的 $\alpha$ 應接近 1.0。若 $\alpha < 0.8$，提示可能存在系統性問題或 $N$ 不足以進入漸近區。
+3. **時間線性**：$elapsed$ 應與 $N$ 成正比。
+4. **注意**：此處 `simulate_render` 使用固定 seed 且直接計算均值，實際路徑追蹤需逐像素多次取樣。此程式僅驗證指標計算邏輯。
+
+## 除錯與常見陷阱
+1. **sRGB 空間計算誤差**：若在線性空間渲染但轉 sRGB 後計算 MSE，低亮度區域誤差會被高估。務必在線性空間比較。
+2. **參考圖品質**：若參考圖樣本數不足，其自身噪聲會污染 MSE 值。參考圖樣本數應至少為測試圖的 10-100 倍。
+3. **噪聲相關性**：若使用相關取樣（如 Blue-Noise），噪聲結構會改變，但 MSE 收斂率仍應符合 $1/N$。
+4. **假細節**：降噪濾波器可能去除噪聲但也移除細節。單純比較 MSE 可能無法反映視覺品質，需結合 MAE 與視覺檢查。
+5. **效能測量**：確保測量時間包含幾何求交、BRDF 評估及記憶體分配，僅測純數學運算會低估真實成本。
+
+## 養殖數位分身案例
+在水下場景中，散射係數 $\sigma$ 較大，光線衰減快。
+1. **問題**：深處像素取樣數不足時，噪聲可能主導誤差。
+2. **實驗**：固定鏡頭，渲染水池深處區域。比較 $N=1$ 與 $N=64$。
+3. **預期**：深處 $MSE$ 下降幅度應與淺處一致（若算法無偏）。若深處 $MSE$ 下降緩慢，可能暗示散射取樣效率低或幾何誤判（如漏光）。
+4. **效能**：記錄 $N=64$ 時的渲染時間。若深處像素因多次散射導致樣本丟棄率高，實際有效樣本數可能低於 64，導致噪聲高於預期。需計算「有效樣本數」以校正誤差分析。
+
+## 習題
+1. **手算**：給定參考值 $R=[1.0, 2.0]$ 與測試值 $T=[1.1, 1.8]$，計算 MSE 與 MAE。
+2. **程式測試**：修改 `simulate_render`，加入 $+0.05$ 的常數偏誤。運行實驗，觀察 $N \to \infty$ 時 MSE 的極限值。
+3. **反例/除錯**：若某像素 $MSE$ 隨 $N$ 增加不下降，可能原因為何？請列出三種可能性。
+4. **整合應用**：設計一個腳本，自動比較兩組不同 seed 的渲染結果，計算它們之間的 MSE，以評估渲染器的可重現性（應接近0）。
+
+## 習題解答
+1. 
+   $diff = [0.1, -0.2]$
+   $MSE = (0.1^2 + (-0.2)^2)/2 = (0.01+0.04)/2 = 0.025$
+   $MAE = (|0.1| + |-0.2|)/2 = (0.1+0.2)/2 = 0.15$
+
+2. 
+   極限值應為 $0.05^2 = 0.0025$。因為噪聲項 $1/N \to 0$，剩餘為偏誤項。
+
+3. 
+   a. 該區域存在幾何錯誤（如面片法線錯誤導致永遠漏光）。
+   b. 該區域存在非線性系統誤差（如 BRDF 能量不守恆）。
+   c. 浮點精度問題（極端尺度下數值溢位或下溢）。
+
+4. 
+   腳本邏輯：
+   ```python
+   img1 = render(seed=1)
+   img2 = render(seed=2)
+   # 高樣本渲染以消除噪聲影響，專注於算法確定性
+   # 若算法確定性，不同 seed 結果應相同（假設無隨機取樣）
+   # 若含隨機取樣，應比較高樣本平均結果
+   mse = calculate_metrics(img1, img2)
+   assert mse < 1e-6, "Non-deterministic rendering detected"
+   ```
+
+## 本章小結
+本章建立了渲染驗證的量化標準。透過 MSE 與 MAE，我們可區分隨機噪聲與系統性偏誤。收斂速率分析確保了蒙特卡洛方法的有效性。在養殖場景中，需特別注意散射對取樣效率的影響，並始終在線性空間進行評估。
+
+## 參考來源
+- G2: PBRT 4 Reflection Models (Energy conservation and sampling)
+- G3: PBRT 4 Light Transport Equation (Monte Carlo integration)
+- G4: Ray Tracing in One Weekend (Practical implementation notes)
+- G7: NumPy Linear Algebra Reference (Statistical functions)

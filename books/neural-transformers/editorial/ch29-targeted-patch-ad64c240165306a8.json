@@ -1,0 +1,11 @@
+{
+  "key": "ad64c240165306a845504edc71748ffe0ff97f2a8c8f6e28276b0c0adc8e79c9",
+  "person": {
+    "id": "v5_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 425,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n        if not isinstance(allowed_roles, (list, tuple, set)) or not allowed_roles:\n            raise ValueError(\"allowed_roles must be a non-empty collection\")\n<<<NEW>>>\n        if (not isinstance(allowed_roles, (list, tuple, set)) or not allowed_roles\n                or any(type(role) is not str or not role for role in allowed_roles)):\n            raise ValueError(\"allowed_roles must contain non-empty strings\")\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n-   格式約束：字串必須匹配正規表達式且長度 $\\le L_{max}$。\n<<<NEW>>>\n-   格式約束：字串可由完整匹配的正規表達式及最大長度限制；下方示例僅在Schema明列相應設定時檢查，不能將未設定的限制視為已生效。\n<<<END>>>"
+}

@@ -1,0 +1,20 @@
+{
+  "key": "5f2adef66a3ea4c4227a398d77382257d00eb1afea7ec3f2c573beff01e15fb8",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 423,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "定義\n\n$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "定義\n\n$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$"
+      }
+    ],
+    "reason": "原稿 JSON 中的 `\\n` 是換行跳脫，解碼後速度分量已是拉丁字母 u_x、u_y，並非希臘字母 ν_x、ν_y；因此不應將黏度符號改入速度定義。此 patch 僅整理公式起始換行。"
+  }
+}

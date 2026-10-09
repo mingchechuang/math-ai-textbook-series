@@ -1,0 +1,11 @@
+{
+  "key": "6aed76e8c519fc4149774e4b86585dac522691363e070a0749003a1f05d6289a",
+  "person": {
+    "id": "v5_editor_19",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "reviewer"
+  },
+  "call": 129,
+  "result": "**先重算。** 例一的有效token總NLL為$\\log2+\\log4=3\\log2$，平均為$1.5\\log2$，困惑度約$2.828$；例二未遮罩輸出為$\\frac14(2)+\\frac34(10)=8$，遮罩後為$2$。手算正確。模型將$(B,T,3D)$拆為三個$(B,H,T,d_h)$，注意力分數為$(B,H,T,T)$並沿key軸正規化；loss先按有效token求和再除一次，亦符合本卷約定。新版已有完整模型與訓練loop、增量K/V、未來不變性及cache斷言，不再存在前稿「沒有啟動入口／沒有cache」的問題。以下是當前稿仍需處理之處。\n\n1. **本章指定的「保存切分與基線」仍未完成。** 原句：「本章不執行檔案寫入；程式建立並列印manifest，也建立記憶體中的checkpoint示例，但不宣稱已持久保存。」這沒有虛稱已保存，值得保留；然而lab明定「保存切分與基線」。目前`checkpoint`只是`main()`末尾的局部變數，函式結束後沒有可供另一程序核對的產物。**最小修法：**以明確、安全的文字格式持久保存並核對manifest、詞表、基線機率、生成規則與設定；若另存模型狀態，交代可信載入範圍。不要把列印或記憶體字典改稱為已保存。\n\n2. **基線比較的敘述與呼叫不一致。** 原句：「validation、test及OOD使用相同機率向量」，但`main()`只呼叫`evaluate_frequency_baseline(baseline, val_pairs)`和`evaluate_frequency_baseline(baseline, test_pairs)`；建立`ood_pairs`後僅呼叫模型的`evaluate`。因此讀者無法取得同一OOD集合上的基線比較。**最小修法：**對`ood_pairs`補一次基線評估，與`ood_result`並列，均報有效token數；勿根據此OOD結果回頭調參。\n\n3. **生成時的非有限值檢查位於溫度縮放之前。** 原句及程式：「`if not bool(torch.isfinite(logits).all()): ...`」，之後執行`torch.softmax(logits / temperature, dim=-1)`。即使原始logits皆有限，極小但正的`temperature`仍可令除法溢位為無窮；softmax便可能產生NaN，而沒有教材承諾的明確拒絕。`temperature < 0`也沒有排除非有限溫度。**最小修法：**先要求溫度有限且非負；正溫度分支檢查縮放後logits及抽樣機率是否有限、合法，故障測試涵蓋極小正溫度、NaN與無窮溫度。保留零溫度為greedy的明確規則。\n\n4. **正常、邊界與故障測試清單大部分尚非可執行測試。** 原句：「**零有效標籤**：targets全為`-100`時，loss函式預期明確報錯」、「**全遮罩query列**……預期報錯」、「**非法工具請求**……預期在工具呼叫前拒絕」。核心程式確實提供相應拒絕路徑，且作者沒有宣稱已執行；但`main()`只斷言未來不變性、cache等價、session拒絕及位置偏移，未構造上述故障輸入來驗證例外，也未測非有限logits或跨split manifest。**最小修法：**加少量明確的測試呼叫，逐一確認預期例外型別與「非法請求未呼叫工具」；仍把結果標為未執行。這比增加更多文字測試條目重要。\n\n一項疑慮**不應阻擋**：`check_shifted_position_detected`比較完整前向的正常位置與偏移一格的位置，並非真的改壞cache內的位置；但它只是故障注入的敏感度檢查，章稿也另有正常的完整前向／增量logits對照，不能因此斷言cache實作錯誤。同樣，單token增量查詢只面對既有及當前key，此限定情況使用全True注意力列合理。\n\n來源註記明確區分延伸入口、已取得的API資料與未知本機版本；程式和測試均未被冒稱為已執行。修訂重點是讓本章承諾的保存、同口徑OOD基線及故障驗收真正落地，並補上溫度縮放後的機率域檢查。\n\nVERDICT: REVISE"
+}

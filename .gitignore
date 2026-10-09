@@ -1,0 +1,15 @@
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.env
+auth.json
+*.pem
+*.key
+.git-credentials
+runs/
+**/agents/
+**/backups/
+**/.publish-*/
+*.sqlite*
+*.lock

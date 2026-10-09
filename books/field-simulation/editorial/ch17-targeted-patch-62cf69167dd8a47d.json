@@ -1,0 +1,20 @@
+{
+  "key": "62cf69167dd8a47d29eab26640b84b5d01ece7c922eb21d220593fe73f2b888b",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 279,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "        if not np.isfinite(value):\n            raise ValueError(\"Dirichlet 值不是有限值\")\n        pairs.append((idx, float(value)))",
+        "new": "        try:\n            scalar = np.asarray(value, dtype=float)\n        except (TypeError, ValueError) as err:\n            raise ValueError(\"Dirichlet 值必須是有限實數純量\") from err\n        if scalar.ndim != 0 or not np.isfinite(scalar):\n            raise ValueError(\"Dirichlet 值必須是有限實數純量\")\n        pairs.append((idx, float(scalar)))"
+      }
+    ],
+    "reason": "原稿的 `parse_dirichlet` 對陣列邊界值執行 `if not np.isfinite(value)` 可能因布林值不唯一而拋出非預期錯誤；明確限制為有限實數純量。審稿所稱三處 `\\nu` 均是 JSON 換行跳脫 `\\n` 緊接字母 `u`，解碼後公式已正確，不予改動。未執行程式。"
+  }
+}

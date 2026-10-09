@@ -1,0 +1,40 @@
+{
+  "key": "bde695548837fac5b55a38499b9fb0f363352250d1f875903eb8123789dc80a0",
+  "person": {
+    "id": "v3_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 367,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "若給定的是表面熱通量 $q$（$\\mathrm{W/m^2}$），需除以 $\\rho c_p$ 與單位厚度換算為 $\\mathrm{K/s}$ 才能進入右端。",
+        "new": "若給定的是表面熱通量 $q$（$\\mathrm{W/m^2}$），則 $q/(\\rho c_p)$ 的單位為 $\\mathrm{K\\,m/s}$，應作為 $aT'$ 的 Neumann 邊界資料；只有經另行推導的面積／體積換算後，才可轉成 $\\mathrm{K/s}$ 的體積來源。"
+      },
+      {
+        "chapter": 16,
+        "old": "    x = np.asarray(x, dtype=float)\n    f = np.asarray(f, dtype=float)\n    if f.shape != x.shape:\n        raise ValueError(\"f 必須與 x 同形狀\")",
+        "new": "    x = np.asarray(x, dtype=float)\n    f = np.asarray(f, dtype=float)\n    if x.ndim != 1 or x.size < 2 or not np.all(np.isfinite(x)):\n        raise ValueError(\"x 必須是一維、至少兩點且全部為有限值\")\n    if np.any(np.diff(x) <= 0.0):\n        raise ValueError(\"網格必須嚴格遞增\")\n    if f.ndim != 1 or f.shape != x.shape:\n        raise ValueError(\"f 必須是一維且與 x 同形狀\")"
+      },
+      {
+        "chapter": 16,
+        "old": "**測試 E（故障：非嚴格遞增網格）。** 傳入 $x=[0,0.5,0.5,1]$，`p1_matrices` 應丟出 `ValueError`，因為 $h_e=0$ 會使局部矩陣除以零。不准偷偷以 `1e-12` 取代零長度。",
+        "new": "**測試 E（故障：非法網格）。** 將 $x=[0,0.5,0.5,1]$、遞減座標 $[0,0.7,0.4,1]$、二維座標陣列及含非有限值的座標分別傳入 `p1_matrices` 與 `p1_load`，預期均拋出 `ValueError`。兩個函式各自驗證座標契約；不准偷偷以 `1e-12` 取代零長度。"
+      },
+      {
+        "chapter": 15,
+        "old": "    if (not np.isfinite(atol) or not np.isfinite(rtol)\n            or atol < 0 or rtol < 0\n            or not np.isfinite(epsilon_arnoldi) or epsilon_arnoldi < 0):\n        raise ValueError(\"atol、rtol 與 epsilon_arnoldi 必須有限且非負\")",
+        "new": "    if any(isinstance(value, (bool, np.bool_)) for value in\n           (atol, rtol, epsilon_arnoldi)):\n        raise ValueError(\"atol、rtol 與 epsilon_arnoldi 必須是非布林純量\")\n    try:\n        tolerances = [np.asarray(value, dtype=float)\n                      for value in (atol, rtol, epsilon_arnoldi)]\n    except (TypeError, ValueError) as err:\n        raise ValueError(\"atol、rtol 與 epsilon_arnoldi 必須是有限非負純量\") from err\n    if any(value.ndim != 0 or not np.isfinite(value) or value < 0\n           for value in tolerances):\n        raise ValueError(\"atol、rtol 與 epsilon_arnoldi 必須是有限非負純量\")\n    atol, rtol, epsilon_arnoldi = (float(value) for value in tolerances)"
+      },
+      {
+        "chapter": 16,
+        "old": "2. **Dirichlet 與 Neumann 邊界搞錯。** 若問題寫的是 $a(L)u'(L)=h$ 而你當成 Dirichlet，會多出一個自由度方程式；反之，把 Dirichlet 當 Neumann 則矩陣缺一列，系統直接奇異。",
+        "new": "2. **Dirichlet 與 Neumann 邊界搞錯。** 若問題寫的是 $a(L)u'(L)=h$ 而你當成 Dirichlet，會多出一個本質約束；反之，把 Dirichlet 當 Neumann，則矩陣缺少消除常數零模態的本質約束，純擴散系統會奇異。"
+      }
+    ],
+    "reason": "修正熱通量的邊界資料量綱，補足 p1_load 獨立網格契約與故障測試，並為 GMRES 容差參數加入純量及非布林檢查；另釐清 Dirichlet 漏施加的奇異原因。未執行程式。"
+  }
+}

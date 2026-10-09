@@ -1,0 +1,11 @@
+{
+  "key": "93d91c091387a50f4975fe18962eaf3a03f3f5d51617a9ea93cc090f8f49853e",
+  "person": {
+    "id": "v5_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 566,
+  "result": "<<<PATCH 16>>>\n<<<OLD>>>\n    \"\"\"自足多頭注意力前向。\n\n    張量約定：\n      X:    (B, T, D)\n      Q,K,V:(B, T, D) 投影後 -> 拆分 (B,H,T,dh)\n      S,A:  (B, H, T, T)\n      O_h:  (B, H, T, dh)\n      O:    (B, T, D)\n    \"\"\"\n<<<NEW>>>\n    \"\"\"自足多頭注意力前向與反向。\n\n    張量約定：\n      X:      (B,T,D)\n      Q,K:    (B,T,D) -> (B,H,T,dh)\n      V:      (B,T,H*dv) -> (B,H,T,dv)\n      S,A:    (B,H,T,T)\n      O_h:    (B,H,T,dv)\n      O:      (B,T,H*dv)\n      Y:      (B,T,D_out)\n    預設 dv=dh，此時 H*dv=D。\n    \"\"\"\n<<<END>>>\n<<<PATCH 16>>>\n<<<OLD>>>\n5. `D_out ≠ D`：若在 `__init__` 指定 `D_out`，`Y.shape == (B,T,D_out)`，`W_O.shape == (D, D_out)`。\n<<<NEW>>>\n5. `D_out ≠ D`：若在 `__init__` 指定 `D_out`，`Y.shape == (B,T,D_out)`，一般 `W_O.shape == (H*dv, D_out)`；預設 `dv=dh` 時才化為 `(D, D_out)`。\n<<<END>>>\n<<<PATCH 14>>>\n<<<OLD>>>\n    expected_dy_shape = attn_weights.shape[:-1] + (V.shape[-1],)\n    if dY.shape != expected_dy_shape:\n        raise ValueError(\"dY shape mismatch\")\n<<<NEW>>>\n    expected_dy_shape = attn_weights.shape[:-1] + (V.shape[-1],)\n    if not isinstance(dY, np.ndarray):\n        raise TypeError(\"dY must be a NumPy array\")\n    if dY.shape != expected_dy_shape:\n        raise ValueError(\"dY shape mismatch\")\n    if not np.all(np.isfinite(dY)):\n        raise ValueError(\"dY must contain only finite values\")\n<<<END>>>\n<<<PATCH 16>>>\n<<<OLD>>>\n        self._cache = None\n        rng = np.random.default_rng(seed)\n<<<NEW>>>\n        self._cache = None\n        self._last_dS = None\n        rng = np.random.default_rng(seed)\n<<<END>>>\n<<<PATCH 16>>>\n<<<OLD>>>\n        self._cache = None  # 失敗的forward不可沿用前一次cache\n        if not isinstance(X, np.ndarray) or X.ndim != 3 or X.shape[-1] != self.D or min(X.shape) <= 0:\n<<<NEW>>>\n        self._cache = None  # 失敗的forward不可沿用前一次cache\n        self._last_dS = None\n        if not isinstance(X, np.ndarray) or X.ndim != 3 or X.shape[-1] != self.D or min(X.shape) <= 0:\n<<<END>>>"
+}

@@ -1,0 +1,65 @@
+{
+  "key": "3a48bca24a060e66085d52c8d985ecbfe5193c936737c6031336852dc11817e3",
+  "person": {
+    "id": "v3_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 203,
+  "result": {
+    "patches": [
+      {
+        "chapter": 24,
+        "old": "**一階敏感度分析**：計算偏導數 $S_i = \\frac{\\partial f}{\\partial \\theta_i}$。這表示參數 $\\theta_i$ 在小擾動下對輸出的線性影響。\n- **不確定性傳播**：若 $\\theta_i$ 具有不確定性 $\\sigma_i$，則輸出的不確定性近似為：",
+        "new": "**一階敏感度分析**：計算偏導數 $S_i=\\frac{\\partial f}{\\partial\\theta_i}$。它表示參數 $\\theta_i$ 小幅變動時，輸出的局部線性變化；其單位為輸出單位除以參數單位，因此不能不加處理地跨不同單位參數比較大小。若 $f\\ne0$ 且 $\\theta_i\\ne0$，可用無因次相對敏感度 $S_i^{\\rm rel}=\\frac{\\theta_i}{f}\\frac{\\partial f}{\\partial\\theta_i}$ 排序相對變化；當 $f=0$ 或 $\\theta_i=0$ 時，應改用明確參考尺度定義無因次敏感度。\n- **不確定性傳播**：若 $\\theta_i$ 具有不確定性 $\\sigma_i$，則輸出的不確定性近似為："
+      },
+      {
+        "chapter": 24,
+        "old": "    # 實驗 B 採另一初值及獨立噪聲；仍只是合成資料檢查。\n    def initial_b(x):\n        return 0.7 * np.sin(np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_truth = 0.7 * np.exp(-0.1 * np.pi**2 * b_times)\n    b_observed = b_truth + np.random.default_rng(10000).normal(0.0, 0.01, b_times.size)\n    b_rmse, b_predicted = independent_validation(\n        float(D_cal_samples[0]), 0.0, b_times, b_observed, initial_b)\n    b_residual = b_predicted - b_observed",
+        "new": "    # 實驗 B 使用不同波數的初值與獨立噪聲；仍只是合成資料檢查。\n    def initial_b(x):\n        return 0.7 * np.sin(2.0 * np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_truth = 0.7 * np.exp(-(0.1 * (2.0 * np.pi)**2) * b_times)\n    b_observed = b_truth + np.random.default_rng(10000).normal(0.0, 0.01, b_times.size)\n    b_rmse_samples, b_prediction_samples = [], []\n    b_residual_samples = []\n    for D_cal in D_cal_samples:\n        b_rmse, b_predicted = independent_validation(\n            float(D_cal), 0.0, b_times, b_observed, initial_b)\n        b_rmse_samples.append(float(b_rmse))\n        b_prediction_samples.append(b_predicted.tolist())\n        b_residual_samples.append((b_predicted - b_observed).tolist())"
+      },
+      {
+        "chapter": 24,
+        "old": "        \"results\": {\n            \"D_cal_samples\": D_cal_samples.tolist(),\n            \"holdout_rmse_samples\": rmse_samples.tolist(),\n            \"experiment_b_rmse\": float(b_rmse),\n            \"experiment_b_prediction\": b_predicted.tolist(),\n            \"experiment_b_residual_pred_minus_obs\": b_residual.tolist(),\n            \"D_cal_mean\": float(np.mean(D_cal_samples)),",
+        "new": "        \"results\": {\n            \"D_cal_samples\": D_cal_samples.tolist(),\n            \"holdout_rmse_samples\": rmse_samples.tolist(),\n            \"experiment_b_rmse_samples\": b_rmse_samples,\n            \"experiment_b_prediction_samples\": b_prediction_samples,\n            \"experiment_b_residual_samples_pred_minus_obs\": b_residual_samples,\n            \"experiment_b_observed\": b_observed.tolist(),\n            \"D_cal_mean\": float(np.mean(D_cal_samples)),"
+      },
+      {
+        "chapter": 24,
+        "old": "        idx_mid = n_pts // 2\n        c_exact_final = exact_solution_diffusion(x, 0.1, D_true, L=1.0)[idx_mid]\n        err = abs(c_exact_final - c_final[idx_mid])\n        errors.append(err)\n        print(f\"n_points={n_pts}, dx={dx:.4f}, Error={err:.6e}\")",
+        "new": "        c_exact_final = exact_solution_diffusion(x, 0.1, D_true, L=1.0)\n        err = float(np.sqrt(dx * np.sum((c_final - c_exact_final)**2)))\n        errors.append(err)\n        print(f\"n_points={n_pts}, dx={dx:.4f}, weighted_L2_Error={err:.6e}\")"
+      },
+      {
+        "chapter": 24,
+        "old": "**測試1：空間收斂階（耦合細化）**\n- 輸入：$D=0.1$，$t=0.1$，$n_points \\in [21, 41, 81]$，$dt = 0.1 dx^2$。\n- 預期：由於 $dt=O(dx^2)$，時間誤差與空間誤差同階，觀測階將反映兩者的合成效果，通常接近 2。\n- 驗證：誤差隨網格細化而顯著下降。",
+        "new": "**測試1：加權範數的耦合細化**\n- 輸入：$D=0.1$，$t=0.1$，$n_{\\rm points}\\in[21,41,81]$，$dt=0.1dx^2$。\n- 誤差：在所有網格節點計算 $E_h=(dx\\sum_i|c_i-c_{{\\rm exact},i}|^2)^{1/2}$，而不是只檢查中心單點。\n- 預期：因 $dt=O(dx^2)$，這是空間與時間同步細化的耦合結果，不是純空間收斂階；依 FTCS 的二階空間與一階時間誤差，觀測階受兩者及邊界處理共同影響，須由實際誤差計算，不預先保證特定階數。\n- 驗證：記錄每個網格的加權 $L_2$ 誤差，並以相鄰誤差比計算觀測階。"
+      },
+      {
+        "chapter": 24,
+        "old": "**合成數據生成**：\n- 真實參數：$D=10^{-9}, k=10^{-6}$。\n- 觀測噪聲：$\\sigma = 0.01 \\times c_{true}$。\n- **注意**：此處所有數據均為合成，用於演示方法，不代表真實現場物性。溶氧跨管理閾值不是相變。",
+        "new": "**合成數據生成**：\n- 真實參數：$D=10^{-9}\\,\\mathrm{m^2/s}$、$k=10^{-6}\\,\\mathrm{s^{-1}}$；濃度以 $\\mathrm{kg/m^3}$ 表示，合成初始振幅取 $1\\,\\mathrm{kg/m^3}$。\n- 觀測噪聲：$\\sigma=0.01\\,c_{\\rm true}$，其單位與濃度相同。\n- **注意**：此處所有數據均為合成，用於演示方法，不代表真實現場物性。溶氧跨管理閾值不是相變。"
+      },
+      {
+        "chapter": 24,
+        "old": "### 正常測試\n\n**測試1：空間收斂階（耦合細化）**\n- 輸入：$D=0.1$，$t=0.1$，$n_points \\in [21, 41, 81]$，$dt = 0.1 dx^2$。\n- 預期：由於 $dt=O(dx^2)$，時間誤差與空間誤差同階，觀測階將反映兩者的合成效果，通常接近 2。\n- 驗證：誤差隨網格細化而顯著下降。\n\n**測試2：多 Seed 校準分佈**",
+        "new": "### 正常測試\n\n**測試1：加權範數的耦合細化**\n- 輸入：$D=0.1$，$t=0.1$，$n_{\\rm points}\\in[21,41,81]$，$dt=0.1dx^2$。\n- 誤差：計算 $E_h=(dx\\sum_i|c_i-c_{{\\rm exact},i}|^2)^{1/2}$，不只檢查中心單點。\n- 預期：這是 $dt=O(dx^2)$ 的空間與時間耦合細化，不是純空間收斂階；觀測階須由各網格誤差計算，不能預先保證。\n- 驗證：記錄加權 $L_2$ 誤差與相鄰網格觀測階。\n\n**測試2：多 Seed 校準分佈**"
+      },
+      {
+        "chapter": 24,
+        "old": "**實驗 B 採另一初值及獨立噪聲；仍只是合成資料檢查。**\n    def initial_b(x):\n        return 0.7 * np.sin(np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_truth = 0.7 * np.exp(-0.1 * np.pi**2 * b_times)\n    b_observed = b_truth + np.random.default_rng(10000).normal(0.0, 0.01, b_times.size)\n    b_rmse, b_predicted = independent_validation(\n        float(D_cal_samples[0]), 0.0, b_times, b_observed, initial_b)\n    b_residual = b_predicted - b_observed",
+        "new": "實驗 B 採不同波數初值及獨立噪聲，仍是合成資料檢查而非物理 Validation。程式以 $0.7\\sin(2\\pi x/L)$ 作初值，並依其波數使用衰減因子 $\\exp[-D(2\\pi/L)^2t]$ 生成合成真值。每個 seed 的 $D_{\\rm cal}$ 都分別用於實驗 B 預測，保留對應預測、殘差與 RMSE，避免只挑一個 seed 代表整個校準程序。"
+      },
+      {
+        "chapter": 24,
+        "old": "**測試2：多 Seed 校準分佈**\n- 輸入：$D_{true}=0.1$，$\\sigma=0.01$，10 個 seed。\n- 預期：$D_{cal}$ 樣本均值接近 $0.1$。\n- 檢查：10 個估計值的分位區間只描述這些模擬結果，不保證涵蓋真值。若需模型條件式的置信界線，須固定估計程序、噪聲模型與目標參數，再透過充分多次獨立模擬校準估計誤差分位數並檢查覆蓋率；本章十個 seed 的輸出不足以宣稱已建立具可靠覆蓋率的置信區間，更不包含模型形式誤差。",
+        "new": "**測試2：多 seed 校準與模型條件式置信界線**\n- 輸入：$D_{\\rm true}=0.1$、$\\sigma=0.01$，固定估計程序與噪聲模型；初步示範可用 10 個 seed，但不足以主張可靠覆蓋率。\n- 對每次獨立合成重複 $b$，保存估計誤差 $e_b=\\widehat D_b-D_{\\rm true}$。以重複試驗的誤差分位數 $q_{0.025},q_{0.975}$ 建立此估計程序的模型條件式誤差界線；相應估計區間可寫成 $[\\widehat D-q_{0.975},\\widehat D-q_{0.025}]$，並按參數範圍處理邊界。\n- 另以外層獨立重複試驗檢查經驗覆蓋率：記錄真值落入各次區間的比例，並報告重複數與覆蓋比例。有限次試驗只能估計覆蓋率，不能保證精確的名目覆蓋；此界線也只適用於指定噪聲與模型假設，不含模型形式誤差。"
+      },
+      {
+        "chapter": 24,
+        "old": "    print(f\"D_cal descriptive range (2.5%-97.5%): [{ci_lower:.4f}, {ci_upper:.4f}]\")",
+        "new": "    print(f\"D_cal descriptive range (2.5%-97.5%): [{ci_lower:.4f}, {ci_upper:.4f}]\")\n    print(\"此十個 seed 的分位範圍僅為描述性結果，不宣稱置信區間或可靠覆蓋率。\")"
+      }
+    ],
+    "reason": "修補敏感度跨單位比較、不同波數的合成獨立測試、逐 seed 驗證傳播、網格加權誤差，以及模型條件式置信界線與覆蓋率檢查。注意原稿中幾個測試段落內容近似，patch 以不同唯一原文定位；未執行程式。"
+  }
+}

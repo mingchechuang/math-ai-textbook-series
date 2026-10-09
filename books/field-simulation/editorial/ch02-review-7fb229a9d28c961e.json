@@ -1,0 +1,11 @@
+{
+  "key": "7fb229a9d28c961e563b9bccc0d37cd1c3158228cbf1f3ba5d5f01965073e141",
+  "person": {
+    "id": "v3_editor_03",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 10,
+  "result": "## 必須修正\n\n1. **向量術語違反本卷固定慣例**  \n   可定位原句：「所有向量均視為列向量（column vector）。」另於「梯度寫成列向量」及除錯第 2 點再次出現。  \n   原因：本卷 conventions 明定 column vector 譯為「直向量」，「列」是矩陣位置用語。  \n   最小修法：將向量的「列向量」改為「直向量」，並同步修正相關句子。\n\n2. **速度分量公式有排版／符號錯誤**  \n   可定位原式：「$\\mathbf{u}(x,y,t)=\\begin{bmatrix}\\nu_x\\\\u_y\\end{bmatrix}$」。  \n   原因：第一分量目前是希臘字母 $\\nu_x$，不是後文所指的速度分量 $u_x$。  \n   最小修法：改成 $\\begin{bmatrix}u_x\\\\u_y\\end{bmatrix}$。\n\n3. **正文未達最低篇幅**  \n   可定位稿件欄位：「measured_characters: 2471」；本卷規定每章至少 3000 中文字，且公式、程式、英文、標點與參考來源不計字數。  \n   原因：目前篇幅低於硬性下限，尚未滿足交稿規格。  \n   最小修法：補足至少 529 個可計入字數的中文字，並以相同統計口徑確認達標。\n\n## 核對結果\n\n例一手算正確：$f(1,2)=11$，二階 Taylor 修正後為 $10.8607$。例二沿 $y=x^2$ 得 $g=1/2$，確能否定原點連續性。其餘習題的梯度、Hessian、Jacobian 維度與擾動乘法均相符；差分誤差階數及浮點誤差的敘述未見明顯錯誤。稿件將程式結果標作預期，未冒稱已執行。\n\nVERDICT: REVISE"
+}

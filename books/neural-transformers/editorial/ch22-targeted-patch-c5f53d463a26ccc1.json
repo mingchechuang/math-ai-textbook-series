@@ -1,0 +1,11 @@
+{
+  "key": "c5f53d463a26ccc118d42ae58c18d39d553bde40429297647f7758860aadd4b6",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 250,
+  "result": "<<<PATCH 22>>>\n<<<OLD>>>\n即使溫度為零，也要先驗證 top-k 與 top-p 是否在合法範圍。合法的 top-k/top-p 不會改變零溫度的 one-hot 結果；這是本章明定的「greedy 優先」政策，而不是讓零溫度繞過參數檢查。\n<<<NEW>>>\n即使溫度為零，也要先驗證 top-k 與 top-p 是否在合法範圍。合法的 top-k/top-p 不會改變零溫度的 one-hot 結果；這是本章明定的「greedy 優先」政策，而不是讓零溫度繞過參數檢查。上述公式及下述排序命題在精確實數運算下成立；浮點實作先計算 `logits / temperature`，即使原始 logits 有限，極小正溫度仍可能使結果溢位。此時後續 `stable_softmax` 會拒絕非有限結果；減去最大值無法補救先前的除法溢位。\n<<<END>>>\n<<<PATCH 22>>>\n<<<OLD>>>\n    # 故障測試\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([0.0, np.nan])),\n        ValueError\n    )\n<<<NEW>>>\n    # 故障測試\n    with np.errstate(over=\"ignore\"):\n        must_raise(\n            lambda: next_token_distribution(\n                np.array([0.0, 1.0]), temperature=1e-320),\n            ValueError\n        )\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([0.0, np.nan])),\n        ValueError\n    )\n<<<END>>>"
+}

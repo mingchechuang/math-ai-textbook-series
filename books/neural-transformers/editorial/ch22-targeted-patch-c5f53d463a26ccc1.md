@@ -1,0 +1,28 @@
+<<<PATCH 22>>>
+<<<OLD>>>
+即使溫度為零，也要先驗證 top-k 與 top-p 是否在合法範圍。合法的 top-k/top-p 不會改變零溫度的 one-hot 結果；這是本章明定的「greedy 優先」政策，而不是讓零溫度繞過參數檢查。
+<<<NEW>>>
+即使溫度為零，也要先驗證 top-k 與 top-p 是否在合法範圍。合法的 top-k/top-p 不會改變零溫度的 one-hot 結果；這是本章明定的「greedy 優先」政策，而不是讓零溫度繞過參數檢查。上述公式及下述排序命題在精確實數運算下成立；浮點實作先計算 `logits / temperature`，即使原始 logits 有限，極小正溫度仍可能使結果溢位。此時後續 `stable_softmax` 會拒絕非有限結果；減去最大值無法補救先前的除法溢位。
+<<<END>>>
+<<<PATCH 22>>>
+<<<OLD>>>
+    # 故障測試
+    must_raise(
+        lambda: next_token_distribution(
+            np.array([0.0, np.nan])),
+        ValueError
+    )
+<<<NEW>>>
+    # 故障測試
+    with np.errstate(over="ignore"):
+        must_raise(
+            lambda: next_token_distribution(
+                np.array([0.0, 1.0]), temperature=1e-320),
+            ValueError
+        )
+    must_raise(
+        lambda: next_token_distribution(
+            np.array([0.0, np.nan])),
+        ValueError
+    )
+<<<END>>>

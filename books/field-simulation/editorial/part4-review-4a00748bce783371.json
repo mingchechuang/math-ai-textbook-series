@@ -1,0 +1,11 @@
+{
+  "key": "4a00748bce78337113e9dde55eea8d0f6c9881a9766574fc1a8597fc998e7374",
+  "person": {
+    "id": "v3_editor_03",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 378,
+  "result": "## 必須修正\n\n1. **第19章「二維製造場及其動量來源」速度符號與黏度符號混淆**  \n   可定位原句：「$$\\nu=a\\sin(kx)\\cos(ky),\\qquad v=-a\\cos(kx)\\sin(ky),$$」  \n   原因：這裡的 `\\nu` 是希臘字母 nu，與本章表示運動黏度的 `\\nu` 相同；後文卻把該分量稱為 $u$，造成符號定義不一致。  \n   最小修法：將式中的 `\\nu=` 改為 `u=`，並確認後續速度分量均使用 $u,v$，運動黏度仍使用 $\\nu$。\n\n第21章已用實際格距重算 FTCS 步長上限，該項修正正確；其他新舊段落未見需新增的阻擋性問題。VERDICT: REVISE"
+}

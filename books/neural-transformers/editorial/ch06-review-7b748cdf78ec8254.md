@@ -1,0 +1,88 @@
+### 審稿過程與重算
+
+#### 1. 定義條件與 Shape/Broadcast/Reduction
+- **Shape 檢查**：
+    - `logits` 形狀 $(B, C)$ 或 $(B, T, C)$，`targets` 形狀 $(B,)$ 或 $(B, T)$。程式碼中 `if targets.shape != logits.shape[:-1]` 正確檢查了形狀一致性。
+    - `valid` 形狀與 `targets` 相同。程式碼檢查 `valid.shape != targets.shape`。
+    - `masked_softmax` 檢查 `scores.shape != allow.shape`，避免模糊廣播。
+- **Reduction 檢查**：
+    - `reduction="mean"` 時，損失為 `loss_sum / n_eff`。
+    - 梯度計算中，先計算每個位置的梯度，然後 `grad[~flat_v] = 0.0`，最後 `if reduction == "mean": grad = grad / n_eff`。
+    - 這符合「有效 token 平均只除一次」的約定。
+- **Axis 檢查**：
+    - `logsumexp` 和 `stable_log_softmax` 都使用 `axis=-1`，對應類別軸。
+    - 程式碼中 `flat_logp = logp.reshape(-1, C)` 攤平前導維度，符合自足性要求。
+
+#### 2. 數學推導與手算驗證
+- **命題 6.1（平移不變性）**：
+    - 證明 $\operatorname{LSE}(z+c\mathbf{1}) = \operatorname{LSE}(z)+c$ 正確。
+    - 證明 $\operatorname{softmax}(z+c\mathbf{1}) = \operatorname{softmax}(z)$ 正確。
+- **命題 6.2（梯度）**：
+    - $\frac{\partial \ell}{\partial z_i} = \operatorname{softmax}(z)_i - \mathbf{1}\{i=y\}$ 正確。
+    - 手算例 6.1：$z=(1000,1001,999), y=1$。
+        - $m=1001$，$\tilde{z}=(-1,0,-2)$。
+        - $e^{-1} \approx 0.367879, e^0=1, e^{-2} \approx 0.135335$。
+        - $S \approx 1.503214$。
+        - $\operatorname{LSE} = 1001 + \log(1.503214) \approx 1001.407606$。
+        - $\ell = 1001.407606 - 1001 = 0.407606$。
+        - 機率 $p_1 = 1/S \approx 0.6652$。
+        - 梯度 $g_1 = p_1 - 1 = -0.3348$，其他類為 $p_i$。
+        - 計算與文本一致。
+    - 手算例 6.2：
+        - 樣本 1：$z=(2,0,-1), y=0$。
+        - $S = e^2+1+e^{-1} \approx 7.389+1+0.368 = 8.757$。
+        - $\ell_1 \approx 0.1697$。
+        - 計算與文本一致。
+
+#### 3. 程式碼邏輯與故障測試
+- **穩定 logsumexp**：`m = np.max(z, axis=axis, keepdims=True)`，`shifted = z - m`，`out = m + np.log(np.sum(np.exp(shifted), ...))`。邏輯正確。
+- **CE 與梯度**：
+    - `logp = stable_log_softmax(logits)`。
+    - `nll = -flat_logp[rows, flat_t]`。
+    - `p = np.exp(flat_logp)`。
+    - `grad = p.copy(); grad[rows, flat_t] -= 1.0`。
+    - 邏輯正確。
+- **遮罩 Softmax**：
+    - `row_has_any = np.any(allow, axis=-1)`。
+    - `if not np.all(row_has_any): raise ValueError`。
+    - 符合「全遮罩列拒絕」的約定。
+- **非有限值處理**：
+    - `if not np.all(np.isfinite(z)): raise ValueError`。
+    - 符合約定。
+- **Target 越界**：
+    - `if np.any(targets < 0) or np.any(targets >= C): raise ValueError`。
+    - 符合約定。
+
+#### 4. 資料洩漏與評估範圍
+- `make_split` 函式：
+    - 先打亂索引，再切訓練、驗證、測試。
+    - `mu = X[train].mean(axis=0)`，`sd = X[train].std(axis=0)`。
+    - `Xn = (X - mu) / sd`。
+    - 標準化只使用訓練集統計量，驗證與測試集使用訓練集統計量進行標準化。
+    - 符合「訓練統計標準化」與「測試集不參與調參」的約定。
+
+#### 5. 自足程式與故障測試
+- 程式碼自足，僅使用 NumPy。
+- 包含 `numerical_grad` 用於梯度檢查。
+- 包含 `train_linear_softmax` 用於展示訓練流程。
+- 測試部分明確區分正常、邊界、故障，並說明預期結果。
+- 未宣稱已執行，符合「無執行紀錄只能寫預期」的約定。
+
+#### 6. 作者是否虛構執行、來源或能力
+- 參考來源註明「未取得完整閱讀」、「未執行外部程式」。
+- 數值結果均標註為「預期」。
+- 未虛構執行或來源。
+
+#### 7. 逐字原句、原因、最小修法
+- **無重大錯誤**。
+- 細微建議：
+    - 在「實作與程式」部分，`cross_entropy_loss_and_grad` 中 `grad[~flat_v] = 0.0` 之後，若 `reduction="mean"`，應確保除以 `n_eff` 而不是 `valid.sum()` 的某種變體。目前程式碼是 `grad = grad / n_eff`，這是正確的，因為 `n_eff` 是有效樣本數。
+    - 在「測試與預期結果」部分，「邊界測試 2」提到 $z=(10^{300}, 10^{300}, 10^{300})$ 時，float64 可能捨入。這是正確的浮點行為說明。
+
+#### 8. 自我推翻的疑慮
+- 無明顯疑慮阻擋。
+
+### 結論
+章節內容完整，數學推導正確，程式碼邏輯符合約定，測試設計合理，未虛構執行或來源。符合 Volume V 的審稿標準。
+
+VERDICT: APPROVE

@@ -1,0 +1,20 @@
+{
+  "key": "1a958502f25aa3bffafaa36da6fae41e57f8464e2faa5b3a997372befc7987bd",
+  "person": {
+    "id": "v3_editor_18",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 400,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "### 二維製造場及其動量來源\n\n取週期正方域 $[0,L)^2$、$k=2\\pi/L$、$a(t)=Ue^{-\\alpha t}$，其中 $U>0$ 為 $\\mathrm{m/s}$、$\\alpha\\geq0$ 為 $\\mathrm{s^{-1}}$。定義\n\n$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\n\\nu_y=-a\\cos(kx)\\sin(ky),\n$$\n\n$$\np=\\frac{\\rho a^2}{4}\n\\left[\\cos(2kx)+\\cos(2ky)\\right].\n$$\n\n由 $\\partial_xu=ak\\cos(kx)\\cos(ky)$ 及 $\\partial_yv=-ak\\cos(kx)\\cos(ky)$，可知散度逐點為零。",
+        "new": "### 二維製造場及其動量來源\n\n取週期正方域 $[0,L)^2$、$k=2\\pi/L$、$a(t)=Ue^{-\\alpha t}$，其中 $U>0$ 為 $\\mathrm{m/s}$、$\\alpha\\geq0$ 為 $\\mathrm{s^{-1}}$。定義\n\n$$u=a\\sin(kx)\\cos(ky),\\qquad\nv=-a\\cos(kx)\\sin(ky),\n$$\n\n$$\np=\\frac{\\rho a^2}{4}\n\\left[\\cos(2kx)+\\cos(2ky)\\right].\n$$\n\n由 $\\partial_xu=ak\\cos(kx)\\cos(ky)$ 及 $\\partial_yv=-ak\\cos(kx)\\cos(ky)$，可知散度逐點為零。"
+      }
+    ],
+    "reason": "將製造場定義改為後續推導與程式一致的 u、v；old 包含本章獨有的段落標題、壓力式及散度說明，避免與審稿文字中的重複公式匹配。"
+  }
+}

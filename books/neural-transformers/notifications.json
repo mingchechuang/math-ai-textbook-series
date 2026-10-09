@@ -1,0 +1,1972 @@
+{
+  "label": "Volume V",
+  "base_route": "/book5",
+  "checked_at": "2026-10-09T22:44:35+08:00",
+  "worker_alive": false,
+  "worker_pids": [],
+  "status": "completed_model_review_pending_human",
+  "events": [
+    {
+      "id": 281,
+      "observed_at": "2026-10-08T19:06:54+08:00",
+      "kind": "publication_ready",
+      "level": "info",
+      "message": "HTML／PDF出版版已建立並通過排版檢查，PDF共 474 頁；閱讀連結已加入主頁。",
+      "details": {
+        "html": "/book5/html",
+        "pdf": "/book5/pdf"
+      }
+    },
+    {
+      "id": 280,
+      "observed_at": "2026-10-08T17:21:38+08:00",
+      "kind": "book_completed",
+      "level": "info",
+      "message": "全卷逐章及跨章模型審查已完成；仍待人工覆核與出版檢查。",
+      "details": {
+        "source_updated": "2026-10-08T17:21:38.525350",
+        "baseline_snapshot": false
+      }
+    },
+    {
+      "id": 279,
+      "observed_at": "2026-10-08T17:21:38+08:00",
+      "kind": "part_approved",
+      "level": "info",
+      "message": "第 5 部跨章模型審查通過。",
+      "details": {
+        "part": 5,
+        "fingerprint": "489db04ce0ed5265748d4ae0e9bbc03121cc82d8711b89a2e1430655df75425e"
+      }
+    },
+    {
+      "id": 278,
+      "observed_at": "2026-10-08T17:21:15+08:00",
+      "kind": "part_approved",
+      "level": "info",
+      "message": "第 3 部跨章模型審查通過。",
+      "details": {
+        "part": 3,
+        "fingerprint": "64cca62619818482500a772903417172ce216f0bf11eb3c3ba5616dba6aaba22"
+      }
+    },
+    {
+      "id": 277,
+      "observed_at": "2026-10-08T17:19:53+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 16 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 16,
+        "sha256": "72ba09f690cc793017e1b1d5bdd950a3dc5081b79eaf9b34cf24e28092ad45bc"
+      }
+    },
+    {
+      "id": 276,
+      "observed_at": "2026-10-08T17:06:40+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 14 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 14,
+        "sha256": "f4711acb2f8f88283590ad60a3a2cfb79626b9726c0b42f725d5e47edbaea65a"
+      }
+    },
+    {
+      "id": 275,
+      "observed_at": "2026-10-08T17:05:34+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 14 章修訂後需再審查。",
+      "details": {
+        "chapter": 14
+      }
+    },
+    {
+      "id": 274,
+      "observed_at": "2026-10-08T17:05:34+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 16 章修訂後需再審查。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 273,
+      "observed_at": "2026-10-08T17:04:26+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 16 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 16,
+        "sha256": "8b02aecaa0a8e3ee2a68078a6998e66e82263d3c767f1d0e9c889618ba2e1fe5"
+      }
+    },
+    {
+      "id": 272,
+      "observed_at": "2026-10-08T16:57:36+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 15 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 15,
+        "sha256": "c9a7770eadd6864b63f5c6509355f2de6bf6f2c19376292316c64e2488e4c9b8"
+      }
+    },
+    {
+      "id": 271,
+      "observed_at": "2026-10-08T16:57:17+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 16 章修訂後需再審查。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 270,
+      "observed_at": "2026-10-08T16:57:17+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 15 章修訂後需再審查。",
+      "details": {
+        "chapter": 15
+      }
+    },
+    {
+      "id": 269,
+      "observed_at": "2026-10-08T16:55:35+08:00",
+      "kind": "cross_review_started",
+      "level": "info",
+      "message": "進入五部跨章審查階段。",
+      "details": {}
+    },
+    {
+      "id": 268,
+      "observed_at": "2026-10-08T16:55:35+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 29；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 267,
+      "observed_at": "2026-10-08T16:55:35+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 16 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 16,
+        "sha256": "5fa19e2f3768bcc6e0b378266499b98e3038c1de4dfc9b7a97d97c38caaf20b6"
+      }
+    },
+    {
+      "id": 266,
+      "observed_at": "2026-10-08T16:49:43+08:00",
+      "kind": "worker_resumed",
+      "level": "info",
+      "message": "已偵測到編輯／續跑程序恢復執行。",
+      "details": {}
+    },
+    {
+      "id": 265,
+      "observed_at": "2026-10-08T16:49:43+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 28；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 264,
+      "observed_at": "2026-10-08T11:36:45+08:00",
+      "kind": "worker_stopped",
+      "level": "error",
+      "message": "已連續15秒未偵測到本卷編輯／續跑程序，工作未完成；通知監測仍在運作。",
+      "details": {
+        "status": "needs_editorial_attention"
+      }
+    },
+    {
+      "id": 263,
+      "observed_at": "2026-10-08T11:36:26+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 262,
+      "observed_at": "2026-10-08T11:36:26+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 261,
+      "observed_at": "2026-10-08T11:30:28+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 27；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 260,
+      "observed_at": "2026-10-08T11:30:23+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 259,
+      "observed_at": "2026-10-08T11:30:23+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 258,
+      "observed_at": "2026-10-08T11:22:37+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 26；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 257,
+      "observed_at": "2026-10-08T11:22:32+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 256,
+      "observed_at": "2026-10-08T11:22:32+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 255,
+      "observed_at": "2026-10-08T11:17:17+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 25；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 254,
+      "observed_at": "2026-10-08T11:17:12+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 253,
+      "observed_at": "2026-10-08T11:17:12+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 252,
+      "observed_at": "2026-10-08T11:16:48+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 24；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 251,
+      "observed_at": "2026-10-08T11:16:48+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 30 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 30,
+        "sha256": "e8059ce06d0866a443a55ae191cfb9f4cb8d840eee701c2f76f65d438941cf68"
+      }
+    },
+    {
+      "id": 250,
+      "observed_at": "2026-10-08T11:16:28+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 26 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 26,
+        "sha256": "e04cf6aa948344395c1002a3ba15f658c2194a706a0a5af05b5acc091aa26b97"
+      }
+    },
+    {
+      "id": 249,
+      "observed_at": "2026-10-08T11:10:35+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 17 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 17,
+        "sha256": "893385bf1c923dd6431631802d3e37af1a4b80a8d44b6e7ce31fadebc1544660"
+      }
+    },
+    {
+      "id": 248,
+      "observed_at": "2026-10-08T11:05:10+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 15 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 15,
+        "sha256": "253eb39cca3e032bceb27c580dbef8b7410ebf83f6f76e4e0316fb418b79c8da"
+      }
+    },
+    {
+      "id": 247,
+      "observed_at": "2026-10-08T11:04:55+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 23；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 246,
+      "observed_at": "2026-10-08T11:04:55+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 30 章修訂後需再審查。",
+      "details": {
+        "chapter": 30
+      }
+    },
+    {
+      "id": 245,
+      "observed_at": "2026-10-08T11:04:55+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 26 章修訂後需再審查。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 244,
+      "observed_at": "2026-10-08T11:04:55+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 17 章修訂後需再審查。",
+      "details": {
+        "chapter": 17
+      }
+    },
+    {
+      "id": 243,
+      "observed_at": "2026-10-08T11:04:55+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 15 章修訂後需再審查。",
+      "details": {
+        "chapter": 15
+      }
+    },
+    {
+      "id": 242,
+      "observed_at": "2026-10-08T11:04:50+08:00",
+      "kind": "worker_resumed",
+      "level": "info",
+      "message": "已偵測到編輯／續跑程序恢復執行。",
+      "details": {}
+    },
+    {
+      "id": 241,
+      "observed_at": "2026-10-07T14:06:53+08:00",
+      "kind": "worker_stopped",
+      "level": "error",
+      "message": "已連續15秒未偵測到本卷編輯／續跑程序，工作未完成；通知監測仍在運作。",
+      "details": {
+        "status": "needs_editorial_attention"
+      }
+    },
+    {
+      "id": 240,
+      "observed_at": "2026-10-07T14:06:30+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 239,
+      "observed_at": "2026-10-07T14:06:30+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 238,
+      "observed_at": "2026-10-07T13:59:56+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 22；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 237,
+      "observed_at": "2026-10-07T13:59:51+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 236,
+      "observed_at": "2026-10-07T13:59:51+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 235,
+      "observed_at": "2026-10-07T13:53:27+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 21；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 234,
+      "observed_at": "2026-10-07T13:53:22+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 233,
+      "observed_at": "2026-10-07T13:53:22+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 232,
+      "observed_at": "2026-10-07T13:47:07+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 20；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 231,
+      "observed_at": "2026-10-07T13:47:02+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 230,
+      "observed_at": "2026-10-07T13:47:02+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 16 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 229,
+      "observed_at": "2026-10-07T13:46:53+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 15 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 15,
+        "sha256": "ef38a4dde2787a3953f85793a34ec8a218aec968ab02e1cbb3a85e660ecdc85a"
+      }
+    },
+    {
+      "id": 228,
+      "observed_at": "2026-10-07T13:46:14+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 19；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 227,
+      "observed_at": "2026-10-07T13:46:09+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 226,
+      "observed_at": "2026-10-07T13:45:06+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 26 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 26,
+        "sha256": "1ca640ef219823eefe72b82477d1b2c49c720db6308b66e1be99d1ccbc092fa7"
+      }
+    },
+    {
+      "id": 225,
+      "observed_at": "2026-10-07T13:41:37+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 26 章修訂後需再審查。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 224,
+      "observed_at": "2026-10-07T13:41:03+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 26 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 26,
+        "sha256": "84c1b547994f8173789fd1c22f89ec78d227bd03324b6912079714fd9577a279"
+      }
+    },
+    {
+      "id": 223,
+      "observed_at": "2026-10-07T13:36:31+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 26 章修訂後需再審查。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 222,
+      "observed_at": "2026-10-07T13:29:42+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 16 章修訂後需再審查。",
+      "details": {
+        "chapter": 16
+      }
+    },
+    {
+      "id": 221,
+      "observed_at": "2026-10-07T13:29:42+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 15 章修訂後需再審查。",
+      "details": {
+        "chapter": 15
+      }
+    },
+    {
+      "id": 220,
+      "observed_at": "2026-10-07T13:27:10+08:00",
+      "kind": "part_approved",
+      "level": "info",
+      "message": "第 1 部跨章模型審查通過。",
+      "details": {
+        "part": 1,
+        "fingerprint": "1aadfddecdf0912bb6c82ad86c7804abd5da5710242f9c0ed107c26d89859e17"
+      }
+    },
+    {
+      "id": 219,
+      "observed_at": "2026-10-07T13:26:46+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 06 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 6,
+        "sha256": "f4ef8af79397901f39c7d49177e8de8b4516748c20c60b1a06d5de169a46393c"
+      }
+    },
+    {
+      "id": 218,
+      "observed_at": "2026-10-07T13:23:41+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 06 章修訂後需再審查。",
+      "details": {
+        "chapter": 6
+      }
+    },
+    {
+      "id": 217,
+      "observed_at": "2026-10-07T13:19:22+08:00",
+      "kind": "cross_review_started",
+      "level": "info",
+      "message": "進入五部跨章審查階段。",
+      "details": {}
+    },
+    {
+      "id": 216,
+      "observed_at": "2026-10-07T13:19:22+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 26 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 26,
+        "sha256": "08590466e3365f6829d6d6df90436f1e99c67185a54bf641fd775c2632443d30"
+      }
+    },
+    {
+      "id": 215,
+      "observed_at": "2026-10-07T13:10:12+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 04 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 4,
+        "sha256": "ff899819048b61976b95815af9d06eeb448689bc114587e92cbdc887e4b0b6ad"
+      }
+    },
+    {
+      "id": 214,
+      "observed_at": "2026-10-07T13:08:39+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 18；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 213,
+      "observed_at": "2026-10-07T13:08:34+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 212,
+      "observed_at": "2026-10-07T12:57:08+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 30 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 30,
+        "sha256": "5a25d9f07ccb089d34b5a9ef5e32bd69f0b1134bc2ea80cbfccc22dba773e665"
+      }
+    },
+    {
+      "id": 211,
+      "observed_at": "2026-10-07T12:56:53+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 30 章修訂後需再審查。",
+      "details": {
+        "chapter": 30
+      }
+    },
+    {
+      "id": 210,
+      "observed_at": "2026-10-07T12:56:53+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 26 章修訂後需再審查。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 209,
+      "observed_at": "2026-10-07T12:55:45+08:00",
+      "kind": "part_approved",
+      "level": "info",
+      "message": "第 4 部跨章模型審查通過。",
+      "details": {
+        "part": 4,
+        "fingerprint": "6022aeec8bbf1147af596967ae0e28fee838e2c8b4d7234172baae25ffb660a8"
+      }
+    },
+    {
+      "id": 208,
+      "observed_at": "2026-10-07T12:54:51+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 21 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 21,
+        "sha256": "f9d11ff487a3ffa8531625dac448c8ea24e42cbab15364d84a79d958c7b9b8d1"
+      }
+    },
+    {
+      "id": 207,
+      "observed_at": "2026-10-07T12:53:24+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 19 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 19,
+        "sha256": "b23b97d45e9136beba100f59da71680828b60bd2e9c06aeb435390b2f77782af"
+      }
+    },
+    {
+      "id": 206,
+      "observed_at": "2026-10-07T12:52:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 19 章修訂後需再審查。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 205,
+      "observed_at": "2026-10-07T12:52:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 21 章修訂後需再審查。",
+      "details": {
+        "chapter": 21
+      }
+    },
+    {
+      "id": 204,
+      "observed_at": "2026-10-07T12:51:56+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 21 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 21,
+        "sha256": "81eeb903214e65551e28a45f4c8fcd675fef7fc830b9f9be108545985b820fbb"
+      }
+    },
+    {
+      "id": 203,
+      "observed_at": "2026-10-07T12:49:39+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 19 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 19,
+        "sha256": "84f09bf93391a5ca790efc690770ca7d645631b0bb5fce367afe4d733db2eef9"
+      }
+    },
+    {
+      "id": 202,
+      "observed_at": "2026-10-07T12:49:05+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 23 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 23,
+        "sha256": "568bed322c8c7f9fe0d42f66374a4da7649252a20d670fe0258b24e7072b9a29"
+      }
+    },
+    {
+      "id": 201,
+      "observed_at": "2026-10-07T12:48:56+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 23 章修訂後需再審查。",
+      "details": {
+        "chapter": 23
+      }
+    },
+    {
+      "id": 200,
+      "observed_at": "2026-10-07T12:48:56+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 19 章修訂後需再審查。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 199,
+      "observed_at": "2026-10-07T12:48:56+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 21 章修訂後需再審查。",
+      "details": {
+        "chapter": 21
+      }
+    },
+    {
+      "id": 198,
+      "observed_at": "2026-10-07T12:45:55+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 01 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 1,
+        "sha256": "24f72c6588c5b2b0be4dc2d2e50cbe32eef15f3c19dfbf31168c1be79749d1d9"
+      }
+    },
+    {
+      "id": 197,
+      "observed_at": "2026-10-07T12:42:41+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 06 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 6,
+        "sha256": "f74377451df0e21bc7ee7353f15727927745a04045b8252ea3c1546365d7c36c"
+      }
+    },
+    {
+      "id": 196,
+      "observed_at": "2026-10-07T12:39:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 04 章修訂後需再審查。",
+      "details": {
+        "chapter": 4
+      }
+    },
+    {
+      "id": 195,
+      "observed_at": "2026-10-07T12:39:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 06 章修訂後需再審查。",
+      "details": {
+        "chapter": 6
+      }
+    },
+    {
+      "id": 194,
+      "observed_at": "2026-10-07T12:39:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 01 章修訂後需再審查。",
+      "details": {
+        "chapter": 1
+      }
+    },
+    {
+      "id": 193,
+      "observed_at": "2026-10-07T12:34:42+08:00",
+      "kind": "cross_review_started",
+      "level": "info",
+      "message": "進入五部跨章審查階段。",
+      "details": {}
+    },
+    {
+      "id": 192,
+      "observed_at": "2026-10-07T12:34:42+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 26 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 26,
+        "sha256": "03170d491d9531d7d34a64de0b4797e0c19c23bcb7d1d065915259853143d27d"
+      }
+    },
+    {
+      "id": 191,
+      "observed_at": "2026-10-07T12:25:55+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 17；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 190,
+      "observed_at": "2026-10-07T12:25:50+08:00",
+      "kind": "attempt_failed",
+      "level": "warning",
+      "message": "ch26-review：第 2 次嘗試失敗，等待重試或主編處理。",
+      "details": {
+        "phase": "ch26-review",
+        "call": 483,
+        "attempt": 2,
+        "source_file": "error-ch26-review-483-1.json"
+      }
+    },
+    {
+      "id": 189,
+      "observed_at": "2026-10-07T12:25:50+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 188,
+      "observed_at": "2026-10-07T12:25:50+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 26 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 187,
+      "observed_at": "2026-10-07T12:18:50+08:00",
+      "kind": "attempt_failed",
+      "level": "warning",
+      "message": "ch26-review：第 1 次嘗試失敗，等待重試或主編處理。",
+      "details": {
+        "phase": "ch26-review",
+        "call": 482,
+        "attempt": 1,
+        "source_file": "error-ch26-review-482-0.json"
+      }
+    },
+    {
+      "id": 186,
+      "observed_at": "2026-10-07T12:12:15+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 16；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 185,
+      "observed_at": "2026-10-07T12:12:10+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 184,
+      "observed_at": "2026-10-07T12:05:00+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 27 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 27,
+        "sha256": "e12ae423f95f9183d5fc4e42cc14a7c2bdd6009ff64b756a3b823026d21b623e"
+      }
+    },
+    {
+      "id": 183,
+      "observed_at": "2026-10-07T12:04:55+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 30 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 30,
+        "sha256": "e188b0c0d4a1018cc318030a5b6360f439fc0bb4bfd704fa9b70431e657404ad"
+      }
+    },
+    {
+      "id": 182,
+      "observed_at": "2026-10-07T12:04:40+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 30 章修訂後需再審查。",
+      "details": {
+        "chapter": 30
+      }
+    },
+    {
+      "id": 181,
+      "observed_at": "2026-10-07T12:04:40+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 27 章修訂後需再審查。",
+      "details": {
+        "chapter": 27
+      }
+    },
+    {
+      "id": 180,
+      "observed_at": "2026-10-07T12:04:40+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 26 章修訂後需再審查。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 179,
+      "observed_at": "2026-10-07T12:02:09+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 21 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 21,
+        "sha256": "029c5f549726e52c1a37e678d304fbcae236e7334a07a95e1ea579ea1a02bcbb"
+      }
+    },
+    {
+      "id": 178,
+      "observed_at": "2026-10-07T12:00:18+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 24 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 24,
+        "sha256": "45aea07474523ff2339ac0ee1be540deac6796ba5d83704fabce129425e8cec2"
+      }
+    },
+    {
+      "id": 177,
+      "observed_at": "2026-10-07T12:00:02+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 23 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 23,
+        "sha256": "bc4ae32f52956a511afeeedb0fedbd6f318e23777bf6d0f969b7da98d766ea5d"
+      }
+    },
+    {
+      "id": 176,
+      "observed_at": "2026-10-07T11:59:47+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 24 章修訂後需再審查。",
+      "details": {
+        "chapter": 24
+      }
+    },
+    {
+      "id": 175,
+      "observed_at": "2026-10-07T11:59:47+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 23 章修訂後需再審查。",
+      "details": {
+        "chapter": 23
+      }
+    },
+    {
+      "id": 174,
+      "observed_at": "2026-10-07T11:59:47+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 21 章修訂後需再審查。",
+      "details": {
+        "chapter": 21
+      }
+    },
+    {
+      "id": 173,
+      "observed_at": "2026-10-07T11:56:47+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 21 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 21,
+        "sha256": "b7f19d99ea307caa59b48ff34f7d3dab764ca6edf98c2f2fc80eb6ade7a3e381"
+      }
+    },
+    {
+      "id": 172,
+      "observed_at": "2026-10-07T11:54:15+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 23 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 23,
+        "sha256": "2269bfcd93c8c83bb4a3903f06d31d529f485657ff2c6b37779c77305a119407"
+      }
+    },
+    {
+      "id": 171,
+      "observed_at": "2026-10-07T11:53:51+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 23 章修訂後需再審查。",
+      "details": {
+        "chapter": 23
+      }
+    },
+    {
+      "id": 170,
+      "observed_at": "2026-10-07T11:53:51+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 21 章修訂後需再審查。",
+      "details": {
+        "chapter": 21
+      }
+    },
+    {
+      "id": 169,
+      "observed_at": "2026-10-07T11:38:20+08:00",
+      "kind": "cross_review_started",
+      "level": "info",
+      "message": "進入五部跨章審查階段。",
+      "details": {}
+    },
+    {
+      "id": 168,
+      "observed_at": "2026-10-07T11:38:20+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 26 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 26,
+        "sha256": "bcafb5fae3b1199eed4cf10b5b4858f7ce6232357970fa550c0b55649826291b"
+      }
+    },
+    {
+      "id": 167,
+      "observed_at": "2026-10-07T11:36:09+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 24 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 24,
+        "sha256": "2637d35a1d034c78a4d53f8b3eb47106847427dd2d90d5c618071293e50fc8f6"
+      }
+    },
+    {
+      "id": 166,
+      "observed_at": "2026-10-07T11:34:40+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 15；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 165,
+      "observed_at": "2026-10-07T11:34:36+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 164,
+      "observed_at": "2026-10-07T11:29:42+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 29 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 29,
+        "sha256": "5c4cd10c1ae5d0e8e8fc15e41f8692dee81b19c3f2d7ecc104cf88f63816f355"
+      }
+    },
+    {
+      "id": 163,
+      "observed_at": "2026-10-07T11:29:13+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 30 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 30,
+        "sha256": "cbe74a1feb5787a902c339a330757ca5d17ec586eb633c5c6b4f6e7fbe571b0a"
+      }
+    },
+    {
+      "id": 162,
+      "observed_at": "2026-10-07T11:28:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 29 章修訂後需再審查。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 161,
+      "observed_at": "2026-10-07T11:28:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 30 章修訂後需再審查。",
+      "details": {
+        "chapter": 30
+      }
+    },
+    {
+      "id": 160,
+      "observed_at": "2026-10-07T11:28:49+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 26 章修訂後需再審查。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 159,
+      "observed_at": "2026-10-07T11:26:46+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 26 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 26,
+        "sha256": "a6980f1a02915a6e2c762ecdbe61f7601227c3c0f6f6210855345700632b3d7b"
+      }
+    },
+    {
+      "id": 158,
+      "observed_at": "2026-10-07T11:26:27+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 30 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 30,
+        "sha256": "77ebf62c8ad51df0d4f1ccd34353cbd78d523e51f5606c34e76c1582f36b5d1d"
+      }
+    },
+    {
+      "id": 157,
+      "observed_at": "2026-10-07T11:26:07+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 30 章修訂後需再審查。",
+      "details": {
+        "chapter": 30
+      }
+    },
+    {
+      "id": 156,
+      "observed_at": "2026-10-07T11:26:07+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 26 章修訂後需再審查。",
+      "details": {
+        "chapter": 26
+      }
+    },
+    {
+      "id": 155,
+      "observed_at": "2026-10-07T11:24:05+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 21 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 21,
+        "sha256": "677c2b0ca5f49d9d1d5a3a9e9dd5cd1dbc06c52f51c3e90ebbe0c326bb080baf"
+      }
+    },
+    {
+      "id": 154,
+      "observed_at": "2026-10-07T11:21:03+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 24 章修訂後需再審查。",
+      "details": {
+        "chapter": 24
+      }
+    },
+    {
+      "id": 153,
+      "observed_at": "2026-10-07T11:21:03+08:00",
+      "kind": "chapter_reopened",
+      "level": "warning",
+      "message": "第 21 章修訂後需再審查。",
+      "details": {
+        "chapter": 21
+      }
+    },
+    {
+      "id": 152,
+      "observed_at": "2026-10-07T11:17:09+08:00",
+      "kind": "part_approved",
+      "level": "info",
+      "message": "第 2 部跨章模型審查通過。",
+      "details": {
+        "part": 2,
+        "fingerprint": "2a779d759e3c4be488c62353cc7e0b85e6866f82698ef8e6716fddba92688ad3"
+      }
+    },
+    {
+      "id": 151,
+      "observed_at": "2026-10-07T11:03:50+08:00",
+      "kind": "cross_review_started",
+      "level": "info",
+      "message": "進入五部跨章審查階段。",
+      "details": {}
+    },
+    {
+      "id": 150,
+      "observed_at": "2026-10-07T11:03:50+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 14；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 149,
+      "observed_at": "2026-10-07T11:03:50+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 29 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 29,
+        "sha256": "23eeafa6d23e50af38afd9da784ea8b6c131a96a0609801d983f45079d2296b3"
+      }
+    },
+    {
+      "id": 148,
+      "observed_at": "2026-10-07T11:02:41+08:00",
+      "kind": "worker_resumed",
+      "level": "info",
+      "message": "已偵測到編輯／續跑程序恢復執行。",
+      "details": {}
+    },
+    {
+      "id": 147,
+      "observed_at": "2026-10-07T11:02:41+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 13；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 146,
+      "observed_at": "2026-10-07T07:09:43+08:00",
+      "kind": "worker_stopped",
+      "level": "error",
+      "message": "已連續15秒未偵測到本卷編輯／續跑程序，工作未完成；通知監測仍在運作。",
+      "details": {
+        "status": "needs_editorial_attention"
+      }
+    },
+    {
+      "id": 145,
+      "observed_at": "2026-10-07T07:09:18+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 144,
+      "observed_at": "2026-10-07T07:09:18+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 143,
+      "observed_at": "2026-10-07T07:06:15+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 12；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 142,
+      "observed_at": "2026-10-07T07:06:10+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 141,
+      "observed_at": "2026-10-07T07:06:10+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 140,
+      "observed_at": "2026-10-07T07:04:31+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 11；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 139,
+      "observed_at": "2026-10-07T07:04:26+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 138,
+      "observed_at": "2026-10-07T07:04:26+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 09 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 9,
+        "sha256": "3654d7eeb615187afd1af7cfa9a2188933a370c013fd80aa92234270d9902661"
+      }
+    },
+    {
+      "id": 137,
+      "observed_at": "2026-10-07T07:02:47+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 136,
+      "observed_at": "2026-10-07T07:02:17+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 19 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 19,
+        "sha256": "0ffda40d6b801c050f2ce7283c7c3dd62842630efe010487523a0cf46117a92e"
+      }
+    },
+    {
+      "id": 135,
+      "observed_at": "2026-10-07T06:59:19+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 10；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 134,
+      "observed_at": "2026-10-07T06:59:14+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 133,
+      "observed_at": "2026-10-07T06:58:15+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 132,
+      "observed_at": "2026-10-07T06:57:00+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 19 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 131,
+      "observed_at": "2026-10-07T06:54:51+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 9；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 130,
+      "observed_at": "2026-10-07T06:54:46+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 129,
+      "observed_at": "2026-10-07T06:53:22+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 128,
+      "observed_at": "2026-10-07T06:52:42+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 24 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 24,
+        "sha256": "836d5f8b38b8d478cccf80758842d38ce54d7fe40d285f20feb1046cfeb8b32d"
+      }
+    },
+    {
+      "id": 127,
+      "observed_at": "2026-10-07T06:51:43+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 19 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 126,
+      "observed_at": "2026-10-07T06:48:45+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 8；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 125,
+      "observed_at": "2026-10-07T06:48:39+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 124,
+      "observed_at": "2026-10-07T06:48:34+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 24 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 24
+      }
+    },
+    {
+      "id": 123,
+      "observed_at": "2026-10-07T06:47:25+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 122,
+      "observed_at": "2026-10-07T06:46:16+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 04 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 4,
+        "sha256": "d0f14f50949c84ea3b2aece4d9895e1a72722dce585e13c604159644fad9cf90"
+      }
+    },
+    {
+      "id": 121,
+      "observed_at": "2026-10-07T06:44:36+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 19 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 120,
+      "observed_at": "2026-10-07T06:41:28+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 7；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 119,
+      "observed_at": "2026-10-07T06:41:23+08:00",
+      "kind": "editorial_attention",
+      "level": "warning",
+      "message": "本輪仍有編輯待辦；續跑程序仍在執行。",
+      "details": {}
+    },
+    {
+      "id": 118,
+      "observed_at": "2026-10-07T06:41:23+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 24 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 24
+      }
+    },
+    {
+      "id": 117,
+      "observed_at": "2026-10-07T06:41:04+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 116,
+      "observed_at": "2026-10-07T06:38:30+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 19 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 115,
+      "observed_at": "2026-10-07T06:37:40+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 14 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 14,
+        "sha256": "bc49303f5df805d4c090e72fbe0e6a06a053181b351769fa06a2c01771b04883"
+      }
+    },
+    {
+      "id": 114,
+      "observed_at": "2026-10-07T06:36:46+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 09 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 9
+      }
+    },
+    {
+      "id": 113,
+      "observed_at": "2026-10-07T06:36:16+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 07 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 7,
+        "sha256": "faf5537f969385b1fe6b78a4951cac830cddfc723b7e9fd5eefaad4a19cbd159"
+      }
+    },
+    {
+      "id": 112,
+      "observed_at": "2026-10-07T06:36:06+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 12 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 12,
+        "sha256": "098069ba85faf0168ca953509d67de7cc048bbb303a0a7807190309964c8f190"
+      }
+    },
+    {
+      "id": 111,
+      "observed_at": "2026-10-07T06:32:58+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 6；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 110,
+      "observed_at": "2026-10-07T06:32:58+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 109,
+      "observed_at": "2026-10-07T06:32:38+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 24 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 24
+      }
+    },
+    {
+      "id": 108,
+      "observed_at": "2026-10-07T06:25:07+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 09 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 9
+      }
+    },
+    {
+      "id": 107,
+      "observed_at": "2026-10-07T06:24:47+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 12 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 12
+      }
+    },
+    {
+      "id": 106,
+      "observed_at": "2026-10-07T06:24:32+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 07 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 7
+      }
+    },
+    {
+      "id": 105,
+      "observed_at": "2026-10-07T06:22:43+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 5；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 104,
+      "observed_at": "2026-10-07T06:21:43+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 24 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 24
+      }
+    },
+    {
+      "id": 103,
+      "observed_at": "2026-10-07T06:21:39+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 102,
+      "observed_at": "2026-10-07T06:21:29+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 19 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 101,
+      "observed_at": "2026-10-07T06:18:00+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 27 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 27,
+        "sha256": "a80d78d7340aac408589db1463f84ba50abf6e858b0dedabb53023a9f4a4e032"
+      }
+    },
+    {
+      "id": 100,
+      "observed_at": "2026-10-07T06:14:07+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 12 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 12
+      }
+    },
+    {
+      "id": 99,
+      "observed_at": "2026-10-07T06:13:52+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 07 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 7
+      }
+    },
+    {
+      "id": 98,
+      "observed_at": "2026-10-07T06:13:47+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 09 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 9
+      }
+    },
+    {
+      "id": 97,
+      "observed_at": "2026-10-07T06:13:32+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 04 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 4
+      }
+    },
+    {
+      "id": 96,
+      "observed_at": "2026-10-07T06:11:48+08:00",
+      "kind": "timeout",
+      "level": "warning",
+      "message": "ch09-revision：第 2 次嘗試逾時。此階段重試已耗盡，交由續跑／主編處理；不代表全卷停止。",
+      "details": {
+        "phase": "ch09-revision",
+        "call": 270,
+        "attempt": 2,
+        "source_file": "error-ch09-revision-270-1.json"
+      }
+    },
+    {
+      "id": 95,
+      "observed_at": "2026-10-07T06:11:48+08:00",
+      "kind": "repair_started",
+      "level": "info",
+      "message": "進入修補世代 4；續跑未完成工作。",
+      "details": {}
+    },
+    {
+      "id": 94,
+      "observed_at": "2026-10-07T06:11:48+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 09 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 9
+      }
+    },
+    {
+      "id": 93,
+      "observed_at": "2026-10-07T05:51:55+08:00",
+      "kind": "attempt_failed",
+      "level": "warning",
+      "message": "ch09-revision：第 1 次嘗試失敗，等待重試或主編處理。",
+      "details": {
+        "phase": "ch09-revision",
+        "call": 269,
+        "attempt": 1,
+        "source_file": "error-ch09-revision-269-0.json"
+      }
+    },
+    {
+      "id": 92,
+      "observed_at": "2026-10-07T05:11:49+08:00",
+      "kind": "draft_ready",
+      "level": "info",
+      "message": "第 09 章初稿完成，等待審稿。",
+      "details": {
+        "chapter": 9
+      }
+    },
+    {
+      "id": 91,
+      "observed_at": "2026-10-07T05:08:58+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 24 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 24
+      }
+    },
+    {
+      "id": 90,
+      "observed_at": "2026-10-07T05:08:12+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 29 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 29
+      }
+    },
+    {
+      "id": 89,
+      "observed_at": "2026-10-07T05:08:07+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 27 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 27
+      }
+    },
+    {
+      "id": 88,
+      "observed_at": "2026-10-07T05:05:51+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 19 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 19
+      }
+    },
+    {
+      "id": 87,
+      "observed_at": "2026-10-07T05:05:06+08:00",
+      "kind": "chapter_approved",
+      "level": "info",
+      "message": "第 22 章逐章模型審稿通過（非人工審定）。",
+      "details": {
+        "chapter": 22,
+        "sha256": "1e5819ab5670aa7337f55ef15255d2bdb49bd1786bca2fffa84e701d191711cf"
+      }
+    },
+    {
+      "id": 86,
+      "observed_at": "2026-10-07T05:03:25+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 14 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 14
+      }
+    },
+    {
+      "id": 85,
+      "observed_at": "2026-10-07T05:02:25+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 04 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 4
+      }
+    },
+    {
+      "id": 84,
+      "observed_at": "2026-10-07T05:00:39+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 12 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 12
+      }
+    },
+    {
+      "id": 83,
+      "observed_at": "2026-10-07T05:00:19+08:00",
+      "kind": "chapter_error",
+      "level": "warning",
+      "message": "第 07 章階段失敗，已留待重試或主編處理；不代表全卷停止。",
+      "details": {
+        "chapter": 7
+      }
+    },
+    {
+      "id": 82,
+      "observed_at": "2026-10-07T04:59:13+08:00",
+      "kind": "attempt_failed",
+      "level": "warning",
+      "message": "ch09-draft：第 2 次嘗試失敗，等待重試或主編處理。",
+      "details": {
+        "phase": "ch09-draft",
+        "call": 229,
+        "attempt": 2,
+        "source_file": "error-ch09-draft-229-1.json"
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "key": "b1ec1928c03abd1839b57d2f842a9b7e36d1ba6d66ade81acea42f441be0c40c",
+  "person": {
+    "id": "v5_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 481,
+  "result": "<<<PATCH 26>>>\n<<<OLD>>>\nB1. 把 `quantize_symmetric` 改成逐列（沿 $D_{\\mathrm{out}}$ 軸）版本，回傳尺度形狀 $(D_{\\mathrm{in}},1)$，並對 $4\\times 3$ 隨機矩陣檢查每列誤差界。\n<<<NEW>>>\nB1. 把 `quantize_symmetric` 改成逐行（對 $W\\in\\mathbb{R}^{D_{\\mathrm{in}}\\times D_{\\mathrm{out}}}$ 沿第 1 軸 $D_{\\mathrm{out}}$ reduction）版本，回傳尺度形狀 $(D_{\\mathrm{in}},1)$，並對 $4\\times 3$ 隨機矩陣檢查每行誤差界。\n<<<END>>>"
+}

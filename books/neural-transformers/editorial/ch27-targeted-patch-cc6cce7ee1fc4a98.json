@@ -1,0 +1,11 @@
+{
+  "key": "cc6cce7ee1fc4a986fe0a2d259b3debef30dedc46406b112e24124e481b6ed72",
+  "person": {
+    "id": "v5_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 290,
+  "result": "<<<PATCH 27>>>\n<<<OLD>>>\n    if mask.shape != times.shape:\n        raise ValueError(\"mask須為(B,T)\")\n    if tau.shape != (h.shape[0],):\n<<<NEW>>>\n    if mask.shape != times.shape:\n        raise ValueError(\"mask須為(B,T)\")\n    if mask.dtype != torch.bool:\n        raise ValueError(\"mask須為torch.bool\")\n    if tau.shape != (h.shape[0],):\n<<<END>>>\n<<<PATCH 27>>>\n<<<OLD>>>\n    h = torch.tensor([[[1.0]]], dtype=DTYPE)\n    times = torch.tensor([[0.0]], dtype=DTYPE)\n    mask = torch.tensor([[True]])\n    tau = torch.tensor([0.0], dtype=DTYPE)\n    for sigma, window in (\n<<<NEW>>>\n    h = torch.tensor([[[1.0]]], dtype=DTYPE)\n    times = torch.tensor([[0.0]], dtype=DTYPE)\n    mask = torch.tensor([[True]])\n    tau = torch.tensor([0.0], dtype=DTYPE)\n    expect_value_error(\n        lambda: aligned_pool(\n            h, times, torch.tensor([[1]], dtype=torch.int64), tau, 1.0, 1.0\n        ),\n        \"mask須為torch.bool\",\n    )\n    for sigma, window in (\n<<<END>>>"
+}

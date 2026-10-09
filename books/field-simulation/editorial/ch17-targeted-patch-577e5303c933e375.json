@@ -1,0 +1,20 @@
+{
+  "key": "577e5303c933e375c525071175664e00393876041fec4c70914d18c040dbf407",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 267,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "    if triangles.ndim != 2 or triangles.shape[1] != 3:\n        raise ValueError(\"triangles 必須具有形狀 (nelem, 3)\")",
+        "new": "    if triangles.ndim != 2 or triangles.shape[1] != 3 or len(triangles) == 0:\n        raise ValueError(\"triangles 必須具有形狀 (nelem, 3)，且至少有一個元素\")"
+      }
+    ],
+    "reason": "補上原稿網格驗證對空元素表的必要拒絕，避免將無元素的矩陣誤視為有效有限元素模型。審稿重複引用的 `$$\\nu` 是 JSON 中的 `\\n` 換行後接 `u`；原稿解碼後三式本來就是 $u=g_D$、$u_h=\\sum_aU_aN_a$ 及 $u=0$，因此不改動正確公式。未執行程式。"
+  }
+}

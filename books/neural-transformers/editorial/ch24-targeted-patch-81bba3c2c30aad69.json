@@ -1,0 +1,11 @@
+{
+  "key": "81bba3c2c30aad6973882409425986c83c06034fa717c45e9fa38cb0829df4c2",
+  "person": {
+    "id": "v5_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 186,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n*   **校準指標**：ECE（Expected Calibration Error）依賴分箱策略，其值受箱數與邊界影響，且有限樣本下存在正偏差。校準良好不代表模型具備事實推理能力。\n<<<NEW>>>\n*   **校準指標**：ECE（Expected Calibration Error）依賴分箱策略，其值受箱數與邊界影響；在固定分箱及獨立同分布條件下，經驗 ECE 的期望不低於母體固定分箱 ECE，但不保證嚴格大於。校準良好不代表模型具備事實推理能力。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n此機制能有效降低「已回答樣本」中的風險（Risk），但代價是降低了「覆蓋率」（Coverage，即回答的比例）。\n<<<NEW>>>\n若信心分數能有效排序錯誤風險，此機制可能降低「已回答樣本」中的風險（Risk），代價是降低「覆蓋率」（Coverage，即回答的比例）；是否成立須由驗證集檢查。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n對 $N_b$ 取全期望：\n$$ E[ |X_b| ] = \\sum_{n=0}^{N} P(N_b=n) E[ |X_b| \\mid N_b=n ] $$\n當 $n=0$ 時，$X_b$ 未定義，但在 ECE 公式中 $\\frac{N_b}{N} |X_b|$ 項為 0（若定義 $0 \\cdot \\infty = 0$ 或明確跳過）。對於 $n>0$：\n<<<NEW>>>\n對 $N_b$ 取全期望時，先定義箱貢獻 $Y_b$：若 $N_b=0$，令 $Y_b=0$；若 $N_b>0$，令 $Y_b=\\frac{N_b}{N}|X_b|$。如此不必計算空箱中未定義的 $X_b$，只需對 $n=1,\\ldots,N$ 求和：\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n    *   $\\text{LSE} = 10 + \\ln(1) = 10$.\n    *   $\\text{NLL}_2 = 10 - 10 = 0$.\n<<<NEW>>>\n    *   $\\text{LSE} = 10 + \\ln(1+3e^{-110}) \\approx 10$.\n    *   $\\text{NLL}_2 = \\ln(1+3e^{-110}) > 0$，四位小數下約為 0。\n<<<END>>>\n<<<PATCH 05>>>\n<<<OLD>>>\n| Mean NLL | 1.0 | 2.5 |\n| PPL | 2.718 | 12.182 |\n<<<NEW>>>\n| Mean NLL | 1.0 | 2.3 |\n| PPL | 2.718 | 9.974 |\n<<<END>>>"
+}

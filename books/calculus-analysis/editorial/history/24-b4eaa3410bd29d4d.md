@@ -1,0 +1,373 @@
+# 第24章 函數列、一致收斂與極限交換
+
+## 學習目標與先備知識
+
+本章旨在建立函數列收斂的嚴格定義，闡述「逐點收斂」與「一致收斂」的區別，並探討在極限過程下交換積分與微分運算的充分條件。讀者需具備前三章的微積分基礎，特別是連續性定義、Riemann積分性質以及多變量微分的概念。
+
+學習目標包括：
+1.  定義函數列的逐點收斂與一致收斂，並理解其 epsilon-N 語言本質。
+2.  證明一致收斂函數列的極限函數連續性，並找出逐點收斂反例。
+3.  掌握函數列積分與微分運算交換的充分條件，如 M-判準（Weierstrass M-test）。
+4.  處理參數積分與參數級數的微分問題，理解「連續偏導數」條件的重要性。
+5.  通過具體例子辨析「函數值一致小」但「導數不一致收斂」的現象。
+
+先備知識回顧：
+-   實數序列極限的 $\epsilon$-$N$ 定義。
+-   Riemann 積分的線性性與單調性。
+-   單變量導數的定義與連續函數的可微性（在特定條件下）。
+-   多變量函數的偏導數與連續性關係。
+
+## 問題與直覺
+
+在分析學中，處理極限是一個核心操作。當我們面對一個函數列 $f_n(x)$ 並取其極限 $f(x) = \lim_{n\to\infty} f_n(x)$ 時，一個自然的問題是：我們能否對極限函數 $f$ 進行積分或微分，並將其結果等同於對每個 $f_n$ 進行相同操作後再取極限？即，以下等式是否成立？
+$$ \int_a^b \left( \lim_{n\to\infty} f_n(x) \right) dx \stackrel{?}{=} \lim_{n\to\infty} \int_a^b f_n(x) dx $$
+$$ \frac{d}{dx} \left( \lim_{n\to\infty} f_n(x) \right) \stackrel{?}{=} \lim_{n\to\infty} \frac{d}{dx} f_n(x) $$
+
+直覺上，如果 $f_n$ 非常「平滑」且「穩定」地趨近於 $f$，這些交換似乎應該成立。然而，「逐點收斂」僅僅保證了對每一個固定的 $x$，$f_n(x)$ 都趨近於 $f(x)$。這是一種「局部」或「點對點」的收斂行為，無法控制整個區間 $[a,b]$ 上的誤差。如果收斂速度在區間不同位置變化極大，或者導數在極限過程中發生突變，上述等式可能失效。
+
+為了解決這個問題，我們需要一個更強的收斂概念——**一致收斂**。一致收斂要求 $f_n$ 與 $f$ 之間的距離在整個定義域內都能被統一控制，與具體的 $x$ 無關。這種「全局」的收斂性為極限交換提供了必要的穩健性。本章將詳細展開這些概念，並給出嚴格的定理與反例。
+
+## 定義、定理與推導
+
+### 1. 逐點收斂與一致收斂
+
+**定義 24.1 (逐點收斂)** 設 $D \subseteq \mathbb{R}$，$\{f_n\}_{n=1}^\infty$ 為定義在 $D$ 上的實值函數列。若對任意 $x \in D$，存在極限 $f(x) = \lim_{n\to\infty} f_n(x)$，則稱 $\{f_n\}$ 在 $D$ 上**逐點收斂**於 $f$。
+
+用 $\epsilon$-$N$ 語言描述：對任意 $x \in D$ 及任意 $\epsilon > 0$，存在 $N \in \mathbb{N}$（$N$ 依賴於 $x$ 和 $\epsilon$），使得對所有 $n \ge N$，有 $|f_n(x) - f(x)| < \epsilon$。
+
+**定義 24.2 (一致收斂)** 若對任意 $\epsilon > 0$，存在 $N \in \mathbb{N}$（$N$ **不依賴於** $x$），使得對所有 $n \ge N$ 及所有 $x \in D$，有 $|f_n(x) - f(x)| < \epsilon$，則稱 $\{f_n\}$ 在 $D$ 上**一致收斂**於 $f$。
+
+關鍵差異在於 $N$ 是否依賴於 $x$。一致收斂是一種更強的条件，它確保了收斂的「均勻性」。
+
+**定理 24.3 (一致收斂保持連續性)** 若 $\{f_n\}$ 在 $[a,b]$ 上一致收斂於連續函數 $f$，則 $f$ 在 $[a,b]$ 上連續。
+
+**證明：**
+設 $x_0 \in [a,b]$。由於 $f_n$ 一致收斂於 $f$，對任意 $\epsilon > 0$，存在 $N$ 使得對所有 $n \ge N$ 及所有 $x \in [a,b]$，$|f_n(x) - f(x)| < \frac{\epsilon}{3}$。
+固定某個 $n_0 \ge N$。由於 $f_{n_0}$ 在 $x_0$ 連續，存在 $\delta > 0$ 使得對所有 $x \in [a,b]$ 且 $|x - x_0| < \delta$，有 $|f_{n_0}(x) - f_{n_0}(x_0)| < \frac{\epsilon}{3}$。
+現在考慮 $|f(x) - f(x_0)|$：
+$$ |f(x) - f(x_0)| \le |f(x) - f_{n_0}(x)| + |f_{n_0}(x) - f_{n_0}(x_0)| + |f_{n_0}(x_0) - f(x_0)| $$
+$$ < \frac{\epsilon}{3} + \frac{\epsilon}{3} + \frac{\epsilon}{3} = \epsilon $$
+因此 $f$ 在 $x_0$ 連續。由 $x_0$ 的任意性，$f$ 在 $[a,b]$ 上連續。$\blacksquare$
+
+注意：此定理的逆命题不成立。即，逐點收斂於連續函數的函數列不一定一致收斂（見後文反例）。
+
+### 2. 積分與微分的交換
+
+**定理 24.4 (積分交換)** 若 $\{f_n\}$ 在 $[a,b]$ 上可積，且一致收斂於 $f$，則
+$$ \lim_{n\to\infty} \int_a^b f_n(x) dx = \int_a^b f(x) dx $$
+
+**證明：**
+$$ \left| \int_a^b f_n(x) dx - \int_a^b f(x) dx \right| = \left| \int_a^b (f_n(x) - f(x)) dx \right| \le \int_a^b |f_n(x) - f(x)| dx $$
+由一致收斂，對任意 $\epsilon > 0$，存在 $N$ 使得當 $n \ge N$ 時，$|f_n(x) - f(x)| < \frac{\epsilon}{b-a}$ 對所有 $x \in [a,b]$ 成立。
+因此，
+$$ \int_a^b |f_n(x) - f(x)| dx < \int_a^b \frac{\epsilon}{b-a} dx = \epsilon $$
+故極限成立。$\blacksquare$
+
+**定理 24.5 (微分交換)** 設 $\{f_n\}$ 滿足：
+1.  $f_n$ 在 $[a,b]$ 上可微，且 $f_n'$ 連續。
+2.  $f_n$ 在某點 $c \in [a,b]$ 處逐點收斂於 $f(c)$（或更一般地，$f_n(c)$ 收斂）。
+3.  $f_n'$ 在 $[a,b]$ 上一致收斂於某函數 $g$。
+
+則 $f$ 在 $[a,b]$ 上可微，且 $f' = g$。
+
+**證明：**
+對任意 $x_1, x_2 \in [a,b]$，由微積分基本定理：
+$$ f_n(x_2) - f_n(x_1) = \int_{x_1}^{x_2} f_n'(x) dx $$
+令 $n \to \infty$。由條件 3，$f_n'$ 一致收斂於 $g$，故由定理 24.4：
+$$ \lim_{n\to\infty} (f_n(x_2) - f_n(x_1)) = \int_{x_1}^{x_2} g(x) dx $$
+另一方面，由條件 2 及 $f_n$ 的收斂性（需注意這裡需要 $f_n$ 在整個區間收斂，通常可由 $f_n'$ 的一致收斂及 $f_n(c)$ 收斂推導出 $f_n$ 的一致收斂），左側極限為 $f(x_2) - f(x_1)$。
+因此，
+$$ f(x_2) - f(x_1) = \int_{x_1}^{x_2} g(x) dx $$
+由於 $g$ 連續（一致收斂的連續函數列之極限），$g$ 可積。由微積分基本定理，$f$ 可微且 $f' = g$。$\blacksquare$
+
+### 3. Weierstrass M-判準
+
+在級數理論中，判斷一個函數級數是否一致收斂的最常用工具是 M-判準。
+
+**定理 24.6 (Weierstrass M-Test)** 設 $\sum_{n=1}^\infty f_n(x)$ 定義在 $D$ 上。若存在正數序列 $M_n$ 使得：
+1.  $|f_n(x)| \le M_n$ 對所有 $x \in D$ 及所有 $n$ 成立。
+2.  $\sum_{n=1}^\infty M_n$ 收斂。
+
+則 $\sum_{n=1}^\infty f_n(x)$ 在 $D$ 上一致收斂（且絕對收斂）。
+
+**證明：**
+令 $S_n(x) = \sum_{k=1}^n f_k(x)$ 為部分和。對 $m > n$，
+$$ \left| \sum_{k=n+1}^m f_k(x) \right| \le \sum_{k=n+1}^m |f_k(x)| \le \sum_{k=n+1}^m M_k $$
+由於 $\sum M_n$ 收斂，其尾部 $\sum_{k=n+1}^m M_k$ 隨 $n,m \to \infty$ 而趨近於 0，且與 $x$ 無關。因此 $\{S_n\}$ 滿足一致 Cauchy 條件，故一致收斂。$\blacksquare$
+
+### 4. 參數積分與級數的微分
+
+**定理 24.7 (參數積分微分)** 設 $f(x,t)$ 定義在 $[a,b] \times [c,d]$ 上。若：
+1.  $f(x,t)$ 在 $[a,b] \times [c,d]$ 上連續。
+2.  $\frac{\partial f}{\partial t}(x,t)$ 在 $[a,b] \times [c,d]$ 上連續。
+3.  $F(t) = \int_a^b f(x,t) dx$。
+
+則 $F(t)$ 在 $[c,d]$ 上可微，且
+$$ F'(t) = \int_a^b \frac{\partial f}{\partial t}(x,t) dx $$
+
+**證明：**
+$$ F(t+h) - F(t) = \int_a^b [f(x,t+h) - f(x,t)] dx $$
+由中值定理（對變量 $t$），存在 $\theta \in (0,1)$ 使得
+$$ f(x,t+h) - f(x,t) = h \frac{\partial f}{\partial t}(x, t+\theta h) $$
+因此，
+$$ \frac{F(t+h) - F(t)}{h} = \int_a^b \frac{\partial f}{\partial t}(x, t+\theta h) dx $$
+當 $h \to 0$，由於 $\frac{\partial f}{\partial t}$ 連續，$\frac{\partial f}{\partial t}(x, t+\theta h) \to \frac{\partial f}{\partial t}(x, t)$ 一致收斂（在緊集上連續函數族的一致收斂性可通過局部 Lipschitz 性或一致連續性论证）。故極限可移入積分號下，得證。$\blacksquare$
+
+類似的，對於參數級數 $\sum f_n(x,t)$，若 $f_n$ 及其關於 $t$ 的偏導數滿足一致的 M-判準，則級數的和函數可微，且可逐項微分。
+
+## 逐步手算例題
+
+### 例 1：$x^n$ 在 $[0,1]$ 上的收斂行為
+
+考慮 $f_n(x) = x^n$ 在 $[0,1]$ 上。
+1.  **逐點極限**：
+    -   若 $x \in [0,1)$，$\lim_{n\to\infty} x^n = 0$。
+    -   若 $x = 1$，$\lim_{n\to\infty} 1^n = 1$。
+    -   故極限函數 $f(x) = \begin{cases} 0, & 0 \le x < 1 \\ 1, & x = 1 \end{cases}$。
+2.  **連續性**：$f(x)$ 在 $x=1$ 處不連續。
+3.  **收斂類型**：由於極限函數不連續，而 $f_n(x)$ 連續，由定理 24.3 的逆否命題可知，$\{f_n\}$ 在 $[0,1]$ 上**不一致收斂**。
+    *驗證*：取 $x_n = 1 - \frac{1}{n}$。則 $f_n(x_n) = (1 - \frac{1}{n})^n \to e^{-1} \neq 0$。但 $f(x_n) = 0$。故 $|f_n(x_n) - f(x_n)| \to e^{-1}$，無法任意小，故不一致。
+
+### 例 2：一致小但導數不小的反例
+
+考慮 $f_n(x) = \frac{x}{n}$ 在 $[0,1]$ 上。
+1.  **函數值收斂**：
+    -   $\sup_{x \in [0,1]} |f_n(x) - 0| = \frac{1}{n} \to 0$。
+    -   故 $f_n \to 0$ 一致收斂。
+2.  **導數**：
+    -   $f_n'(x) = \frac{1}{n}$。
+    -   極限函數 $f(x) = 0$ 的導數 $f'(x) = 0$。
+    -   $f_n'(x) \to 0$ 一致收斂。
+    -   在此例中，微分交換成立：$0 = \lim \frac{1}{n}$。
+
+**反例**：考慮 $f_n(x) = \frac{\sin(nx)}{n}$ 在 $[0, \infty)$ 或 $[0, \pi]$。
+1.  **函數值**：$|f_n(x)| \le \frac{1}{n}$，故 $f_n \to 0$ 一致收斂。
+2.  **導數**：$f_n'(x) = \cos(nx)$。
+3.  **導數極限**：$\cos(nx)$ 不隨 $n \to \infty$ 收斂（逐點或一致）。例如取 $x = \frac{\pi}{2n}$，則 $\cos(n \cdot \frac{\pi}{2n}) = \cos(\frac{\pi}{2}) = 0$；取 $x=0$，$\cos(0)=1$。導數序列不收斂，更不滿足定理 24.5 的條件。
+    這說明即使函數值一致收斂，若導數不一致收斂（或甚至不收斂），我們不能直接交換極限與微分運算。在此例中，$f'(x)=0$，而 $\lim f_n'(x)$ 不存在，故等式 $\frac{d}{dx}\lim f_n \neq \lim \frac{d}{dx}f_n$ 無意義或偽命題。
+
+## 實作與程式
+
+以下 Python 程式碼使用 NumPy 驗證上述數學性質。程式旨在演示一致收斂的檢查、積分極限交換以及反例的驗證。
+
+```python
+import numpy as np
+
+def plot_convergence_check(f_n_func, f_limit_func, a, b, n_samples=1000, N_max=100):
+    """
+    繪製或數值檢查收斂行為。
+    f_n_func: callable(n, x) 返回 f_n(x)
+    f_limit_func: callable(x) 返回 f(x)
+    """
+    x = np.linspace(a, b, n_samples)
+    sup_errors = []
+    
+    for n in range(1, N_max + 1):
+        fn_vals = f_n_func(n, x)
+        f_vals = f_limit_func(x)
+        sup_err = np.max(np.abs(fn_vals - f_vals))
+        sup_errors.append(sup_err)
+        
+    return np.array(sup_errors)
+
+# 例 1: f_n(x) = x^n on [0, 1]
+def f_n_power(n, x):
+    return x ** n
+
+def f_limit_power(x):
+    # 注意：在 x=1 時為 1，否則為 0
+    return np.where(x < 1.0, 0.0, 1.0)
+
+# 例 2: f_n(x) = sin(n*x)/n on [0, pi]
+def f_n_sin(n, x):
+    return np.sin(n * x) / n
+
+def f_limit_zero(x):
+    return np.zeros_like(x)
+
+# 計算積分
+def integrate(func, a, b, n_points=10000):
+    x = np.linspace(a, b, n_points)
+    y = func(x)
+    return np.trapz(y, x)
+
+print("--- 測試 1: x^n 收斂與積分 ---")
+a, b = 0.0, 1.0
+errors = plot_convergence_check(f_n_power, f_limit_power, a, b, N_max=50)
+print(f"最大誤差 (n=10): {errors[9]:.6f}")
+print(f"最大誤差 (n=50): {errors[49]:.6f}")
+# 預期：錯誤下降緩慢，且在 x=1 附近有跳變，導致 sup 誤差接近 1 直到 n 很大？
+# 實際上 sup |x^n - f(x)|。對 x < 1, f(x)=0. sup_{x<1} x^n -> 1 (當 n->inf, 在 x 接近 1 時).
+# 具體來說，sup_{x in [0,1)} x^n = 1 (supremum, 但取不到). 所以 sup error 總是接近 1?
+# 不，x^n 在 [0,1) 上 sup 是 1。在 x=1 處 f(1)=1, f_n(1)=1, error=0.
+# 但是對於 x < 1, f(x)=0. max x^n (x in [0, 1-1/n]) ?
+# 讓我們重新檢查 sup error.
+# f_n(x) = x^n. f(x) = 0 for x<1, 1 for x=1.
+# For x in [0, 1), |f_n(x) - f(x)| = x^n. Sup is 1 (approached as x->1).
+# So sup error should be close to 1 for all n?
+# Let's check n=10. max(x^10) on x in [0, 1). It's 1.
+# Wait, the error function returns max over grid points.
+# If grid includes values close to 1, x^n is close to 1.
+# So errors[9] should be close to 1.
+# This demonstrates NON-uniform convergence.
+
+print("--- 測試 2: sin(nx)/n 收斂與積分 ---")
+a2, b2 = 0.0, np.pi
+errors2 = plot_convergence_check(f_n_sin, f_limit_zero, a2, b2, N_max=50)
+print(f"最大誤差 (n=10): {errors2[9]:.6f}")
+print(f"最大誤差 (n=50): {errors2[49]:.6f}")
+# 預期：錯誤約為 1/n，快速下降。一致收斂。
+
+# 積分驗證
+print("--- 積分交換驗證 ---")
+# Limit integral: integral of 0 = 0
+# Limit of integrals of sin(nx)/n
+for n in [1, 10, 100]:
+    val = integrate(lambda x: f_n_sin(n, x), a2, b2)
+    print(f"Integral of f_{n}: {val:.6f}")
+# 預期：趨近於 0。
+
+# 微分檢查 (Example 2 derivative issue)
+print("--- 導數檢查 (sin(nx)/n) ---")
+# f'_n(x) = cos(nx)
+# Limit function f=0, f'=0
+# Does f'_n converge? No.
+# Check sup norm of f'_n - 0
+x_grid = np.linspace(0, np.pi, 10000)
+for n in [1, 10, 100]:
+    f_prime_vals = np.cos(n * x_grid)
+    sup_diff = np.max(np.abs(f_prime_vals)) # Diff with 0
+    print(f"Sup |f'_{n} - 0|: {sup_diff:.6f}")
+# 預期：總是 1. 不一致收斂到 0.
+```
+
+## 測試與預期結果
+
+1.  **$x^n$ 測試**：
+    -   **輸出**：`errors[9]` 和 `errors[49]` 都接近 1.0。
+    -   **解釋**：這確認了 $x^n$ 在 $[0,1]$ 上不一致收斂。儘管逐點收斂到不連續函數，但我們發現 supremum 誤差在有限 $n$ 下不趨近於 0（對於網格點，它取最大值，接近 1）。
+2.  **$\sin(nx)/n$ 測試**：
+    -   **輸出**：`errors2[9]` 約 0.1，`errors2[49]` 約 0.02。
+    -   **解釋**：誤差隨 $1/n$ 下降，確認一致收斂。
+    -   **積分**：積分值趨近於 0，與極限函數積分一致。
+    -   **導數**：導數的 sup 誤差保持為 1，確認導數序列不收斂（更不是一致收斂到 0）。這展示了微分交換條件失效的情況。
+
+## 反例與常見陷阱
+
+1.  **連續性的陷阱**：
+    -   **反例**：$f_n(x) = x^n$ 在 $[0,1]$。逐點收斂於不連續函數 $f$。
+    -   **陷阱**：誤以為逐點收斂保持連續性。必須是一致收斂才能保證極限函數連續（若各項連續）。
+2.  **微分交換的陷阱**：
+    -   **反例**：$f_n(x) = \frac{\sin(nx)}{n}$。函數一致收斂於 0，但導數 $\cos(nx)$ 不收斂。
+    -   **陷阱**：嘗試直接對 $f_n$ 微分再取極限。必須驗證導數序列的一致收斂性或滿足定理 24.5 的條件。
+3.  **M-判準的濫用**：
+    -   **反例**：級數 $\sum \frac{x^2}{n^2 (1+x^2)}$ 在 $\mathbb{R}$ 上。
+    -   **分析**：$|f_n(x)| \le \frac{1}{n^2}$。$\sum \frac{1}{n^2}$ 收斂。故一致收斂。
+    -   **陷阱**：若誤判 $M_n$ 不收斂，可能錯誤拒絕一致收斂。需仔細尋找最佳界。
+4.  **參數積分的連續性**：
+    -   **陷阱**：假設 $f(x,t)$ 連續則 $F(t)$ 必可微。必須檢查 $\frac{\partial f}{\partial t}$ 的存在與連續性（或更強的條件）。
+
+## AI、幾何與養殖案例
+
+**合成案例：感測數據平滑與極限**
+
+在養殖環境監控中，我們可能收錄一系列時間戳記的溫度感測數據 $T_n(x)$，其中 $n$ 代表採樣頻率或過濾階數，$x$ 代表時間。假設真實溫度曲線為 $T(x)$。
+
+1.  **模型**：假設感測系統應用了低通濾波，使得 $T_n(x)$ 是 $T(x)$ 的平滑逼近。若濾波核寬隨 $n$ 變小，且 $T(x)$ 滿足 Lipschitz 條件，則 $T_n(x)$ 可能一致收斂於 $T(x)$。
+2.  **應用**：我們需要計算總熱量累積 $E = \int T(x) dx$。若 $T_n \to T$ 一致收斂，則 $\lim \int T_n = \int T$，允許我們用離散採樣積分的極限來估算總熱量，且誤差可控。
+3.  **微分應用**：若我們需要估計溫度變化率 $T'(x)$（例如檢測急速升溫預警），直接對平滑數據 $T_n$ 微分可能放大噪聲。若 $T_n'$ 不一致收斂於 $T'$（因為噪聲高頻分量），則直接微分無效。此時應使用專門的數值微分方案或先驗證收斂性。
+4.  **邊界狀況**：若感測器在特定時間點（如開門時）出現瞬時尖峰，導致 $T_n$ 逐點收斂但導數行為病態，一致收斂假設可能在尖峰附近失效。需在該區域使用更細的網格或特殊處理。
+
+**AI 角度的觀察**：
+在深度學習中，神經網絡的輸出可視為複雜的非線性函數列。訓練過程中的權重更新可看作函數列的演化。了解一致收斂有助於理解模型泛化能力：如果訓練集上的誤差一致小，則測試集誤差通常有界（需結構風險假設）。然而，過擬合通常表現為「逐點擬合完美但泛化差」，類似於不一致收斂的行為。
+
+## 習題
+
+1.  **[手算]** 證明函數列 $f_n(x) = n x (1-x)^n$ 在 $[0,1]$ 上逐點收斂於 0，但不一致收斂。
+2.  **[程式]** 編寫 Python 函數，檢查 $g_n(x) = \frac{x}{n+x}$ 在 $[0,10]$ 上是否一致收斂於 0。計算 $n=1, 10, 100, 1000$ 時的 supremum 誤差。
+3.  **[反例]** 給出一個函數列 $h_n(x)$，使其在 $[0,1]$ 上逐點收斂於連續函數 $h(x)$，但 $h_n$ 的導數 $h_n'(x)$ 在 $[0,1]$ 上一致收斂於 $g(x)$，而 $h'(x) \neq g(x)$ 在某處？
+    *提示*：這可能違反定理 24.5 的條件。仔細檢查定理條件是否滿足。如果定理條件滿足，則 $h'=g$。若你要找反例，需打破某個條件。例如，$h_n$ 不可微，或 $h_n(c)$ 不收斂。
+    *修正習題*：試構造 $h_n$ 使得 $h_n \to h$ 逐點，$h_n' \to g$ 一致，但 $h$ 不可微。
+4.  **[整合]** 設 $f(x,y) = \frac{y-x}{(x+y)^2}$ 對 $x \neq -y$，$f(x,-y)=0$。考慮 $F(t) = \int_0^1 f(t x, x) dx$（變換變量）。
+    求 $F(0)$ 及 $\lim_{t \to 0} F(t)$。討論 $\frac{\partial f}{\partial y}$ 在 $(0,0)$ 附近的行為，並解釋為何不能直接交換極限與積分。
+
+## 習題解答
+
+1.  **解答**：
+    -   **逐點**：若 $x \in (0,1)$，$\lim_{n\to\infty} n x (1-x)^n = 0$（因為指數衰減快於線性增長）。若 $x=0$ 或 $x=1$，$f_n(0)=0, f_n(1)=0$。故逐點收斂於 0。
+    -   **不一致**：求 $f_n(x)$ 的最大值。$f_n'(x) = n(1-x)^n + nx \cdot n(1-x)^{n-1}(-1) = n(1-x)^{n-1} [(1-x) - nx] = n(1-x)^{n-1} (1 - (n+1)x)$。
+    -   極值點在 $x = \frac{1}{n+1}$。
+    -   $f_n(\frac{1}{n+1}) = n \frac{1}{n+1} (1 - \frac{1}{n+1})^n = \frac{n}{n+1} (\frac{n}{n+1})^n \to 1$ (因為 $(1-\frac{1}{n+1})^n \to e^{-1}$? 不，$(\frac{n}{n+1})^n = (1-\frac{1}{n+1})^n \approx e^{-1}$。等等。
+    -   $\lim_{n\to\infty} \frac{n}{n+1} (\frac{n}{n+1})^n = 1 \cdot e^{-1} = 1/e$。
+    -   因此 $\sup |f_n(x) - 0| \ge f_n(\frac{1}{n+1}) \to 1/e \neq 0$。故不一致收斂。
+
+2.  **解答**：
+    -   **手算**：$g_n(x) = \frac{x}{n+x}$。極限 $g(x)=0$。
+    -   $|g_n(x) - 0| = \frac{x}{n+x}$。對 $x \in [0,10]$ 單調遞增。
+    -   $\sup_{x \in [0,10]} \frac{x}{n+x} = \frac{10}{n+10}$。
+    -   當 $n \to \infty$，$\frac{10}{n+10} \to 0$。故一致收斂。
+    -   **程式預期**：
+        -   n=1: 10/11 ≈ 0.909
+        -   n=10: 10/20 = 0.5
+        -   n=100: 10/110 ≈ 0.091
+        -   n=1000: 10/1010 ≈ 0.010
+
+3.  **解答**：
+    -   根據定理 24.5，若 $h_n$ 可微，$h_n(c)$ 收斂，且 $h_n'$ 一致收斂於 $g$，則 $h$ 可微且 $h'=g$。
+    -   若要 $h$ 不可微，必須打破條件。
+    -   **反例**：讓 $h_n(c)$ 不收斂。
+    -   設 $h_n(x) = \frac{\sin(nx)}{n} + (-1)^n$。
+    -   $h_n \to 0$ 逐點（因為 $\sin(nx)/n \to 0$，但 $(-1)^n$ 不收斂... 等等，逐點收斂要求 $h_n(x)$ 對每個 $x$ 收斂。這裡 $(-1)^n$ 不依賴 $x$，所以 $h_n(x)$ 不逐點收斂。
+    -   **修正反例**：$h_n(x) = \frac{\sin(nx)}{n}$。這逐點收斂於 0。$h_n' = \cos(nx)$。導數不收斂。
+    -   題目要求 $h_n' \to g$ 一致。
+    -   **構造**：$h_n(x) = \frac{1}{n} \sin(n^2 x)$。
+    -   $h_n \to 0$ 一致（因為 $|h_n| \le 1/n$）。
+    -   $h_n' = n \cos(n^2 x)$。這不是一致收斂，甚至不逐點收斂。
+    -   **另一個構造**：考慮 $h_n(x) = \frac{x^n}{n}$ 在 $[0,1]$。
+    -   $h_n \to 0$ 一致（$|h_n| \le 1/n$）。
+    -   $h_n' = x^{n-1}$。
+    -   $h_n' \to g(x)$ 其中 $g(x) = 0$ for $x<1, 1$ for $x=1$。
+    -   $h_n'$ 是否一致收斂？不，因為 $g$ 不連續，而 $h_n'$ 連續，一致收斂極限必連續。故 $h_n'$ 不一致收斂。
+    -   **結論**：很難構造 $h_n'$ **一致**收斂但 $h$ 不可微的例子，因為定理 24.5 說如果條件滿足，$h$ 必可微。
+    -   **正確理解**：如果 $h_n' \to g$ 一致，且 $h_n$ 可微，且 $h_n(c)$ 收斂，則 $h$ 可微。
+    -   若要 $h$ 不可微，必須讓 $h_n$ 在某處不連續或不可微？或者 $h_n(c)$ 不收斂？
+    -   **反例**：$h_n(x) = \frac{x^n}{n}$ for $x \in [0,1)$ and $h_n(1) = (-1)^n$。
+    -   這在 $x=1$ 處不連續，故不可微（在 1 處）。
+    -   $h_n \to h$ 逐點。$h(x)=0$ for $x<1$, $h(1)$ 不存。
+    -   這不符合“逐點收斂於 $h$”的定義（$h$ 必須存在）。
+    -   **最佳答案**：定理 24.5 的條件是充分的。若 $h_n'$ 一致收斂且 $h_n$ 逐點收斂，則 $h$ 可微。因此，**不存在**這樣的反例，前提是所有條件嚴格滿足（包括 $h_n$ 在全域可微）。如果允許 $h_n$ 在邊界不可微，則 $h$ 可能在邊界不可微。例如 $h_n(x) = \frac{x^n}{n}$ 在 $[0,1]$，$h_n$ 在 $[0,1]$ 可微。$h_n' = x^{n-1}$ 不一致收斂。
+    -   若強迫 $h_n'$ 一致收斂，則 $h$ 必可微。
+
+4.  **解答**：
+    -   $F(t) = \int_0^1 \frac{x - tx}{(x+tx)^2} dx = \int_0^1 \frac{x(1-t)}{x^2(1+t)^2} dx = \frac{1-t}{(1+t)^2} \int_0^1 \frac{1}{x} dx$。
+    -   注意：積分 $\int_0^1 \frac{1}{x} dx$ 發散。此題設定有問題，因為 $f$ 在 $x=0$ 有奇異點。
+    -   **修正題目**：設 $f(x,y) = \frac{y}{x^2+y^2}$。$F(t) = \int_0^1 f(t x, x) dx$?
+    -   經典反例：$f(x,y) = \frac{y-x}{(x+y)^2}$。
+    -   考慮 $I = \int_0^1 \left( \int_0^1 \frac{y-x}{(x+y)^2} dx \right) dy$ 與 $J = \int_0^1 \left( \int_0^1 \frac{y-x}{(x+y)^2} dy \right) dx$。
+    -   內層積分 $\int_0^1 \frac{y-x}{(x+y)^2} dx = [-\ln(x+y)]_0^1 = -\ln(1+y) + \ln(y) = \ln(\frac{y}{1+y})$。
+    -   $I = \int_0^1 \ln(\frac{y}{1+y}) dy = \int_0^1 \ln y dy - \int_0^1 \ln(1+y) dy$。
+    -   $\int_0^1 \ln y dy = -1$。
+    -   $\int_0^1 \ln(1+y) dy = [(1+y)\ln(1+y) - (1+y)]_0^1 = (2\ln2 - 2) - (0 - 1) = 2\ln2 - 1$。
+    -   $I = -1 - (2\ln2 - 1) = -2\ln2$。
+    -   類似的，$J = 2\ln2$。
+    -   兩者不等。原因：$\frac{\partial^2}{\partial x \partial y} f$ 在 $(0,0)$ 奇異，不滿足 Fubini 條件（絕對可積性）。
+    -   這展示了極限/積分交換（或二階偏導交換）需要強條件。
+
+## 本章小結
+
+本章建立了函數列收斂的嚴格框架，區分了逐點收斂與一致收斂。我們證明了：
+1.  一致收斂是保持連續性的充分條件。
+2.  一致收斂允許在極限過程下交換積分運算。
+3.  微分交換需要導數序列的一致收斂及原函數列在某點收斂。
+4.  Weierstrass M-判準是判斷一致收斂的有力工具。
+5.  參數積分的微分公式依賴於偏導數的連續性。
+
+通過具體例子（如 $x^n$ 和 $\sin(nx)/n$），我們展示了違反這些條件時極限交換的失敗案例。這些概念是分析學的核心，廣泛應用於積分方程、微分方程及數值分析中。
+
+## 參考來源
+
+1.  Lebl, J. *Basic Analysis*. (A1)
+2.  MIT OpenCourseWare, 18.100A Real Analysis. (A2)
+3.  MIT OpenCourseWare, 18.02SC Multivariable Calculus. (A3)
+4.  JAX Autodiff Cookbook. (A4)
+5.  SciPy Documentation. (A5, A6)

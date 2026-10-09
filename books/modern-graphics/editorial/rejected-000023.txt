@@ -1,0 +1,304 @@
+# 第 8 章　法線、切線與逆轉置
+
+## 學習目標與先備知識
+
+完成本章後，你應能區分幾何法線與著色法線，推導非均勻縮放下的法線變換，從三角形及 UV 建立 TBN 切線框架，並檢查鏡射造成的面繞序及手性變化。實作目標是驗證變換後法線仍垂直於切向，以及拒絕奇異縮放。
+
+先備知識為向量內積、外積、矩陣乘法及基本 Python。全章採直向量、右手座標：世界 $+X$ 向右、$+Y$ 向上、$+Z$ 朝向觀者。長度以公尺計；UV、單位法線及 TBN 軸沒有單位。三角形從外向法線看，頂點依逆時針排列。
+
+## 問題與直覺
+
+假設一片合成魚鰭的三角形經過拉長與旋轉。頂點位置改變後，照明所用的法線也須改變，但不能把法線當成頂點，直接乘上同一個縮放矩陣。
+
+原因在於法線描述的是**垂直關係**：它必須垂直表面的切向。非均勻縮放會改變方向之間的夾角；把切向與法線都乘同一矩陣，通常不能保持兩者垂直。模型輪廓可能看來完全正常，錯誤卻會以異常明暗呈現。
+
+另須分開兩類法線。**幾何法線**由三角形頂點及其繞序決定，可用於面朝向判定。**著色法線**是頂點或片段的照明資料；將相鄰面的法線平均，能讓低面數魚身看起來平滑，但不會改變實際輪廓或三角形的幾何朝向。
+
+## 數學與幾何推導
+
+### 三角形的幾何法線
+
+令同一座標空間中的三角形頂點為 $\mathbf p_0,\mathbf p_1,\mathbf p_2\in\mathbb R^3$，定義
+
+$$
+\mathbf e_1=\mathbf p_1-\mathbf p_0,\qquad
+\mathbf e_2=\mathbf p_2-\mathbf p_0,\qquad
+\mathbf c=\mathbf e_1\times\mathbf e_2.
+$$
+
+$\mathbf c$ 垂直兩條邊，長度等於兩邊張成的平行四邊形面積；三角形面積為 $\|\mathbf c\|/2$。當 $\|\mathbf c\|>0$，單位幾何法線為
+
+$$
+\mathbf n_g=\frac{\mathbf c}{\|\mathbf c\|}.
+$$
+
+交換 $\mathbf p_1$ 與 $\mathbf p_2$，外積便反向。若面積太小，法線方向對微小座標誤差非常敏感，應按模型尺度判為退化，而非正規化一個近零向量。
+
+頂點著色法線 $\mathbf n_s$ 可由相鄰面平均取得，但平均方式是建模選擇。例如魚體側面可平滑，魚鰭的銳利邊則可在相同位置存放不同頂點法線。著色法線插值後通常不再是單位長度，照明前應重新正規化；其方向也未必與所在的每片三角形精確垂直。
+
+### 從垂直條件推導逆轉置
+
+令物件到世界的仿射變換為
+
+$$
+\mathbf p'=A\mathbf p+\mathbf t,
+$$
+
+其中 $A\in\mathbb R^{3\times3}$ 是**可逆**線性部分，$\mathbf t$ 為平移。相減兩個變換後的位置，平移會抵消，因此切向 $\mathbf v$ 變為 $A\mathbf v$。原法線滿足 $\mathbf n^T\mathbf v=0$；希望新法線 $\mathbf n'$ 滿足
+
+$$
+{\mathbf n'}^T(A\mathbf v)=0.
+$$
+
+取 $\mathbf n'=A^{-T}\mathbf n$，其中 $A^{-T}=(A^{-1})^T$，即可得到
+
+$$
+(A^{-T}\mathbf n)^TA\mathbf v
+=\mathbf n^TA^{-1}A\mathbf v
+=\mathbf n^T\mathbf v=0.
+$$
+
+所以法線使用**逆轉置矩陣**，之後再正規化：
+
+$$
+\widehat{\mathbf n'}
+=\frac{A^{-T}\mathbf n}{\|A^{-T}\mathbf n\|}.
+$$
+
+若世界矩陣為 $M=TRS$，採直向量、由右先作用，則 $A$ 是 $M$ 左上角的 $3\times3$ 線性部分；平移不作用於法線。特別地，對旋轉 $R$ 和非均勻縮放 $S=\operatorname{diag}(s_x,s_y,s_z)$，
+
+$$
+(RS)^{-T}
+=R\,\operatorname{diag}(1/s_x,1/s_y,1/s_z).
+$$
+
+倒數縮放而非原縮放，是維持垂直關係的關鍵。若任何縮放軸為零，$A^{-1}$ 不存在；不能用逆轉置定義此變換的法線，必須拒絕或另行處理壓扁後的幾何。
+
+### UV 切線與 TBN
+
+以 $(u,v)$ 表示 UV，約定 $v$ 向上。由頂點 0 到頂點 $i$ 的 UV 差記為 $(\Delta u_i,\Delta v_i)$。若三角形內的位置隨 UV 線性變化，可將兩條位置邊寫成
+
+$$
+\mathbf e_1=\mathbf T\Delta u_1+\mathbf B\Delta v_1,\qquad
+\mathbf e_2=\mathbf T\Delta u_2+\mathbf B\Delta v_2.
+$$
+
+此處 $\mathbf T$、$\mathbf B$ 分別是沿 $u$、$v$ 增加方向的位置變化；若位置以公尺計、UV 無單位，它們的量綱為公尺。設
+
+$$
+D=\Delta u_1\Delta v_2-\Delta v_1\Delta u_2.
+$$
+
+當 $D\ne0$，解二元線性系統得到
+
+$$
+\mathbf T=\frac{\mathbf e_1\Delta v_2-\mathbf e_2\Delta v_1}{D},
+\qquad
+\mathbf B=\frac{\mathbf e_2\Delta u_1-\mathbf e_1\Delta u_2}{D}.
+$$
+
+位置三角形與 UV 三角形可能分別退化，因此須各自檢查。若 $D$ 太接近零，不能從該組 UV 求出可靠的唯一切線框架。
+
+對單位著色法線 $\mathbf N$，原始切線未必與它垂直。先作正交化：
+
+$$
+\widehat{\mathbf T}
+=\frac{\mathbf T-\mathbf N(\mathbf N\cdot\mathbf T)}
+{\|\mathbf T-\mathbf N(\mathbf N\cdot\mathbf T)\|}.
+$$
+
+再以 $h\in\{-1,+1\}$ 保存手性，令
+
+$$
+\widehat{\mathbf B}=h(\mathbf N\times\widehat{\mathbf T}).
+$$
+
+以 $\widehat{\mathbf T},\widehat{\mathbf B},\mathbf N$ 為**欄**組成的 TBN 矩陣，可將切線空間方向變換到這三軸所在的座標空間。若投影後的切線長度近零，正交化同樣失敗，須修復法線或切線資料。
+
+### 鏡射是兩項不同的檢查
+
+線性變換對外積有下列關係：
+
+$$
+(A\mathbf e_1)\times(A\mathbf e_2)
+=\det(A)\,A^{-T}(\mathbf e_1\times\mathbf e_2).
+$$
+
+若 $\det(A)<0$，變換後仍沿原索引順序計算的幾何法線，會與 $A^{-T}\mathbf n_g$ 反向。因此，鏡射後必須明確決定是否交換三角形索引，以維持預期的外向面與背面裁切。
+
+另一項是切線框架的手性。UV 鏡射會改變由 UV 求出的 $\mathbf T,\mathbf B$ 的相對方向；不能一律設 $\mathbf B=\mathbf N\times\mathbf T$。空間中的負行列式變換也會反轉框架手性：若將原框架的方向分別以 $A$、$A^{-T}$ 變至世界空間，再正交化，對應於變換後原始副切線方向的手性為
+
+$$
+h_{\text{world}}=h_{\text{object}}\operatorname{sign}(\det A).
+$$
+
+若改為交換面索引、重算 UV 導數或重新定義法線朝向，則應根據**最終資料**重新求手性，不要重複套用這個符號修正。面繞序與 TBN 手性服務於不同用途，需分別驗證。
+
+## 逐步手算例題
+
+### 例一：非均勻縮放
+
+取切向 $\mathbf v_1=(1,1,0)^T$、$\mathbf v_2=(0,0,1)^T$，以及法線方向 $\mathbf n=(1,-1,0)^T$。原先有 $\mathbf n\cdot\mathbf v_1=\mathbf n\cdot\mathbf v_2=0$。
+
+令 $A=\operatorname{diag}(2,1,1)$。第一條切向變成 $\mathbf v'_1=(2,1,0)^T$。若錯把法線乘上 $A$，得到 $(2,-1,0)^T$，其與 $\mathbf v'_1$ 的內積為 $4-1=3$，不再垂直。正確方向是
+
+$$
+A^{-T}\mathbf n=(1/2,-1,0)^T,
+$$
+
+其內積為 $(1/2)\cdot2+(-1)\cdot1=0$。最後可將所得方向正規化；正規化只改變長度，不能挽救已經錯誤的方向。
+
+### 例二：鏡射繞序與 UV 手性
+
+令 $\mathbf e_1=(1,0,0)^T$、$\mathbf e_2=(0,1,0)^T$，原幾何法線為 $(0,0,1)^T$。沿 $X$ 鏡射，取 $A=\operatorname{diag}(-1,1,1)$。逆轉置後的法線仍指向 $+Z$，但保留原索引所形成的新外積為
+
+$$
+(-1,0,0)^T\times(0,1,0)^T=(0,0,-1)^T.
+$$
+
+這並非逆轉置失效，而是 $\det A=-1$ 反轉了繞序。若設計要求外表面仍朝 $+Z$，可在輸出鏡射後的三角形時交換第二、第三個索引。
+
+另取未鏡射的位置邊 $\mathbf e_1=(1,0,0)^T$、$\mathbf e_2=(0,1,0)^T$，UV 為 $(0,0),(0,1),(1,0)$。此時 $D=-1$；代入切線公式，得到 $\mathbf T=(0,1,0)^T$、$\mathbf B=(1,0,0)^T$。因 $\mathbf N\times\mathbf T=(-1,0,0)^T$，必須取 $h=-1$ 才能還原 $\mathbf B$。這說明即使位置不作鏡射，UV 方向本身也能產生負手性。
+
+## 實作與程式
+
+下列完整程式供讀者在既有 Python 3.10+、NumPy 2.2.6 相容環境中自行執行；本書未執行程式。它以約一公尺尺度的三角形檢查垂直性、TBN 正交性及奇異縮放。NumPy 的陣列儲存順序不改變此處 `@` 所表示的數學乘法次序。
+
+```python
+import numpy as np
+
+
+def unit(v, eps=1e-12):
+    v = np.asarray(v, dtype=float)
+    length = np.linalg.norm(v)
+    if not np.isfinite(length) or length <= eps:
+        raise ValueError("零長度或無效方向")
+    return v / length
+
+
+def geometry_normal(p0, p1, p2, area_eps=1e-12):
+    e1 = np.asarray(p1, dtype=float) - np.asarray(p0, dtype=float)
+    e2 = np.asarray(p2, dtype=float) - np.asarray(p0, dtype=float)
+    c = np.cross(e1, e2)
+    if not np.all(np.isfinite(c)) or np.linalg.norm(c) <= area_eps:
+        raise ValueError("退化位置三角形")
+    return unit(c)
+
+
+def normal_matrix(A, det_eps=1e-12):
+    A = np.asarray(A, dtype=float)
+    if A.shape != (3, 3) or not np.all(np.isfinite(A)):
+        raise ValueError("A 必須是有限的 3×3 矩陣")
+    if abs(np.linalg.det(A)) <= det_eps:
+        raise ValueError("奇異或接近奇異的線性變換")
+    return np.linalg.inv(A).T
+
+
+def tangent_frame(p0, p1, p2, uv0, uv1, uv2, N,
+                  uv_eps=1e-12):
+    e1 = np.asarray(p1, dtype=float) - np.asarray(p0, dtype=float)
+    e2 = np.asarray(p2, dtype=float) - np.asarray(p0, dtype=float)
+    du1, dv1 = np.asarray(uv1, dtype=float) - np.asarray(uv0, dtype=float)
+    du2, dv2 = np.asarray(uv2, dtype=float) - np.asarray(uv0, dtype=float)
+    D = du1 * dv2 - dv1 * du2
+    if not np.isfinite(D) or abs(D) <= uv_eps:
+        raise ValueError("退化 UV 三角形")
+
+    T_raw = (e1 * dv2 - e2 * dv1) / D
+    B_raw = (e2 * du1 - e1 * du2) / D
+    N = unit(N)
+    T = unit(T_raw - N * np.dot(N, T_raw))
+    handedness = 1.0 if np.dot(np.cross(N, T), B_raw) >= 0 else -1.0
+    B = handedness * np.cross(N, T)
+    return T, B, N, handedness
+
+
+p0 = np.array([0.0, 0.0, 0.0])
+p1 = np.array([1.0, 1.0, 0.0])
+p2 = np.array([0.0, 0.0, 1.0])
+uv0, uv1, uv2 = (0.0, 0.0), (1.0, 0.0), (0.0, 1.0)
+
+e1, e2 = p1 - p0, p2 - p0
+N = geometry_normal(p0, p1, p2)
+T, B, _, h = tangent_frame(p0, p1, p2, uv0, uv1, uv2, N)
+
+A = np.diag([2.0, 1.0, 1.0])
+N_world = unit(normal_matrix(A) @ N)
+assert abs(np.dot(N_world, A @ e1)) < 1e-12
+assert abs(np.dot(N_world, A @ e2)) < 1e-12
+assert abs(np.dot(T, B)) < 1e-12
+assert abs(np.dot(T, N)) < 1e-12
+assert abs(np.dot(B, N)) < 1e-12
+
+try:
+    normal_matrix(np.diag([1.0, 0.0, 1.0]))
+except ValueError:
+    pass
+else:
+    raise AssertionError("奇異縮放應被拒絕")
+
+print("預期：垂直及正交檢查通過，奇異縮放已拒絕")
+```
+
+本例的 `area_eps` 比較的是外積長度，量綱為平方公尺；`uv_eps` 無單位。`det_eps` 適用於示範矩陣的量級，不是所有模型通用的條件數檢查。真實工作流程應依網格與變換尺度選擇容差，對接近奇異的矩陣尤其要留意數值誤差放大。
+
+若需世界空間 TBN，不能只把已正交的物件空間三軸乘上各自矩陣便停止：非均勻縮放後它們可能不再正交。應先變換切線與法線，再於世界空間重新正交化，並按最終副切線方向確認手性。
+
+## 測試與預期結果
+
+- **法線垂直性：**程式中 `N_world` 與兩條變換後的邊，其內積應在設定容差內接近零。若改用 `unit(A @ N)`，第一個測試預期失敗。
+- **TBN 正交性：**`T`、`B`、`N` 的兩兩內積應接近零，各自長度應接近一。這僅驗證框架，不保證輸入 UV 接縫安排正確。
+- **奇異變換：**$Y$ 軸縮放為零應引發 `ValueError`；不應輸出零法線或非數值。
+- **鏡射方向：**負行列式變換若保留原三角形索引，重新計算的外積方向應與逆轉置所得法線相反。測試時須同時記錄是否曾交換索引，以免把預期的朝向修正判為錯誤。
+
+以上均為由推導得到的**預期結果**，不是聲稱已執行的測試紀錄。
+
+## 除錯與常見陷阱
+
+**輪廓正確，明暗卻偏斜。**檢查是否將法線誤寫成 `A @ N`，或忘記在變換後正規化。也要確保點積兩側在同一座標空間：世界空間切向不能直接與物件空間法線比較。
+
+**一側鏡射魚鰭被背面裁切。**先看 $\det A$、三角形索引及外積朝向。只翻轉著色法線未必能改變由幾何繞序決定的正反面。
+
+**UV 接縫上的細節顛倒。**檢查 $D$ 與 $h$。同一位置在 UV 接縫兩側可能需要兩筆頂點資料，分別存放 UV、切線及手性；不能假設共用位置就能共用整個 TBN。
+
+**正規化產生非數值。**依序檢查三角形面積、UV 行列式、矩陣可逆性，以及切線對著色法線正交化後是否近零。容差是數值判斷工具，不是物理安全閾值。
+
+## 養殖數位分身案例
+
+在合成池場景中，可用低面數網格表示魚身及魚鰭。首先依三角形繞序檢查魚背、魚腹的幾何法線是否外向；魚身側面採平滑著色法線，魚鰭銳邊則保留法線分離，使照明反映設計的轉折。這些資料即使共享某個空間位置，也可能需要不同的頂點紀錄。
+
+同一魚模型若以不同的長、寬、高比例建立實例，頂點使用完整世界變換 $M$，法線使用線性部分 $A$ 的逆轉置。左右魚鰭若用負縮放鏡射，須另查面繞序；若共用鏡射 UV，還須查 TBN 手性。可對每片三角形自動測試「變換後法線與兩條變換後邊的內積」，再檢查其面朝向。這些測試只證明合成資產的幾何資料自洽，不證明魚類形態、材質或水下照明符合實測。
+
+## 習題
+
+1. **手算。**取切向 $\mathbf v=(1,2,0)^T$、法線方向 $\mathbf n=(2,-1,0)^T$，以及 $A=\operatorname{diag}(3,1,2)$。不必先正規化，分別計算 $(A\mathbf n)\cdot(A\mathbf v)$ 與 $(A^{-T}\mathbf n)\cdot(A\mathbf v)$。
+2. **程式測試。**在本章程式後加入測試：對 $A=\operatorname{diag}(2,3,4)$，比較從變換後的 `e1`、`e2` 所求的單位外積，與從法線矩陣所得的單位法線。寫出斷言並解釋預期。
+3. **反例與除錯。**開發者對 $A=\operatorname{diag}(-1,1,1)$ 的三角形保留原索引，以 $A^{-T}\mathbf n_g$ 更新法線，卻發現背面裁切與預想相反，於是說「逆轉置公式錯了」。指出原因及一種修正方式。若 UV 也鏡射，只交換面索引是否足以修復 TBN？
+4. **整合應用。**一片合成魚鰭的頂點為 $\mathbf p_0=(0,0,0)$、$\mathbf p_1=(1,0,0)$、$\mathbf p_2=(0,1,0)$，對應 UV 為 $(0,0)$、$(0,1)$、$(1,0)$。求幾何法線、$D$、$\mathbf T$、$\mathbf B$ 及 $h$。再施加 $A=\operatorname{diag}(2,1,1)$，說明建立世界空間 TBN 的步驟。
+
+## 習題解答
+
+1. 原內積為 $(2,-1,0)\cdot(1,2,0)=0$。$A\mathbf n=(6,-1,0)$、$A\mathbf v=(3,2,0)$，所以錯誤變換給出 $18-2=16$。$A^{-T}\mathbf n=(2/3,-1,0)$，正確變換給出 $(2/3)3-2=0$。
+2. $\det A=24>0$，故兩種方法所得單位法線預期同向。可加入：
+
+   ```python
+   A2 = np.diag([2.0, 3.0, 4.0])
+   N_edges = unit(np.cross(A2 @ e1, A2 @ e2))
+   N_matrix = unit(normal_matrix(A2) @ N)
+   assert np.allclose(N_edges, N_matrix, atol=1e-12)
+   ```
+
+   此測試除了垂直性，也檢查面朝向是否一致。
+3. $\det A=-1$ 反轉了保留原索引之三角形的外積方向；逆轉置仍正確保持垂直性。若要維持設計的外向面，可交換鏡射後各三角形的第二、第三個索引，並一致處理其頂點資料。UV 鏡射仍須重新計算或正確保存切線手性；只交換索引不足以代替 TBN 檢查。
+4. $\mathbf e_1=(1,0,0)^T$、$\mathbf e_2=(0,1,0)^T$，故 $\mathbf n_g=(0,0,1)^T$。UV 差為 $(0,1)$、$(1,0)$，因此 $D=-1$。公式給出 $\mathbf T=(0,1,0)^T$、$\mathbf B=(1,0,0)^T$；因 $\mathbf n_g\times\mathbf T=(-1,0,0)^T$，所以 $h=-1$。在世界空間，先以 $A\mathbf T$ 求切線方向，以 $A^{-T}\mathbf n_g$ 求法線方向並正規化；於世界空間把切線對法線正交化，再用手性建立副切線。本例 $\det A>0$，手性仍為 $-1$，也可用變換後的原始副切線方向作核對。
+
+## 本章小結
+
+點使用完整仿射變換，切向使用線性部分 $A$，法線則使用 $A^{-T}$ 並重新正規化。逆轉置源自變換後仍須垂直於切向的條件。建立 TBN 時，須分別排除位置與 UV 退化、正交化切線並保存手性；負行列式變換對面繞序的影響，則須另行檢查。
+
+## 參考來源
+
+- [G1　PBRT 4：Transformations](https://pbr-book.org/4ed/Geometry_and_Transformations/Transformations)
+- [G2　PBRT 4：Reflection Models](https://pbr-book.org/4ed/Reflection_Models)
+- [G5　LearnOpenGL：Transformations](https://learnopengl.com/Getting-started/Transformations)
+- [G7　NumPy 線性代數參考](https://numpy.org/doc/stable/reference/routines.linalg.html)

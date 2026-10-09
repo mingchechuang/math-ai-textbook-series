@@ -1,0 +1,40 @@
+{
+  "key": "adfd9a7695aed9aff2417e302447c1d3f3f21b88aa6c3d6ed233feda76831b3c",
+  "person": {
+    "id": "v3_editor_28",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 246,
+  "result": {
+    "patches": [
+      {
+        "chapter": 4,
+        "old": "**問題**：同一 PDE $\\partial c/\\partial t = D c''$，$L=1$，但邊界為絕緣 Neumann $c'(0,t)=c'(1,t)=0$。初始條件 $f(x) = 1 + \\cos(2\\pi x)$。求 $t \\to \\infty$ 時的解及任意 $t$ 的總質量 $M(t) = \\int_0^1 c \\, dx$。",
+        "new": "**問題**：考慮 $\\partial c/\\partial t=Dc''$，域為 $0\\le x\\le L$，其中 $L=1\\,\\mathrm m$，邊界為絕緣 Neumann 條件 $c_x(0,t)=c_x(L,t)=0$。取 $c_\\ast=1\\,\\mathrm{kg/m^3}$，初始條件為 $c(x,0)=c_\\ast[1+\\cos(2\\pi x/L)]$。求 $t\\to\\infty$ 的解與任意 $t$ 的每單位截面積總質量 $M(t)=\\int_0^L c\\,dx$。"
+      },
+      {
+        "chapter": 4,
+        "old": "初始條件 $f(x) = 1 + \\cos(2\\pi x)$。注意 $\\cos(2\\pi x)$ 符合 Neumann 邊界（導數在端點為零），且為 $n=2$ 模式。\n\n因此 $b_0 = 1$，$b_2 = 1$，其餘 $b_n = 0$。\n\n解為：\n\n$$\nc(x,t) = 1 + \\cos(2\\pi x) e^{-4\\pi^2 D t}\n$$\n\n總質量：\n\n$$\nM(t) = \\int_0^1 \\left[ 1 + \\cos(2\\pi x) e^{-4\\pi^2 D t} \\right] dx = 1 + e^{-4\\pi^2 D t} \\int_0^1 \\cos(2\\pi x) dx\n$$\n\n因 $\\int_0^1 \\cos(2\\pi x) dx = 0$，故 $M(t) = 1$ 為常數。",
+        "new": "初始條件為 $c(x,0)=c_\\ast[1+\\cos(2\\pi x/L)]$。此餘弦函數滿足 Neumann 邊界，且為 $n=2$ 模態。因此常數模態係數為 $c_\\ast$，第二模態係數亦為 $c_\\ast$，其餘係數為零：\n\n$$\nc(x,t)=c_\\ast\\left[1+\\cos(2\\pi x/L)e^{-D(2\\pi/L)^2t}\\right].\n$$\n\n每單位截面積總質量為\n\n$$\nM(t)=\\int_0^L c(x,t)\\,dx=c_\\ast L,\n$$\n因為 $\\int_0^L\\cos(2\\pi x/L)\\,dx=0$。取本例 $c_\\ast=1\\,\\mathrm{kg/m^3}$、$L=1\\,\\mathrm m$，得 $M(t)=1\\,\\mathrm{kg/m^2}$，與時間無關。"
+      },
+      {
+        "chapter": 4,
+        "old": "def trapezoid_values(y, dx):\n    \"\"\"等距節點的梯形積分；不依賴特定版本的 trapz 名稱。\"\"\"\n    y = np.asarray(y, dtype=float)\n    return dx * (0.5 * y[0] + np.sum(y[1:-1]) + 0.5 * y[-1])",
+        "new": "def trapezoid_values(y, dx):\n    \"\"\"一維等距資料的梯形積分；輸入不合法或非有限時拒絕。\"\"\"\n    y = np.asarray(y, dtype=float)\n    if y.ndim != 1 or y.size < 2:\n        raise ValueError('y must be a one-dimensional array with at least 2 values')\n    if not np.all(np.isfinite(y)):\n        raise ValueError('y must contain only finite values')\n    if (not np.isscalar(dx) or not np.isfinite(dx) or dx <= 0):\n        raise ValueError('dx must be a finite positive scalar')\n    return dx * (0.5 * y[0] + np.sum(y[1:-1]) + 0.5 * y[-1])"
+      },
+      {
+        "chapter": 4,
+        "old": "**測試2：Neumann 邊界質量守恆**\n- 輸入：$D=0.01, L=1, f(x)=1+\\cos(2\\pi x)$，$t_{end}=10$\n- 預期：$M(t) = 1.0$ 在所有時間步恆定\n- 驗證：`compute_total_mass` 返回值預期在 $1.0 \\pm 10^{-5}$ 範圍內。對本例的齊次 Neumann 更新，端點半權重的離散總量在代數上逐步守恆；計算值的微小偏差主要來自浮點運算累積，不宜歸因於梯形積分截斷誤差。",
+        "new": "**測試2：Neumann 邊界質量守恆**\n- 輸入：$D=0.01\\,\\mathrm{m^2/s}$、$L=1\\,\\mathrm m$、$c(x,0)=c_\\ast[1+\\cos(2\\pi x/L)]$，其中 $c_\\ast=1\\,\\mathrm{kg/m^3}$，$t_{end}=10\\,\\mathrm s$。\n- 預期：每單位截面積總質量 $M(t)=c_\\ast L=1\\,\\mathrm{kg/m^2}$。\n- 驗證：`compute_total_mass` 的結果預期在 $1\\,\\mathrm{kg/m^2}\\pm10^{-5}\\,\\mathrm{kg/m^2}$ 範圍內。對本例的齊次 Neumann 更新，端點半權重的離散總量在代數上逐步守恆；計算值的微小偏差主要來自浮點運算累積，不宜歸因於梯形積分截斷誤差。"
+      },
+      {
+        "chapter": 4,
+        "old": "$$\nc(x,20)\\approx\\left(1+\\frac4\\pi\\right)\\sin\\left(\\frac{\\pi x}{2}\\right)\\times0.08480.\n$$\n\n初值 $f(0)=f(2)=1$，與齊次 Dirichlet 邊界在 $t=0$ 不相容。",
+        "new": "$$\nc(x,20)\\approx c_\\ast\\left(1+\\frac4\\pi\\right)\\sin\\left(\\frac{\\pi x}{2}\\right)\\times0.08480.\n$$\n\n初值 $f(0)=f(2)=c_\\ast$，與齊次 Dirichlet 邊界在 $t=0$ 不相容。"
+      }
+    ],
+    "reason": "修正例2與測試2中位置變數、波數及濃度尺度的量綱，並給出帶 SI 單位的質量守恆結果；使共用梯形積分器拒絕空陣列、非一維、非有限資料及非法網格間距；補回習題1近似濃度式的尺度因子。"
+  }
+}

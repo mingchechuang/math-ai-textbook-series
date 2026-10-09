@@ -1,0 +1,416 @@
+{
+  "title": "從生成式 AI 到智慧水產養殖：線性代數、 多模態與 Agent 實作",
+  "people": [
+    {
+      "id": "editor_00",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 1,
+      "role": "作者"
+    },
+    {
+      "id": "editor_01",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 1,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_02",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 2,
+      "role": "作者"
+    },
+    {
+      "id": "editor_03",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 2,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_04",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 3,
+      "role": "作者"
+    },
+    {
+      "id": "editor_05",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 3,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_06",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 4,
+      "role": "作者"
+    },
+    {
+      "id": "editor_07",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 4,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_08",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 5,
+      "role": "作者"
+    },
+    {
+      "id": "editor_09",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 5,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_10",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 6,
+      "role": "作者"
+    },
+    {
+      "id": "editor_11",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 6,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_12",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 7,
+      "role": "作者"
+    },
+    {
+      "id": "editor_13",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 7,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_14",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 8,
+      "role": "作者"
+    },
+    {
+      "id": "editor_15",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 8,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_16",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 9,
+      "role": "作者"
+    },
+    {
+      "id": "editor_17",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 9,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_18",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 10,
+      "role": "作者"
+    },
+    {
+      "id": "editor_19",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 10,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_20",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 11,
+      "role": "作者"
+    },
+    {
+      "id": "editor_21",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 11,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_22",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 12,
+      "role": "作者"
+    },
+    {
+      "id": "editor_23",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 12,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_24",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 13,
+      "role": "作者"
+    },
+    {
+      "id": "editor_25",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 13,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_26",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 14,
+      "role": "作者"
+    },
+    {
+      "id": "editor_27",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 14,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_28",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 15,
+      "role": "作者"
+    },
+    {
+      "id": "editor_29",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 15,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_30",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 16,
+      "role": "作者"
+    },
+    {
+      "id": "editor_31",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 16,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_32",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 17,
+      "role": "作者"
+    },
+    {
+      "id": "editor_33",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 17,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_34",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 18,
+      "role": "作者"
+    },
+    {
+      "id": "editor_35",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "chapter": 18,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_36",
+      "provider": "gb10-2-vllm",
+      "model": "unsloth/Qwen3.8-27B-NVFP4",
+      "chapter": 19,
+      "role": "作者"
+    },
+    {
+      "id": "editor_37",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "chapter": 19,
+      "role": "獨立審稿者"
+    },
+    {
+      "id": "editor_38",
+      "provider": "openai-codex",
+      "model": "gpt-6-luna",
+      "chapter": 20,
+      "role": "作者"
+    },
+    {
+      "id": "editor_39",
+      "provider": "openai-codex",
+      "model": "gpt-6-sol",
+      "chapter": 20,
+      "role": "獨立審稿者"
+    }
+  ],
+  "chapters": [
+    [
+      "從生成式AI問題看見線性代數",
+      0,
+      "標量、向量、矩陣、張量、形狀與單位；模型不是現實",
+      "建立虛構池A的資料字典，串連文字、影像、感測與工具呼叫"
+    ],
+    [
+      "向量、內積與相似度",
+      0,
+      "加法、線性組合、範數、內積、夾角、餘弦；零向量例外",
+      "比較兩筆標準化水質特徵，區分相似與健康判斷"
+    ],
+    [
+      "矩陣與線性映射",
+      0,
+      "矩陣乘法、轉置、非交換、線性與仿射差別",
+      "將3維感測特徵映至2維表示，標註每一步維度"
+    ],
+    [
+      "線性方程、消去法與秩",
+      0,
+      "高斯消去、主元、秩、一致性、唯一解與自由變數",
+      "解2×2校正方程；用相依感測器示範不可識別"
+    ],
+    [
+      "子空間、基底與座標",
+      0,
+      "張成、線性獨立、基底、維度、列空間、零空間、秩零度定理",
+      "辨認冗餘水質特徵，解釋換基底與資訊遺失"
+    ],
+    [
+      "正交、投影與最小平方",
+      1,
+      "正交基、Gram–Schmidt、QR概念、投影、最小平方及正規方程限制",
+      "對三筆模擬量測擬合直線；不用顯式求逆作主要數值方法"
+    ],
+    [
+      "特徵值、對稱矩陣與穩定性",
+      1,
+      "特徵向量、譜定理、正定半正定、二次型、譜半徑",
+      "2×2對稱例題與虛構線性動態；局部模型不能保證真實池安全"
+    ],
+    [
+      "奇異值分解與低秩近似",
+      1,
+      "SVD形狀、奇異值、秩、截斷SVD、誤差與限制",
+      "壓縮模擬灰階水面圖；明確區分SVD與特徵分解"
+    ],
+    [
+      "共變異數、PCA與資料洩漏",
+      1,
+      "樣本平均、中心化、樣本共變異數、主成分、解釋變異",
+      "只用訓練時段擬合縮放器及PCA，不能用測試日的統計量"
+    ],
+    [
+      "範數、條件數與正則化",
+      1,
+      "矩陣範數、誤差放大、條件數、ridge與偏差變異直覺",
+      "相關感測器使回歸不穩；比較少量擾動前後結果"
+    ],
+    [
+      "梯度、Jacobian與反向傳播",
+      2,
+      "純量微分橋接、偏導、梯度、Jacobian、鏈式法則",
+      "推導平方損失線性層梯度，手算並以有限差分核對"
+    ],
+    [
+      "Embedding、線性層與機率輸出",
+      2,
+      "查表與矩陣表示、批次形狀、affine、softmax、交叉熵入門",
+      "建立小型養殖操作詞彙；數值穩定softmax與語義限制"
+    ],
+    [
+      "注意力的矩陣運算",
+      2,
+      "Q/K/V、scaled dot-product、row softmax、mask、multi-head形狀",
+      "用三個token的低維數值例算attention，區分生成與理解"
+    ],
+    [
+      "低秩更新與LoRA",
+      2,
+      "ΔW=BA、rank上界、參數量、縮放與低秩限制",
+      "固定W形狀後算LoRA參數；說明低秩適配不保證知識正確"
+    ],
+    [
+      "潛在空間、VAE與擴散模型",
+      2,
+      "隨機向量、Gaussian共變異數、線性重參數化、去噪視角",
+      "把機率與非線性橋接講清楚；噪聲矩陣練習不是完整擴散訓練"
+    ],
+    [
+      "影像、文字與水質的共同表示",
+      3,
+      "特徵矩陣、投影對齊、相似度、融合與對比學習直覺",
+      "感測/影像/文字embedding形狀、配對資料與缺模態限制"
+    ],
+    [
+      "時間序列、缺值與狀態估計",
+      3,
+      "線性狀態空間、觀測矩陣、共變異數傳播、Kalman更新概念",
+      "虛構感測漂移與斷線，示範因果時間切分、未知值與不確定性"
+    ],
+    [
+      "Agent的檢索、記憶與工具介面",
+      4,
+      "向量檢索、top-k、矩陣相似度、結構化狀態表示",
+      "查詢有來源的SOP並提出唯讀工具計畫；LLM輸出與可信控制分離"
+    ],
+    [
+      "風險、限制與人類覆核",
+      4,
+      "殘差、Mahalanobis距離及可逆條件、線性限制與可行集合",
+      "異常分數不是病害診斷；缺值或過期資料先拒絕執行，不自動加藥投餌"
+    ],
+    [
+      "專題：可稽核的養殖決策輔助系統",
+      4,
+      "整合資料矩陣、投影、檢索、評估與誤差傳播",
+      "完成純模擬端到端流程、資料切分、測試、人工批准、回滾與部署清單"
+    ]
+  ],
+  "conventions": "繁體中文，高中數學與基本Python讀者；不預設已懂微積分、機率或深度學習。\n全書主軸：生成式AI -> 多模態 -> agent -> 水產品養殖；前半部奠基，後半部連成同一虛構池A案例。\n所有向量預設列向量(column vector)，x∈R^d、W∈R^(m×d)、y=Wx∈R^m；批次X∈R^(n×d)以每列一筆觀測，Y=XW^T。\n術語裁決：「列向量(column vector)」為固定複合詞，明指d×1的直向向量；矩陣位置則用橫列(row)／縱行(column)。欄是column的位置同義詞，不另設「欄向量」或「行向量」作column vector的正式譯名。空間正式名稱為列空間(row space)與行空間(column space)，必要時優先附英文與維度。不得僅因「列向量」與「橫列」中單字相同而判定公式方向錯誤。\nattention另明確約定Q,K∈R^(n×d_k)、V∈R^(n×d_v)，softmax逐列；文字須分清列(row)與行(column)，避免中文歧義。\n樣本共變異數分母n-1；訓練集估計mean/std，驗證/測試集只套用。固定seed=42，但seed不是統計可靠性保證。\n實體量：temperature_c(攝氏)、do_mg_l(溶氧mg/L)、ph(無量綱)。資料全為教學合成，不提供真實物種適用閾值。\n同一故事：池A的感測器+水面影像+工作日誌->特徵->模型->檢索SOP->agent建議->資料有效性檢查->人工批准。\n任何示範不連真實設備，不下投餌、加藥、增氧指令；安全操作须由現場專業人員制定，模型建議不能代替養殖專業。\n線性代數只是生成式AI的骨架，非線性、統計、因果推論與控制不可被省略或假裝已證明。\n引用只使用給定來源ID；不偽造論文頁碼、實驗成果、真實養殖收益或人體安全閾值。\n教材Python例子使用標準庫或NumPy，小型且可人工檢查；不要安裝套件、下載模型或自動執行任何命令。\n同一章內遇到新符號先定義，公式標明shape與假設，數值例題逐步計算，不用『顯然』跳過關鍵理由。\n每章正文至少2200個中文字，原2200～2600字僅為建議篇幅；使用者已允許超字，不以超過2600字或全書55000字判定不合格。中文標點、英文、公式與程式碼不計，以腳本計數為準。\n",
+  "planned_main_calls": 80,
+  "part_consistency_reviews": 5,
+  "target_chinese_characters": 50000,
+  "length_policy": {
+    "chapter_minimum": 2200,
+    "upper_limit_enforced": false,
+    "reason": "使用者允許字數超過原建議上限"
+  }
+}

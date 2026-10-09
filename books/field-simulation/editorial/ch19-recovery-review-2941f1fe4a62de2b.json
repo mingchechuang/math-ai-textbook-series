@@ -1,0 +1,11 @@
+{
+  "key": "2941f1fe4a62de2b6e12b27b0e6bcd46b452f149d3b80d2a7a9e7b67ba14e5dd",
+  "person": {
+    "id": "v3_editor_37",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 326,
+  "result": "# 審稿結果\n\n重算後，核心內容一致：\n\n- 製造場滿足 $\\partial_xu+\\partial_yv=0$。\n- 壓力梯度與對流加速度符號相容。\n- 外力\n  $$\n  \\boldsymbol f=(2\\nu k^2-\\alpha)\\boldsymbol u\n  $$\n  的推導與量綱正確；$\\alpha=2\\nu k^2$ 時確為無外力 Taylor–Green 解。\n- 四格及兩格週期投影的矩陣、零空間、右端符號、零均值壓力與校正速度均可代回成立。\n- 程式 shape、座標軸、週期差分、雙分量動量殘差及每單位厚度動能一致。\n- 已明確區分格心製造殘差程式、MAC 投影手算與時間積分器，沒有把連續耗散誤稱為離散保證。\n- 正常、參數邊界及故障輸入皆有預期測試；未宣稱執行結果。\n- 正文篇幅、兩個完整例題、四類習題及完整解答均符合要求。\n\n僅有非阻擋性文字建議：「無外力邊界情形」較準確可稱為「無外力參數情形」，避免與空間邊界條件混淆；不影響數學或驗收。\n\nVERDICT: APPROVE"
+}

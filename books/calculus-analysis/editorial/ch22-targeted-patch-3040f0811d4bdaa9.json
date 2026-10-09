@@ -1,0 +1,11 @@
+{
+  "key": "3040f0811d4bdaa92407b896c5bbd770ecee6aced2ae58d9fc7c002accbe7611",
+  "person": {
+    "id": "v4_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 183,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n因 $\\\\mathbb R^n$ 的開連通集是路徑連通的，任取域內兩點，可用域內分段 $C^1$ 路徑連接。沿該路徑使用鏈式法則，$\\\\phi-\\\\psi$ 的導數恆為零，因此 $\\\\phi-\\\\psi$ 沿路徑恆定。\n<<<NEW>>>\n歐氏空間的開連通集可由域內有限段折線連接任意兩點，因此可選取分段 $C^1$ 路徑。沿該路徑使用鏈式法則，$\\\\phi-\\\\psi$ 的導數恆為零，因此 $\\\\phi-\\\\psi$ 沿路徑恆定。\n<<<END>>>\n\n<<<PATCH 02>>>\n<<<OLD>>>\n設 $U$ 路徑連通。若對任意 $A,B\\\\in U$，以及任意兩條由 $A$ 到 $B$ 的域內分段 $C^1$ 曲線 $\\\\gamma_1,\\\\gamma_2$，皆有\n<<<NEW>>>\n設 $U$ 為開且路徑連通的集合。歐氏空間中，這也保證任意兩點可由域內分段 $C^1$ 曲線連接。若對任意 $A,B\\\\in U$，以及任意兩條由 $A$ 到 $B$ 的域內分段 $C^1$ 曲線 $\\\\gamma_1,\\\\gamma_2$，皆有\n<<<END>>>\n\n<<<PATCH 03>>>\n<<<OLD>>>\n$$\n\\\\nu=\\\\frac{T-T_0}{s_T},\n\\\\qquad\nv=\\\\frac{S-S_0}{s_S},\n$$\n<<<NEW>>>\n$$\nu=\\\\frac{T-T_0}{s_T},\n\\\\qquad\nv=\\\\frac{S-S_0}{s_S},\n$$\n<<<END>>>\n\n<<<PATCH 04>>>\n<<<OLD>>>\n$$\n\\\\nabla_{(u,v)}\\\\Phi\n=\n\\\\begin{pmatrix}\n\\\\nu+v\\\\\\\\\n\\\\nu+4v\n\\\\end{pmatrix}.\n$$\n<<<NEW>>>\n$$\n\\\\nabla_{(u,v)}\\\\Phi\n=\n\\\\begin{pmatrix}\nu+v\\\\\\\\\nu+4v\n\\\\end{pmatrix}.\n$$\n<<<END>>>\n\n<<<PATCH 05>>>\n<<<OLD>>>\n    # 故障測試：非法半徑及分割數。\n    assert_raises(\n        ValueError,\n        lambda: circle(radius=0.0),\n        \"zero radius\"\n    )\n    assert_raises(\n        ValueError,\n        lambda: line_integral(\n            vortex_field,\n            curve,\n            dcurve,\n            0.0,\n            2.0 * np.pi,\n            n=1\n        ),\n        \"too few panels\"\n    )\n\n    # 故障測試：曲線在 t=pi 通過原點。\n<<<NEW>>>\n    # 故障測試：非法半徑、分割數及場值 shape。\n    assert_raises(\n        ValueError,\n        lambda: circle(radius=0.0),\n        \"zero radius\"\n    )\n    assert_raises(\n        ValueError,\n        lambda: line_integral(\n            vortex_field,\n            curve,\n            dcurve,\n            0.0,\n            2.0 * np.pi,\n            n=1\n        ),\n        \"too few panels\"\n    )\n    assert_raises(\n        ValueError,\n        lambda: line_integral(\n            lambda points: points[:, 0],\n            curve,\n            dcurve,\n            0.0,\n            2.0 * np.pi\n        ),\n        \"wrong field shape\"\n    )\n\n    # 故障測試：曲線在 t=pi 通過原點。\n<<<END>>>"
+}

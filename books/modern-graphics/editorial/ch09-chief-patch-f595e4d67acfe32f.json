@@ -1,0 +1,45 @@
+{
+  "key": "f595e4d67acfe32fdc2847e75b5cdb46193805b4fc1c6a9c959a147a12595ee1",
+  "person": {
+    "id": "v2_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 170,
+  "result": {
+    "patches": [
+      {
+        "chapter": 9,
+        "old": "切線方向由 $B'(t)$ 決定，長度代表參速 $\\frac{ds}{dt}$。",
+        "new": "嚴格來說，切線方向由 $B'(t)$ 決定，但真正表徵參數速度的是其範數：\n\n$$\n\\frac{ds}{dt}=\\|B'(t)\\|.\n$$\n\n若 $B'(t)=0$，方向未定義；這可能發生在所有控制點重合、內部控制點與相鄰控制點重合，或其他使導數一階消失的退化情形。呼叫端應明確處理，不可直接把它正規化。\n\n為看清導數公式的來源，先把 Bernstein 基底對 $t$ 求導：\n\n$$\n\\frac{d}{dt}B_{i,n}(t)=n\\bigl(B_{i-1,n-1}(t)-B_{i,n-1}(t)\\bigr),\n$$\n\n其中下標超出範圍時視為零。代入原式並重新分組下標：\n\n$$\nB'(t)=n\\sum_{i=0}^{n-1}(P_{i+1}-P_i)B_{i,n-1}(t).\n$$\n\n這個換索引推導說明兩件事：一是導數仍是 Bernstein 形式、次數低一次；二是導數只依賴相鄰控制點的差分 $P_{i+1}-P_i$，整條曲線平移不會改變切線。"
+      },
+      {
+        "chapter": 9,
+        "old": "此過程可視化為控制多邊形的逐步「收縮」，最終收縮至曲線上的點。",
+        "new": "此過程可視化為控制多邊形的逐步「收縮」，最終收縮至曲線上的點。第一層結果 $Q_i^{(1)}$ 是控制多邊形邊上的內分點；第二層 $Q_i^{(2)}$ 又是第一層相鄰點之間的內分點，如此遞推。每一步都只是凸組合，數值不會放大誤差，所以 de Casteljau 法比直接展開高次多項式穩定。\n\nde Casteljau 過程同時也提供曲線分割所需的全部資料。觀察三角形最左側的點序列 $Q_0^{(0)}, Q_0^{(1)}, \\dots, Q_0^{(n)}$ 與最右側的點序列 $Q_0^{(n)}, Q_1^{(n-1)}, \\dots, Q_n^{(0)}$：以 $Q_0^{(n)}=B(t)$ 為分界，左半段子曲線的控制點正好是第一串點，右半段則是第二串點。只要把 de Casteljau 三角形兩側的邊點記錄下來，就得到在參數 $t$ 分割後、兩段各自的 Bézier 控制點，分割後的兩段仍與原曲線完全重合，不需重新擬合。\n\n這個「一石二鳥」的性質是後續遞迴細分與曲線裁切的基礎：若某一子段相對於弦的偏差已小於場景容差，即可停止細分並以線段近似；否則以中點 $t=0.5$ 繼續分裂，直到收斂。以公尺為單位的場景，平坦度容差應以公尺設定，不能與相對容差混用。"
+      },
+      {
+        "chapter": 9,
+        "old": "def check_g1_continuity(pts_a, pts_b, tol=1e-9):\n    \"\"\"檢查兩段曲線在接點處是否 G1 連續 (支援 2D/3D)\"\"\"\n    pts_a = prepare_points(pts_a)\n    pts_b = prepare_points(pts_b)\n    \n    # C0 檢查 (關閉相對容差)\n    if not np.allclose(pts_a[-1], pts_b[0], rtol=0.0, atol=tol):\n        return False, \"Not C0 continuous\"\n        \n    if len(pts_a) < 2 or len(pts_b) < 2:\n        return False, \"Degree too low for G1 check\"\n        \n    v_a = pts_a[-1] - pts_a[-2]\n    v_b = pts_b[1] - pts_b[0]\n    \n    # 零向量檢查\n    norm_a = np.linalg.norm(v_a)\n    norm_b = np.linalg.norm(v_b)\n    if norm_a < tol or norm_b < tol:\n        return False, \"Zero tangent at junction\"\n        \n    # 同向共線檢查\n    ua = v_a / norm_a\n    ub = v_b / norm_b\n    if np.linalg.norm(ua - ub) > tol:\n        return False, \"Tangents not aligned or opposite\"\n        \n    return True, \"G1 Continuous\"",
+        "new": "def check_g1_continuity(pts_a, pts_b,\n                       position_tol=1e-9,\n                       tangent_tol=1e-12,\n                       direction_tol=1e-9):\n    \"\"\"檢查兩段曲線在接點處是否 G1 連續 (支援 2D/3D)。\n\n    position_tol、tangent_tol 與控制點座標同單位，應依場景尺度設定；\n    direction_tol 是單位方向向量的無因次差容差，兩者不可共用同一個數字。\n    \"\"\"\n    pts_a = prepare_points(pts_a)\n    pts_b = prepare_points(pts_b)\n\n    # A、B 兩段必須同維度，否則後續向量運算在此沒有意義。\n    if pts_a[0].shape != pts_b[0].shape:\n        raise ValueError(\"兩段曲線的控制點維度必須相同\")\n\n    # C0 檢查 (關閉相對容差)\n    if not np.allclose(pts_a[-1], pts_b[0], rtol=0.0, atol=position_tol):\n        return False, \"Not C0 continuous\"\n\n    if len(pts_a) < 2 or len(pts_b) < 2:\n        return False, \"Degree too low for G1 check\"\n\n    v_a = pts_a[-1] - pts_a[-2]\n    v_b = pts_b[1] - pts_b[0]\n\n    # 零向量檢查：長度容差，與座標同單位。\n    norm_a = np.linalg.norm(v_a)\n    norm_b = np.linalg.norm(v_b)\n    if norm_a < tangent_tol or norm_b < tangent_tol:\n        return False, \"Zero tangent at junction\"\n\n    # 同向共線檢查：方向差容差，無因次。\n    ua = v_a / norm_a\n    ub = v_b / norm_b\n    if np.linalg.norm(ua - ub) > direction_tol:\n        return False, \"Tangents not aligned or opposite\"\n\n    return True, \"G1 Continuous\""
+      },
+      {
+        "chapter": 9,
+        "old": "4.  **整合應用解答**：\n    控制點：$(0,0), (1,1), (3,1), (4,-1), (5,0)$。\n    透過程式計算 11 個點。\n    預期弦長在曲率較大或速度較快的區間（如 $P_1$ 到 $P_2$ 或 $P_2$ 到 $P_3$ 附近）較大。\n    **討論**：等 $\\Delta t$ 下，$\\Delta s \\approx \\|B'(t)\\| \\Delta t$。若 $\\|B'(t)\\|$ 變化大，弧長間距不均。生成網格時，曲率大處頂點稀疏，無法精確捕捉形狀。**解決**：使用弧長重參數化，確保 $\\Delta s$ 恆定。",
+        "new": "4.  **整合應用解答**：\n    控制點：$(0,0), (1,1), (3,1), (4,-1), (5,0)$。先展開為四次多項式：\n\n    $$\n    x(t)=4t+6t^2-8t^3+3t^4,\\qquad\n    y(t)=4t-6t^2-4t^3+6t^4.\n    $$\n\n    以 $t=0,0.1,\\dots,1$ 取樣，依公式計算的預期結果如下：\n\n    | $t$ | $B(t)$ |\n    |---:|---:|\n    | 0.0 | $(0.0000,0.0000)$ |\n    | 0.1 | $(0.4523,0.3366)$ |\n    | 0.2 | $(0.9808,0.5376)$ |\n    | 0.3 | $(1.5483,0.6006)$ |\n    | 0.4 | $(2.1248,0.5376)$ |\n    | 0.5 | $(2.6875,0.3750)$ |\n    | 0.6 | $(3.2208,0.1536)$ |\n    | 0.7 | $(3.7163,-0.0714)$ |\n    | 0.8 | $(4.1728,-0.2304)$ |\n    | 0.9 | $(4.5963,-0.2394)$ |\n    | 1.0 | $(5.0000,0.0000)$ |\n\n    相鄰弦長依序約為 $0.5638, 0.5654, 0.5710, 0.5799, 0.5857, 0.5775, 0.5443, 0.4834, 0.4236, 0.4693$。最大弦長約 $0.5857$，落在參數區間 $t\\in[0.4,0.5]$。\n\n    **討論**：等 $\\Delta t$ 下的空間間距主要由參速 $\\|B'(t)\\|$ 決定，$\\Delta s\\approx\\|B'(t)\\|\\,\\Delta t$。若 $\\|B'(t)\\|$ 變化大，弧長間距就不均勻。曲率大不必然使弦長較大，兩者是不同的量。**解決方向**：弧長重參數化可使頂點間距較均勻；但為控制折線近似誤差，高曲率區仍可能需要依平坦度或曲率條件額外細分，這是與間距均勻化分開的問題。"
+      },
+      {
+        "chapter": 9,
+        "old": "4.  參數均勻不等於弧長均勻，應用中需進行重參數化以優化網格品質。",
+        "new": "4.  參數均勻不等於弧長均勻：等參數取樣的空間間距差異來自 $\\|B'(t)\\|$ 的變化。弧長重參數化可以改善間距均勻性，但不單獨保證幾何近似誤差；高曲率區仍需依平坦度或曲率條件額外細分。"
+      },
+      {
+        "chapter": 9,
+        "old": "在養養場數位分身中，魚體輪廓可建模為分段 Bézier 曲線：",
+        "new": "在養殖場數位分身中，魚體輪廓可建模為分段 Bézier 曲線："
+      }
+    ],
+    "reason": "第 9 章依審稿逐項修正：(1) 將「長度代表參速」改為精確的 $ds/dt=\\|B'(t)\\|$，並補上零導數退化與換索引導數推導；(2) 擴充 de Casteljau 小節，說明其同時給出曲線分割控制點的性質，以及與自適應細分的關聯，補足字數；(3) 重寫 `check_g1_continuity`：新增 A、B 兩段維度一致性檢查，並把單一 `tol` 拆成 `position_tol`、`tangent_tol`、`direction_tol` 三個分別對應座標長度與無因次方向的容差；(4) 重寫習題 4 解答，展開四次多項式、列出 11 個預期取樣點、逐一弦長與最大區間 $t\\in[0.4,0.5]$（弦長 0.5857），並修正「曲率大處頂點稀疏」的錯誤連結，改為參速 $\\|B'(t)\\|$ 決定間距、細分另依平坦度：(5) 小結第 4 點同步限定弧長重參數化的作用；(6) 修正「養養場」為「養殖場」。其餘數學、程式與預期結果依審稿意見保留。"
+  }
+}

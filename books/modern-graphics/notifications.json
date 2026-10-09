@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-10-07T14:06:58+08:00",
+  "worker_alive": false,
+  "worker_pids": [],
+  "status": "completed_model_review_pending_human",
+  "events": [
+    {
+      "id": 3,
+      "observed_at": "2026-10-03T03:48:36+08:00",
+      "kind": "publication_ready",
+      "level": "info",
+      "message": "HTML／PDF出版版已建立並通過排版檢查，PDF共 384 頁；閱讀連結已加入主頁。",
+      "details": {
+        "html": "/book2/html",
+        "pdf": "/book2/pdf"
+      }
+    },
+    {
+      "id": 2,
+      "observed_at": "2026-10-03T03:05:56+08:00",
+      "kind": "book_completed",
+      "level": "info",
+      "message": "全卷逐章及跨章模型審查已完成；仍待人工覆核與出版檢查。",
+      "details": {
+        "source_updated": "2026-10-03T02:27:18.821961",
+        "baseline_snapshot": true
+      }
+    },
+    {
+      "id": 1,
+      "observed_at": "2026-10-03T03:05:56+08:00",
+      "kind": "monitor_started",
+      "level": "info",
+      "message": "網頁通知已啟用。目前逐章通過 30/30、跨章通過 5/5。啟用前的逐項事件不回填。",
+      "details": {}
+    }
+  ]
+}

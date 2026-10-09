@@ -1,0 +1,11 @@
+{
+  "key": "e5c4b1994fb794fbef8b30fabdcfe509d76cdafcb351451523781b7b693f0a36",
+  "person": {
+    "id": "v4_editor_38",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 266,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n    返回: 字串 \"positive definite\", \"negative definite\", \"semi-positive definite\", \"semi-negative definite\", \"indefinite\", \"error: ...\"\n<<<NEW>>>\n    返回: 字串 \"positive definite\", \"negative definite\", \"indefinite (saddle point)\"、\n    \"numerically indeterminate (...)\" 或 \"error: ...\"。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n3.  **故障/退化情況（Degenerate）**：\n    *   函數：$f(x, y) = x^4 + y^4$。\n    *   駐點：$(0,0)$。\n    *   Hessian：$\\\\begin{pmatrix} 0 & 0 \\\\\\\\ 0 & 0 \\\\end{pmatrix}$。\n    *   特徵值：$0, 0$。\n    *   預期輸出：`Indeterminate (Hessian semi-positive definite (degenerate)), need higher-order analysis`。\n    *   *注意*：雖然此處實際是極小值，但僅憑 Hessian 無法得出此結論，程式應正確標記為不確定。\n    *   反例函數：$f(x, y) = x^4 - y^4$。\n    *   Hessian：$\\\\begin{pmatrix} 0 & 0 \\\\\\\\ 0 & 0 \\\\end{pmatrix}$。\n    *   預期輸出：同上。\n    *   *結論*：相同 Hessian，不同高階項，導致不同極值型態。程式行為一致，符合理論預期。\n<<<NEW>>>\n3.  **退化邊界情況**：\n    *   函數：$f(x, y) = x^4 + y^4$。\n    *   駐點：$(0,0)$。\n    *   Hessian：$\\\\begin{pmatrix} 0 & 0 \\\\\\\\ 0 & 0 \\\\end{pmatrix}$。\n    *   特徵值：$0, 0$。\n    *   預期輸出：`Indeterminate (Hessian numerically indeterminate (eigenvalue near zero)), need higher-order analysis`。\n    *   *注意*：雖然此處實際是極小值，但僅憑 Hessian 無法得出此結論，程式應正確標記為不確定。\n    *   反例函數：$f(x, y) = x^4 - y^4$。\n    *   Hessian：$\\\\begin{pmatrix} 0 & 0 \\\\\\\\ 0 & 0 \\\\end{pmatrix}$。\n    *   預期輸出：同上。\n    *   *結論*：相同 Hessian，不同高階項，導致不同極值型態。程式行為一致，符合理論預期。\n\n4.  **故障情況：非對稱Hessian**：\n    *   輸入：$\\\\begin{pmatrix} 1 & 2 \\\\\\\\ 0 & 1 \\\\end{pmatrix}$。\n    *   預期輸出：`error: Hessian is not symmetric` 開頭的訊息。\n    *   此測試檢查程式拒絕分析非對稱輸入；非對稱本身不是合法的實值 $C^2$ 函數Hessian。\n<<<END>>>"
+}

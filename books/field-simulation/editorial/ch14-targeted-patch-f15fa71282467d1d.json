@@ -1,0 +1,55 @@
+{
+  "key": "f15fa71282467d1db1f745560338a0eeb66645cf130f1664419479f2b2fd7ee5",
+  "person": {
+    "id": "v3_editor_38",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 228,
+  "result": {
+    "patches": [
+      {
+        "chapter": 14,
+        "old": "def validate_csr(indptr, indices, data, n):\n    \"\"\"驗證 CSR 結構\"\"\"\n    if (not isinstance(indptr, np.ndarray) or indptr.ndim != 1\n            or not np.issubdtype(indptr.dtype, np.integer)):\n        raise ValueError(\"indptr must be a 1D integer array\")\n    if (not isinstance(indices, np.ndarray) or indices.ndim != 1\n            or not np.issubdtype(indices.dtype, np.integer)):\n        raise ValueError(\"indices must be a 1D integer array\")\n    if len(indptr) != n + 1:\n        raise ValueError(\"indptr length must be n+1\")\n    if indptr[0] != 0:\n        raise ValueError(\"indptr[0] must be 0\")\n    if indptr[-1] != len(data):\n        raise ValueError(\"indptr[-1] must equal len(data)\")\n    if len(indices) != len(data):\n        raise ValueError(\"indices and data lengths must match\")\n    if not np.all(np.isfinite(data)):\n        raise ValueError(\"Data contains NaN/Inf\")\n    if np.any(indices < 0) or np.any(indices >= n):\n        raise ValueError(\"Indices out of bounds\")\n    # Check monotonicity\n    if not np.all(np.diff(indptr) >= 0):\n        raise ValueError(\"indptr must be non-decreasing\")\n    return True",
+        "new": "def validate_csr(indptr, indices, data, n):\n    \"\"\"驗證實數 CSR 結構；本求解器限定實數 SPD 系統。\"\"\"\n    if (not isinstance(indptr, np.ndarray) or indptr.ndim != 1\n            or not np.issubdtype(indptr.dtype, np.integer)):\n        raise ValueError(\"indptr must be a 1D integer array\")\n    if (not isinstance(indices, np.ndarray) or indices.ndim != 1\n            or not np.issubdtype(indices.dtype, np.integer)):\n        raise ValueError(\"indices must be a 1D integer array\")\n    if not isinstance(data, np.ndarray) or data.ndim != 1:\n        raise ValueError(\"data must be a 1D array\")\n    if (not np.issubdtype(data.dtype, np.number)\n            or np.issubdtype(data.dtype, np.complexfloating)):\n        raise ValueError(\"data must contain real numeric values\")\n    if len(indptr) != n + 1:\n        raise ValueError(\"indptr length must be n+1\")\n    if indptr[0] != 0:\n        raise ValueError(\"indptr[0] must be 0\")\n    if indptr[-1] != len(data):\n        raise ValueError(\"indptr[-1] must equal len(data)\")\n    if len(indices) != len(data):\n        raise ValueError(\"indices and data lengths must match\")\n    if not np.all(np.isfinite(data)):\n        raise ValueError(\"Data contains NaN/Inf\")\n    if np.any(indices < 0) or np.any(indices >= n):\n        raise ValueError(\"Indices out of bounds\")\n    if not np.all(np.diff(indptr) >= 0):\n        raise ValueError(\"indptr must be non-decreasing\")\n    return True"
+      },
+      {
+        "chapter": 14,
+        "old": "    if (not isinstance(b, np.ndarray) or b.ndim != 1 or b.size == 0\n            or not np.issubdtype(b.dtype, np.number)):\n        return None, 0, np.nan, False, \"invalid_input: b must be a nonempty 1D numeric array\"",
+        "new": "    if (not isinstance(b, np.ndarray) or b.ndim != 1 or b.size == 0\n            or not np.issubdtype(b.dtype, np.number)\n            or np.issubdtype(b.dtype, np.complexfloating)):\n        return None, 0, np.nan, False, \"invalid_input: b must be a nonempty 1D real numeric array\""
+      },
+      {
+        "chapter": 14,
+        "old": "    if x0 is None:\n        x = np.zeros(n)\n    else:\n        if x0.shape != b.shape or not np.all(np.isfinite(x0)):\n            return None, 0, np.nan, False, \"invalid_x0\"\n        x = x0.copy()",
+        "new": "    if x0 is None:\n        x = np.zeros(n)\n    else:\n        try:\n            x0 = np.asarray(x0)\n        except (TypeError, ValueError):\n            return None, 0, np.nan, False, \"invalid_x0\"\n        if (x0.ndim != 1 or x0.shape != b.shape\n                or not np.issubdtype(x0.dtype, np.number)\n                or np.issubdtype(x0.dtype, np.complexfloating)\n                or not np.all(np.isfinite(x0))):\n            return None, 0, np.nan, False, \"invalid_x0\"\n        x = x0.astype(float, copy=True)"
+      },
+      {
+        "chapter": 14,
+        "old": "    if norm_r_true < atol + rtol * norm_b:\n        return x, 0, norm_r_true, True, \"success\"",
+        "new": "    if norm_r_true <= atol + rtol * norm_b:\n        return x, 0, norm_r_true, True, \"success\""
+      },
+      {
+        "chapter": 14,
+        "old": "        if norm_r_true < atol + rtol * norm_b:\n            return x, k + 1, norm_r_true, True, \"success\"",
+        "new": "        if norm_r_true <= atol + rtol * norm_b:\n            return x, k + 1, norm_r_true, True, \"success\""
+      },
+      {
+        "chapter": 14,
+        "old": "### 2. 邊界測試（零右端）\n*   **輸入**：$b = 0$。\n*   **預期**：\n    *   `converged = True`。\n    *   `niters = 0`（初始猜測 $x=0$ 即為解）。\n    *   `residual = 0`。",
+        "new": "### 2. 邊界測試（零右端與零容差）\n*   **輸入**：$b=0$；另取已知精確解 $x_0$，令 $b=Ax_0$，設定 `atol=0, rtol=0`。\n*   **預期**：零右端且預設 $x=0$ 時，`converged=True`、`niters=0`、`residual=0`。精確初始解配零容差時，真殘差恰為零，也應立即成功，不可繼續迭代而誤報 breakdown。停止判定採 `<=`，故等於容差的殘差亦合格。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   **物理一致性**：溫度場應平滑，無振盪。最大值/最小值應出現在邊界（極值原理）。\n    *   **診斷**：監控真殘差 $\\|b - Ax\\|_2$。若殘差下降至 $10^{-8} \\|b\\|_2$，視為收斂。",
+        "new": "    *   **離散性質**：此均勻網格五點離散在適當 Dirichlet 條件下形成 M-matrix；其精確離散解滿足離散最大值原理。有限迭代解可能因求解容差而有小幅超界，不能只憑平滑外觀判定正確。\n    *   **診斷**：監控真殘差 $\\|b-Ax\\|_2$，並比較內部最大／最小值與邊界範圍；將超界量連同真殘差與停止容差記錄。殘差達所訂門檻表示線性系統達到該求解準則，不等同 PDE 離散誤差已足夠小。"
+      },
+      {
+        "chapter": 14,
+        "old": "本章詳述了稀疏矩陣的 CSR 格式及其在求解 SPD 線性系統中的核心角色。共軛梯度（CG）與預條件共軛梯度（PCG）算法通過構建 $A$-共軛方向，高效地最小化能量泛函，收斂速度取決於矩陣的條件數。Jacobi 預條件可通過改善條件數來加速收斂。實作中必須嚴格檢查真殘差與 SPD 條件（Breakdown），以避免數值不穩定。誤差界 $\\|e\\|_2 \\le \\lambda_{\\min}^{-1} \\|r\\|_2$ 強調了病態系統中殘差小不等於誤差小。本章為後續非對稱系統求解（GMRES）及相位場模型離散奠定了基礎。",
+        "new": "本章介紹 CSR 稀疏儲存及其對 SPD 線性系統求解的作用。CG 與 PCG 以 $A$-共軛方向最小化二次能量；收斂與矩陣條件數及停止準則有關。Jacobi 預條件對部分縮放不均或變係數系統可能改善條件數，但本章常係數一維 Poisson 例中 $D$ 是純量倍單位矩陣，預條件後條件數不變。實作須檢查真殘差、輸入契約及 breakdown；誤差界 $\\|e\\|_2\\le\\lambda_{\\min}^{-1}\\|r\\|_2$ 說明病態系統中小殘差不必然代表小解誤差。"
+      }
+    ],
+    "reason": "精準修補實數 CSR／右端／初始猜測輸入契約、零容差停止判定及相應測試；另將審稿指出的離散極值原理與 Jacobi 效果限制補入原有段落。各 old 均取自同一原稿且彼此不重疊。"
+  }
+}

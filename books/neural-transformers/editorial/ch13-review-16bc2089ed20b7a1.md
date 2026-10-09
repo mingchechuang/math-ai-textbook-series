@@ -1,0 +1,88 @@
+## 一、先自行重算
+
+**（一）小命題與梯度公式**
+
+給定 $X_{b,t,d}=E_{I_{b,t},d}$、上游 $G_{b,t,d}=\partial L/\partial X_{b,t,d}$。
+
+固定 $(v,d)$，$X_{b,t,d}$ 只依賴 $E_{I_{b,t},d}$；one-hot 表示 $X_{b,t,d}=\sum_u O_{b,t,u}E_{u,d}$，故 $\partial X_{b,t,d}/\partial E_{v,d'}=O_{b,t,v}\mathbf 1[d=d']$。鏈式法則後只 $d'=d$ 留項，得
+$$\partial L/\partial E_{v,d}=\sum_{b,t}\mathbf 1[I_{b,t}=v]\,G_{b,t,d}.$$
+與稿中一致；$O_{\rm flat}^{T}G_{\rm flat}$ 亦正確。
+
+**（二）例一（$V=4,D=2,B=1,T=3$，$I=[2,1,2]$，上游 $(1,10),(2,20),(3,30)$）**
+
+ID 2 收到 $(1,10)+(3,30)=(4,40)$；ID 1 收到 $(2,20)$。故
+$$\nabla_E=\begin{bmatrix}0&0\\2&20\\4&40\\0&0\end{bmatrix}.$$
+與稿中一致。
+
+**（三）例二（$E=[[1,2],[3,4]]$，$i=0$，$L=z_1$）**
+
+$z_0=1{\cdot}1+2{\cdot}2=5$，$z_1=1{\cdot}3+2{\cdot}4=11$。對 $E_0$：輸出投影路徑 $\partial L/\partial z_0=0$ 故貢獻 $0$；輸入路徑 $\partial L/\partial E_0=E_1=(3,4)$。對 $E_1$：輸出投影貢獻 $h=(1,2)$。總和 $[(3,4),(1,2)]$。與稿中一致；直接對 $L=E_0\cdot E_1$ 微分亦吻合。
+
+**（四）程式逐段核對**
+
+`lookup` 的 $\text{ids.ndim}=2$、整數 dtype、上下界檢查皆對；`scatter_grad` 以 `np.add.at` 對重複索引累加，`grad[ids]` 形狀 $(\text{ids.shape})+(\text{table.shape[1]},)$，與 `upstream` 一致；`tied_forward_backward` 中
+
+- `shifted = logits - logits.max(axis=1, keepdims=True)`、`logsumexp = max + log(sum(exp(shifted)))`，CE 直接由 logits 計算，未「先 softmax 再 log」，符合卷規。
+- `dz = probs - onehot`、`dz /= batch` 只除一次；`output_grad = dz.T @ h` 形狀 $(V,D)$、`dh = dz @ table` 形狀 $(B,D)$，`scatter_grad` 回傳 $(V,D)$，相加即共享權重之總梯度，方向與大小皆對。
+- `input_grad` 用 `ids[:, :1]` 僅取首詞元，因 $h$ 只來自 $t=0$，無遺漏亦無多算。
+
+`__main__` 之 three asserts 分別為 one-hot 等價、scatter-add 累加、OOV 未污染詞表，皆與上述手算一致。
+
+**（五）習題一**
+
+$I=[[3,3],[1,3]]$、上游依序 $(1,0),(0,2),(4,4),(3,5)$。ID 3 收到 $(1,0)+(0,2)+(3,5)=(4,7)$；ID 1 收到 $(4,4)$。故 $\nabla_E=[(0,0),(4,4),(0,0),(4,7),(0,0)]$。與稿一致，求和軸標示「跨 $B,T$、不沿特徵軸」正確。
+
+**（六）形狀／廣播／歸約**
+
+$Z_{b,t,d}=E_{I_{b,t},d}+P_{t,d}$：$P$ 沿 batch 廣播，$\nabla_{P_{t,d}}=\sum_b\partial L/\partial Z_{b,t,d}$ 需沿 batch 求和；共享權重 $z=hE^{\mathsf T}+c$，輸出梯度 $(\partial L/\partial z_v)h_d$、輸入梯度另一路相加，正確。
+
+以上重算與稿中結果全部吻合，未見數值或形狀錯誤。
+
+## 二、逐條原句、原因與最小修法
+
+**（1）「$\\nabla_E L=O_{\\rm flat}^{\\mathsf T}G_{\\rm flat}$」之後一句：**「實際程式通常不建立可能很大的 one-hot 張量，而用 **scatter-add**：依每個索引，把相應的 $D$ 維梯度加進 $\\nabla_E$ 的一列。」
+
+- **原因**：前向查表是 fancy indexing（`table[ids]`），反向才是 scatter-add。原句把「用 scatter-add」緊接在「不建立 one-hot」之後，初讀可能誤以為前向即 scatter-add；此處並非錯誤，但語意可再釐清。
+- **最小修法**：改為「前向用 fancy indexing 取值；**反向**用 scatter-add」。
+
+**（2）**「共享要求輸入與輸出詞表相容，並要求 $h$ 的維度正好是 $D$；若不相同，需要另設投影，不能靠廣播碰運氣。」
+
+- **原因**：正確；但此處未明示 $E$ 形狀 $(V,D)$ 與 $hE^{\\mathsf T}$ 收縮的軸，讀者若未注意 $E^{\\mathsf T}$ 形狀 $(D,V)$，容易誤判形狀。已在定義段落寫明，屬可接受。
+- **最小修法**：可補「$hE^{\\mathsf T}$ 沿 $D$ 軸收縮、輸出 $(B,V)$」一句。
+
+**（3）**「`dz = probs`」
+
+- **原因**：此賦值使 `dz` 與 `probs` 共享記憶體，後續 `dz[..., target] -= 1.0` 與 `dz /= batch` 會連帶改動 `probs`。本函式之後不再使用 `probs`，故**不影響正確性**，但若被複製改寫容易生 bug。
+- **最小修法**：改為 `dz = probs.copy()`，或直接 `dz = exp_shifted / exp_shifted.sum(axis=1, keepdims=True); dz[np.arange(batch), target] -= 1.0; dz /= batch`。
+
+**（4）**「例一……上游梯度依序是 $(1,10)$、$(2,20)$、$(3,30)$」
+
+- **原因**：題目未明確規範「依序」所指為何（是沿 $B$，還是沿 $T$？）。因 $B=1$，此處不產生歧義；但習題 1 的 $I=[[3,3],[1,3]]$ 就有歧義（沿 $B$、$T$ 或 row-major？），解答自行選 row-major。
+- **最小修法**：例一與習題 1 皆明寫「依 $(b,t)$ 由小到大」或「row-major 展平後依序」。
+
+**（5）** source_notes 中「N3 stable入口為HTML轉址，已取得明確2.14 API全文並核對 mask True=參與、evaluation 須 dropout_p=0 及矩形因果遮罩的左上對齊。」
+
+- **原因**：本章程式與正文完全未使用 SDPA 或 N3；此註記對應真實 PyTorch SDPA 語意（bool True=參與、eval 時 dropout_p=0、causal 左上對齊）皆與現行文件一致，且已自承「不是本機 PyTorch 版本或執行證據」。版本號 2.14 無法從稿內核實，但**不影響本章內容**。
+- **最小修法**：可將 N3 註記移回注意力章，或加「版本號未經本機 `pip show` 覆核」一句。
+
+**（6）** 於「測試與預期結果」中的「邊界情形」一節未列「$\\text{ids.dtype}$ 為 `object`」或「$\\text{table.dtype}$ 為整數」的檢查。
+
+- **原因**：`lookup` 檢查 dtype kind 為 `iu`，已拒絕物件 dtype；但 `table` 若為整數 dtype，除錯訊息會較不明確。非錯誤。
+- **最小修法**：可在 `lookup` 開頭加 `if table.dtype.kind != 'f' or table.ndim != 2: raise`。
+
+以上皆為**非阻擋性**意見；第 (1)(3) 條較值得修，第 (4) 條有助於讀者核對，第 (2)(5)(6) 條屬可選。
+
+## 三、明確不構成拒稿之理由
+
+- 未執行、未下載、未安裝、未訓練：稿中「本文未安裝套件，也未執行程式」、「這些是依運算推得的預期，不是執行紀錄」等表述與規定一致，並無虛構執行。
+- 圖檔未使用：未觸犯任何規則；provided images 屬「可用」而非「必用」。
+- 測試分為正常／邊界／故障三類，且另行指示有限差分核對，符合要求。
+- 章內小命題附完整證明，兩個手算逐步展開，習題涵蓋手算／程式／反例／整合四類並附完整解答，自足 CPU NumPy 程式與故障檢查齊備。
+- 資料洩漏防制（先切分再建詞表、OOV 不外洩、PAD 非自動忽略）、mask 與 loss 區分、內容與位置分離，皆符合卷規。
+- 內容長度遠超 3000 字下限；即使只計中文正文亦足。
+
+## 四、小結
+
+本章定義明確、shape／reduction／梯度／共享權重／資料契約均正確；程式自足且故障測試合理；手算與習題與重算一致。所舉意見多屬可讀性與穩健性建議，不影響數學結論，且不構成錯誤。建議按 (1)(3)(4) 微調後即可維持現稿。
+
+VERDICT: APPROVE

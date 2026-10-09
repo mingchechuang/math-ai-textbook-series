@@ -1,0 +1,85 @@
+{
+  "key": "520a10c214e385ca7611b16e852e54146343f7e6228dfa8f20cf4e1e059e63f0",
+  "person": {
+    "id": "v3_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 175,
+  "result": {
+    "patches": [
+      {
+        "chapter": 9,
+        "old": "**隱式方法的直覺**：\n隱式方法（如 BE）將未知量 $ \\mathbf{u}^{n+1} $ 放在方程右側，導致需要求解線性系統。其穩定性區域涵蓋整個左半平面（A-穩定），允許我們使用比顯式方法大得多的 $ \\Delta t $，只要該步長能足夠準確地捕捉低頻模態的演化。",
+        "new": "**隱式方法的直覺**：BE 與 CN 對本章的線性擴散系統是 A-穩定；但不能由「隱式」一詞推論所有隱式方法都 A-穩定。隱式更新須解線性系統，較大 $\\Delta t$ 雖可放寬穩定性限制，仍可能造成時間誤差過大；步長選擇須同時考慮穩定性、精度與求解殘差。"
+      },
+      {
+        "chapter": 9,
+        "old": "$$ \\mu_{max} \\approx -\\frac{4\\nu}{\\Delta x^2} $$",
+        "new": "$$ \\mu_{\\min} \\approx -\\frac{4\\nu}{\\Delta x^2} $$"
+      },
+      {
+        "chapter": 9,
+        "old": "*   **CN 能量不增的離散內積推導**：對 BE，$ (\\mathbf{I} - \\Delta t \\mathbf{A}) $ 為對稱正定；由 A 的負半定性，對每個模態 $ \\mu_k \\le 0 $ 皆滿足 $ |R_{BE}(q_k)| \\le 1 $，故均勻權重下的 $ L_2 $ 離散能量 $ E^n = \\frac12 \\mathbf{u}^{n,T} \\mathbf{u}^n $ 單調不增。對 CN，$ (\\mathbf{I} - \\frac{\\Delta t}{2} \\mathbf{A})^{-1} (\\mathbf{I} + \\frac{\\Delta t}{2} \\mathbf{A}) $ 可由對稱 A 的特徵分解對角化；每個模態的能量比為 $ |R_{CN}(q_k)|^2 \\le 1 $，故 $ L_2 $ 能量亦單調不增。但 $ |R_{CN}(q)|^2 \\to 1 $ 當 $ q \\to \\infty $，所以高頻模態的能量幾乎不衰減；這就是非 L-穩定性在能量觀點下的表現。",
+        "new": "*   **CN 能量不增的離散內積推導**：在均勻網格上定義 $E^n=\\frac{\\Delta x}{2}(\\mathbf u^n)^T\\mathbf u^n$。對 BE，由 $\\mathbf A$ 對稱負半定，特徵分解使各模態放大因子滿足 $|R_{BE}(q_k)|\\leq1$，故能量不增。對 CN，更新矩陣 $(\\mathbf I-\\frac{\\Delta t}{2}\\mathbf A)^{-1}(\\mathbf I+\\frac{\\Delta t}{2}\\mathbf A)$ 亦可由 $\\mathbf A$ 的特徵分解對角化；每個模態的能量比為 $|R_{CN}(q_k)|^2\\leq1$，故能量亦不增。但 $|R_{CN}(q)|^2\\to1$ 當 $q\\to\\infty$，所以高頻模態的能量幾乎不衰減。非均勻網格須改用相應加權內積或質量矩陣。\n\n*   **時間收斂觀測階與真殘差判準**：固定空間離散與共同終止時間 $t_{\\rm end}$，選擇能整除該終止時間的多個時間步長，並用半離散精確模態作參考解。至少用三個步長計算相鄰誤差比 $r=\\|e_{\\Delta t}\\|/\\|e_{\\Delta t/2}\\|$，估計 $p\\approx\\log_2r$。BE 理論階為 1、CN 理論階為 2，但只有在時間誤差主導的漸近區才應如此解讀。直接求解器仍須逐步檢查真殘差 $\\|\\mathbf r\\|_2=\\|\\mathbf b-M_{\\rm left}\\mathbf u^{n+1}\\|_2$，並以 $\\mathrm{atol}+\\mathrm{rtol}\\|\\mathbf b\\|_2$ 為門檻；超標時不可宣稱解已求好。殘差小也不等同解誤差小。"
+      },
+      {
+        "chapter": 9,
+        "old": "        residual_history.append(abs_res)\n        residual_ok_history.append(residual_ok)",
+        "new": "        residual_history.append(abs_res)\n        residual_ok_history.append(residual_ok)\n        if not residual_ok:\n            raise RuntimeError(\n                f\"linear residual failed at step {step + 1}: \"\n                f\"||r||2={abs_res:.6e}, threshold={threshold:.6e}\"\n            )"
+      },
+      {
+        "chapter": 9,
+        "old": "    print(f\"Max Abs Residual CN: {max(res_cn):.2e}\")",
+        "new": "    print(f\"Max Abs Residual CN: {max(res_cn):.2e}\")\n    print(\"All BE residual checks passed:\", all(ok_be))\n    print(\"All CN residual checks passed:\", all(ok_cn))"
+      },
+      {
+        "chapter": 9,
+        "old": "    物理衰減率 $ e^{-t} \\approx e^{-1} $ 在 $ t=1 $。\n\n2.  **高頻模態 $ k=10 $** ($ \\cos(10x) $)：\n    $ \\mu_{10} = -40.53 \\sin^2\\left(\\frac{\\pi}{2}\\right) = -40.53 $。\n\n設定 $ \\Delta t = 0.1 $。\n*   **低頻 $ q_1 $**：$ q_1 = -\\mu_1 \\Delta t \\approx 0.0989 $。\n    $ R_{BE} = \\frac{1}{1.0989} \\approx 0.910 $。\n    $ R_{CN} = \\frac{1 - 0.0495}{1 + 0.0495} \\approx 0.905 $。\n    解析衰減 10 步：$ e^{-0.989} \\approx 0.372 $。\n    BE 10 步：$ 0.910^{10} \\approx 0.396 $。\n    CN 10 步：$ 0.905^{10} \\approx 0.369 $。\n    CN 更準確。\n\n*   **高頻 $ q_{10} $**：$ q_{10} = -\\mu_{10} \\Delta t \\approx 4.053 $。\n    $ R_{BE} = 1/(1+4.053) \\approx 0.1979 $。\n    $ R_{CN} = (1 - 4.053/2)/(1 + 4.053/2) \\approx -0.3392 $。\n    十步半離散精確衰減：$ e^{-40.53} \\approx 2.5 \\times 10^{-18} $。\n    BE 十步：$ R_{BE}^{10} \\approx 9.2 \\times 10^{-8} $。\n    CN 十步：$ |R_{CN}|^{10} \\approx 2.0 \\times 10^{-5} $，符號每步反轉（第 10 步為正）。\n    兩者皆遠大於半離散精確值；有限 $ q $ 下並不能精確重現指數衰減。當 $ q \\gg 1 $ 時，BE 的 $ R \\to 0 $，比 CN 更有效地抑制高頻。",
+        "new": "    半離散低頻衰減率約為 $e^{-0.9918t}$；在 $t=1$ 時精確值約為 $0.371$。\n\n2.  **高頻模態 $k=10$**（$\\cos(10x)$）：$\\mu_{10}=-40.53\\sin^2(\\pi/2)\\approx-40.53$。\n\n設定 $\\Delta t=0.1$，比較十步至 $t=1$ 的結果。\n*   **低頻 $q_1$**：使用未截斷的特徵值公式，$\\mu_1\\approx-0.9918$，故 $q_1\\approx0.09918$。$R_{BE}\\approx0.90977$，$R_{CN}\\approx0.9055$。半離散精確值約為 $e^{-0.9918}\\approx0.371$；BE 十步約為 $0.90977^{10}\\approx0.388$，CN 十步約為 $0.9055^{10}\\approx0.371$。在此步長下 CN 更接近半離散精確解。\n\n*   **高頻 $q_{10}$**：$q_{10}\\approx4.053$，$R_{BE}\\approx0.1979$，$R_{CN}\\approx-0.3392$。十步半離散精確衰減約為 $2.5\\times10^{-18}$；BE 十步約為 $9.2\\times10^{-8}$，CN 十步振幅約為 $2.0\\times10^{-5}$，且逐步反號。有限步長下兩者都未精確重現指數衰減；對更大的 $q$，BE 放大因子趨近零，CN 則趨近 $-1$。"
+      },
+      {
+        "chapter": 9,
+        "old": "**註**：雖然 BE 穩定且無振盪，但對於剛性問題，若只關心低頻部分，此處是純剛性模態。若此模態是背景雜訊，BE 將其壓至 $ 10^{-2} $，而解析解為 $ 10^{-9} $。BE 在此模態上的絕對誤差大於解析解值，這顯示 BE 對剛性模態的「過度阻尼」導致其數值衰減慢於指數函數在有限步長下的表現（相對於解析解的極小值而言，BE 殘留值較大）。",
+        "new": "**註**：BE 穩定且不會像 CN 一樣逐步反號，但有限步長下其放大因子 $1/(1+q)$ 大於精確因子 $e^{-q}$。因此本例中 BE 低估衰減、留下比解析解更大的殘餘振幅；這不是相對於精確解的「過度阻尼」。BE 的 L-穩定性描述 $q\\to\\infty$ 時放大因子趨近零，不表示每個有限 $q$ 都比精確指數衰減更快。"
+      },
+      {
+        "chapter": 9,
+        "old": "CN 幾乎不衰減，而 BE 迅速置零。",
+        "new": "CN 相對於 BE 幾乎保留此模態振幅並逐步反號；BE 的高頻抑制較強。但有限步長時仍應與精確因子 $e^{-q}$ 比較，不能把 L-穩定性解讀為 BE 必然比精確解衰減更快。"
+      },
+      {
+        "chapter": 9,
+        "old": "    *   能量：保持不變。\n    *   Nyquist 振幅：0。",
+        "new": "    *   質量 $\\sum_i u_i\\Delta x$ 與離散能量都保持不變。\n    *   Nyquist 振幅：0。"
+      },
+      {
+        "chapter": 9,
+        "old": "    *   設定 $ \\nu $ 很大，使得 $ q_{high} \\gg 1 $。\n    *   **預期**：BE 的 `nyq_amp_history` 應迅速趨近 0。\n    *   CN 的 `nyq_amp_history` 應衰減緩慢，且符號交替（$ (-1)^n $ 趨勢）。\n    *   若 $ q_{\\mathrm{high}} \\gg 1 $，BE 的 Nyquist 振幅衰減遠快於 CN；但 $ L_2 $ 能量被低頻模態主導（本例低頻振幅為 1，高頻僅 0.1），故不能宣稱總 $ L_2 $ 能量必然由 BE 衰減更快。當 $ 0 < q < 2 $ 時，CN 對該模態的單步衰減甚至可能大於 BE。",
+        "new": "    *   設定 $\\nu$ 與 $\\Delta t$，使 $q_{\\rm high}=-\\mu_{\\rm high}\\Delta t\\gg1$。\n    *   **預期**：BE 的 `nyq_amp_history` 迅速趨近 0；CN 振幅衰減緩慢並逐步反號。\n    *   此時 BE 對 Nyquist 模態的抑制強於 CN；但總 $L_2$ 能量可能由低頻模態主導，不能宣稱總能量必然由 BE 衰減更快。某些有限 $q$ 區間內，CN 對單一模態的單步衰減也可能較強。"
+      },
+      {
+        "chapter": 9,
+        "old": "    (b) 設定 $ \\nu=1, \\Delta x=0.1, \\Delta t=0.06 $。觀察並記錄 FE 的振幅變化（預期爆炸）。",
+        "new": "    (b) 取偶數 $N$、$\\Delta x=0.1$、$\\nu=1$、$\\Delta t=0.06$，並設初值 $u_i^0=(-1)^i$，以激發 Nyquist 模態。此時 $R_{\\rm FE}=1-4\\nu\\Delta t/\\Delta x^2=-23$，振幅每步乘 $23$ 並反號。"
+      },
+      {
+        "chapter": 9,
+        "old": "    (a) 估計 BE 所需的時間步長 $ \\Delta t_{BE} $ 與 CN 所需的 $ \\Delta t_{CN} $ 的比例（假設誤差主要來自時間離散）。\n    (b) 若高頻模態衰減率為 $10^{-6}$（即 $ q $ 很大），哪種方法更適合？說明理由。",
+        "new": "    (a) 依 BE 一階、CN 二階時間誤差，說明如何估計兩種方法的步長比例，並指出比例還依賴誤差常數。\n    (b) 若高頻模態的單步精確放大率為 $e^{-q}=10^{-6}$，則 $q=-\\ln(10^{-6})\\approx13.82$。比較 BE 與 CN 的單步放大因子，判斷哪種方法對該模態抑制較強。"
+      },
+      {
+        "chapter": 9,
+        "old": "    *   (a) BE 誤差 $ \\propto \\Delta t $，CN 誤差 $ \\propto \\Delta t^2 $。\n        若 $ \\epsilon $ 為目標誤差，$ \\Delta t_{BE} \\propto \\epsilon $，$ \\Delta t_{CN} \\propto \\sqrt{\\epsilon} $。\n        比例 $ \\Delta t_{BE} / \\Delta t_{CN} \\propto \\sqrt{\\epsilon} $。\n        若 $ \\epsilon = 0.01 $，$ \\Delta t_{BE} \\approx 0.1 \\Delta t_{CN} $。BE 需要更小的步長。\n    *   (b) 若高頻衰減極快（剛性強），BE 更適合。因為 BE 的 L-穩定性能立即抑制高頻模態，避免其污染低頻計算。CN 的高頻模態衰減緩慢，可能導致數值雜訊累積。",
+        "new": "    *   (a) 若主導誤差為 $e_{\\rm BE}\\approx C_{\\rm BE}\\Delta t_{\\rm BE}$、$e_{\\rm CN}\\approx C_{\\rm CN}\\Delta t_{\\rm CN}^2$，達到同一誤差 $\\epsilon$ 時，步長約為 $\\epsilon/C_{\\rm BE}$ 與 $\\sqrt{\\epsilon/C_{\\rm CN}}$。比例依誤差常數及尺度而定，不能單由方法階數推出 $0.1$；應由解析模態或試算估計常數。\n    *   (b) $q\\approx13.82$ 時，$R_{\\rm BE}\\approx0.0675$，$R_{\\rm CN}\\approx-0.747$。BE 對該模態的單步振幅抑制較強；這是相對於 CN，不表示 BE 在有限 $q$ 下比精確因子 $e^{-q}$ 衰減更快。"
+      },
+      {
+        "chapter": 9,
+        "old": "2.  **Backward Euler (BE)** 是一階、A-穩定且 L-穩定的方法。其 L-穩定性使其在抑制高頻數值雜訊方面表現優異，但代價是一階收斂速度和低頻過度衰減。",
+        "new": "2.  **Backward Euler (BE)** 是一階、A-穩定且 L-穩定的方法。L-穩定性使其在 $q\\to\\infty$ 時有效抑制高頻模態；有限步長下，低頻衰減仍有一階時間誤差，不能概括為必然過度衰減。"
+      }
+    ],
+    "reason": "修補審查列出的錯誤，將程式旗標驗收與同段程式輸出合併。所有 old 均是原稿中的唯一片段且互不重疊；未執行程式。"
+  }
+}

@@ -1,0 +1,603 @@
+# 第22章 多物理場耦合與時間尺度
+
+## 學習目標與先備知識
+
+完成本章後，讀者應能：
+
+1. 區分單向耦合、雙向耦合、弱耦合與強耦合。
+2. 由交換通量推導兩子系統的總量守恆與能量收支。
+3. 比較整體式與分區式求解，理解固定點迭代的角色。
+4. 以Jacobian或Lipschitz常數判斷固定點迭代的局部收斂。
+5. 辨識傳輸、擴散、反應與交換等不同時間尺度。
+6. 分開診斷時間離散誤差、耦合殘差、代數殘差與物理模型誤差。
+7. 以自足NumPy程式模擬兩個交換子系統，檢查總量守恆與步長細化。
+
+先備知識包括常微分方程、守恆律、顯式與隱式時間積分、矩陣特徵值及基本NumPy。本章處理經典場與連續介質模型，不宣稱提供完整工業多物理軟體。
+
+---
+
+## 問題與直覺
+
+多物理場模型不只是把數條方程放進同一程式。真正的耦合必須回答：
+
+- 哪個場影響哪個場？
+- 交換的是質量、動量、熱量，還是經驗參數？
+- 一個子系統失去的量，是否成為另一子系統得到的量？
+- 耦合資料取自舊時間層、新時間層，還是某次內迭代？
+- 不同子系統的時間尺度相差多少？
+- 內迭代停止後留下的是耦合誤差、離散誤差，還是物理模型誤差？
+
+若兩個水體區塊交換溶質，區塊一流出的質量率為$J$，區塊二便應以相反符號接收$J$。兩邊都把$J$寫成損失會使總量消失；兩邊都寫成來源則會使總量增加。這些錯誤仍可能產生平滑曲線，因此視覺平滑不是守恆證據。
+
+- **單向耦合**：場$u$影響$v$，但$v$不回饋$u$。
+- **雙向耦合**：$u$影響$v$，而$v$也回饋$u$。
+- **弱耦合**：每個時間步只交換一次或少數幾次資料。
+- **強耦合**：在同一時間步內反覆交換資料，直到耦合條件滿足容差。
+
+單向與雙向描述物理依賴方向；弱耦合與強耦合描述數值協調程度，不能混為一談。
+
+---
+
+## 數學與物理推導
+
+### 兩個守恆子系統
+
+令$M_1,M_2$為兩區塊內某守恆量，單位為kg。定義$J_{12}$為由區塊一流向區塊二的交換率，單位為$\mathrm{kg/s}$：
+
+$$
+\frac{dM_1}{dt}=S_1-J_{12},
+\qquad
+\frac{dM_2}{dt}=S_2+J_{12}.
+$$
+
+相加得到
+
+$$
+\frac{d}{dt}(M_1+M_2)=S_1+S_2.
+$$
+
+內部交換項精確抵消。若$S_1=S_2=0$，總量保持常數。離散程式亦須讓兩式使用完全相同、符號相反的交換量。
+
+若體積為$V_1,V_2$，濃度為$C_i=M_i/V_i$，採線性交換律
+
+$$
+J_{12}=K(C_1-C_2),
+$$
+
+其中$K$的單位為$\mathrm{m^3/s}$，則
+
+$$
+V_1\frac{dC_1}{dt}=-K(C_1-C_2),
+\qquad
+V_2\frac{dC_2}{dt}=K(C_1-C_2).
+$$
+
+體積不同時，守恆量是$V_1C_1+V_2C_2$，不是$C_1+C_2$。
+
+### 差模態與交換時間尺度
+
+令$\delta=C_1-C_2$，則
+
+$$
+\frac{d\delta}{dt}
+=
+-K\left(\frac1{V_1}+\frac1{V_2}\right)\delta.
+$$
+
+因此
+
+$$
+\delta(t)=\delta(0)e^{-t/\tau_{\mathrm{ex}}},
+$$
+
+其中
+
+$$
+\tau_{\mathrm{ex}}
+=
+\frac{1}{K(1/V_1+1/V_2)}.
+$$
+
+平均守恆模態保持不變，差模態則指數衰減。交換系統因此具有一個零特徵值與一個負特徵值。
+
+場方程常同時含有
+
+$$
+\tau_{\mathrm{adv}}\sim\frac LU,
+\qquad
+\tau_{\mathrm{diff}}\sim\frac{L^2}{D},
+\qquad
+\tau_{\mathrm{react}}\sim\frac1k,
+\qquad
+\tau_{\mathrm{ex}}\sim\frac VK.
+$$
+
+最短尺度常限制顯式步長，但步長小於最短尺度不自動保證穩定、非負、守恆或收斂。
+
+### 整體式與分區式求解
+
+把未知量合併為$\mathbf z=[\mathbf u^T,\mathbf v^T]^T$，隱式一步可寫成
+
+$$
+\mathbf R(\mathbf z^{n+1};\mathbf z^n)=\mathbf0.
+$$
+
+整體式方法同時求解全部未知量；分區式方法保留各子系統求解器，例如
+
+$$
+\mathbf u^{(k+1)}=\mathcal S_u(\mathbf v^{(k)}),
+\qquad
+\mathbf v^{(k+1)}=\mathcal S_v(\mathbf u^{(k+1)}).
+$$
+
+尺度化耦合殘差可定義為
+
+$$
+r_{\mathrm c}^{(k)}
+=
+\max\left(
+\frac{\|\mathbf u^{(k+1)}-\mathbf u^{(k)}\|}
+{a_u+\|\mathbf u^{(k+1)}\|},
+\frac{\|\mathbf v^{(k+1)}-\mathbf v^{(k)}\|}
+{a_v+\|\mathbf v^{(k+1)}\|}
+\right).
+$$
+
+此量只描述內迭代變化，不等於完整方程真殘差，也不等於物理模型與現實之差。
+
+### 固定點收斂與鬆弛
+
+若
+
+$$
+\mathbf z^{(k+1)}=\mathcal G(\mathbf z^{(k)})
+$$
+
+在解附近滿足
+
+$$
+\|\mathcal G(\mathbf a)-\mathcal G(\mathbf b)\|
+\le q\|\mathbf a-\mathbf b\|,
+\qquad 0\le q<1,
+$$
+
+則固定點迭代局部收斂。可微時常以
+
+$$
+\rho(J_{\mathcal G})<1
+$$
+
+作局部判據。直接迭代振盪時可用欠鬆弛：
+
+$$
+\mathbf z^{(k+1)}
+=
+(1-\omega)\mathbf z^{(k)}
++\omega\mathcal G(\mathbf z^{(k)}),
+\qquad 0<\omega\le1.
+$$
+
+欠鬆弛可能改善收斂，但不能修復錯誤符號、不一致單位或錯誤模型。
+
+### 能量交換
+
+兩熱子系統若滿足
+
+$$
+Q_{12}=G(T_1-T_2),
+$$
+
+$$
+H_1\frac{dT_1}{dt}=-Q_{12},
+\qquad
+H_2\frac{dT_2}{dt}=Q_{12},
+$$
+
+其中$G$為$\mathrm{W/K}$、$H_i$為$\mathrm{J/K}$，則總顯熱$H_1T_1+H_2T_2$守恆。令
+
+$$
+E_\Delta=\frac12(T_1-T_2)^2,
+$$
+
+可得
+
+$$
+\frac{dE_\Delta}{dt}
+=
+-G\left(\frac1{H_1}+\frac1{H_2}\right)(T_1-T_2)^2
+\le0.
+$$
+
+這是連續差異能量下降，不表示任意時間步長的顯式離散也能量下降。
+
+---
+
+## 逐步手算例題
+
+### 例一：兩區塊質量交換
+
+令$V_1=V_2=1\,\mathrm{m^3}$、$K=0.1\,\mathrm{m^3/s}$，初值為
+
+$$
+C_1(0)=2\,\mathrm{kg/m^3},
+\qquad
+C_2(0)=0.
+$$
+
+總質量為$2\,\mathrm{kg}$，平衡濃度為$1\,\mathrm{kg/m^3}$。差值滿足
+
+$$
+\delta'=-0.2\delta,
+\qquad
+\delta(0)=2,
+$$
+
+所以
+
+$$
+C_1(t)=1+e^{-0.2t},
+\qquad
+C_2(t)=1-e^{-0.2t}.
+$$
+
+兩濃度趨向同一值，但總質量始終為$2\,\mathrm{kg}$。
+
+### 例二：顯式交換與故障步長
+
+共享通量顯式Euler為
+
+$$
+J^n=K(C_1^n-C_2^n),
+$$
+
+$$
+C_1^{n+1}=C_1^n-\frac{\Delta t}{V_1}J^n,
+\qquad
+C_2^{n+1}=C_2^n+\frac{\Delta t}{V_2}J^n.
+$$
+
+取$\Delta t=1\,\mathrm s$，則$J^0=0.2\,\mathrm{kg/s}$，得到
+
+$$
+C_1^1=1.8,
+\qquad
+C_2^1=0.2.
+$$
+
+取$\Delta t=20\,\mathrm s$則得到
+
+$$
+C_1^1=-2,
+\qquad
+C_2^1=4.
+$$
+
+兩種情形都守恆，但後者失去非負性且差值放大。守恆不代表穩定或物理可信，不能用事後裁零掩蓋故障。
+
+---
+
+## 實作與程式
+
+以下自足程式只使用Python 3.10+與NumPy。未知方法在進入時間迴圈前即被拒絕，因此即使`steps == 0`也不會默默接受非法方法。
+
+```python
+import numpy as np
+
+VALID_METHODS = ("explicit", "backward_euler")
+
+def validate(c0, volumes, K, dt, steps):
+    c0 = np.asarray(c0, dtype=float)
+    volumes = np.asarray(volumes, dtype=float)
+    if c0.shape != (2,) or volumes.shape != (2,):
+        raise ValueError("c0與volumes必須為形狀(2,)")
+    if not np.all(np.isfinite(c0)) or not np.all(np.isfinite(volumes)):
+        raise ValueError("輸入必須有限")
+    if np.any(volumes <= 0.0):
+        raise ValueError("體積必須為正")
+    if not np.isfinite(K) or K < 0.0:
+        raise ValueError("K必須為有限非負值")
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError("dt必須為有限正值")
+    if not isinstance(steps, int) or isinstance(steps, bool) or steps < 0:
+        raise ValueError("steps必須為非負整數")
+    return c0.copy(), volumes.copy()
+
+def total_mass(c, volumes):
+    return float(np.dot(c, volumes))
+
+def explicit_step(c, volumes, K, dt):
+    flux = K * (c[0] - c[1])
+    mass = volumes * c
+    mass[0] -= dt * flux
+    mass[1] += dt * flux
+    return mass / volumes
+
+def backward_euler_step(c, volumes, K, dt):
+    v1, v2 = volumes
+    A = np.array([
+        [1.0 + dt*K/v1, -dt*K/v1],
+        [-dt*K/v2, 1.0 + dt*K/v2]
+    ])
+    return np.linalg.solve(A, c)
+
+def run(method, c0, volumes, K, dt, steps):
+    if method not in VALID_METHODS:
+        raise ValueError(
+            "method必須是explicit或backward_euler"
+        )
+
+    c, volumes = validate(c0, volumes, K, dt, steps)
+    m0 = total_mass(c, volumes)
+
+    for _ in range(steps):
+        if method == "explicit":
+            c = explicit_step(c, volumes, K, dt)
+        else:
+            c = backward_euler_step(c, volumes, K, dt)
+
+    mass = total_mass(c, volumes)
+    return {
+        "concentration": c,
+        "mass": mass,
+        "mass_error": mass - m0,
+        "minimum": float(np.min(c))
+    }
+
+def exact_solution(t, c0, volumes, K):
+    if not np.isfinite(t) or t < 0.0:
+        raise ValueError("t必須為有限非負值")
+    c0, volumes = validate(c0, volumes, K, 1.0, 0)
+    v1, v2 = volumes
+    mass = np.dot(c0, volumes)
+    equilibrium = mass / (v1 + v2)
+    delta0 = c0[0] - c0[1]
+    rate = K * (1.0/v1 + 1.0/v2)
+    delta = delta0 * np.exp(-rate*t)
+    return np.array([
+        equilibrium + v2*delta/(v1 + v2),
+        equilibrium - v1*delta/(v1 + v2)
+    ])
+
+if __name__ == "__main__":
+    c0 = np.array([2.0, 0.0])       # kg/m^3
+    volumes = np.array([1.0, 1.0])  # m^3
+    K = 0.1                         # m^3/s
+    final_time = 10.0               # s
+
+    for dt in (1.0, 0.5, 0.25):
+        steps = int(round(final_time / dt))
+        out = run("explicit", c0, volumes, K, dt, steps)
+        ref = exact_solution(final_time, c0, volumes, K)
+        error = np.linalg.norm(
+            out["concentration"] - ref, ord=np.inf
+        )
+        print(dt, out, "error=", error)
+
+    print(run("backward_euler", c0, volumes, K, 20.0, 1))
+
+    # 即使零步數，未知方法仍應被拒絕。
+    try:
+        run("unknown", c0, volumes, K, 1.0, 0)
+    except ValueError as exc:
+        print("expected rejection:", exc)
+```
+
+程式先以質量更新，再除以體積，使同一交換量在兩側以相反符號出現。設定`steps=0`代表合法地回傳初值，不代表略過其他輸入契約；方法名稱、體積、交換係數與時間步仍須先驗證。
+
+---
+
+## 測試與預期結果
+
+以下皆為依推導得到的預期結果，未宣稱已執行程式。
+
+### 正常測試
+
+對$V_1=V_2=1$、$K=0.1$、$\Delta t=1$，第一步顯式結果應為$[1.8,0.2]^T$，總質量誤差只應處於浮點捨入尺度。
+
+### 步長細化
+
+固定$t=10\,\mathrm s$，依序使用$\Delta t=1,0.5,0.25$。顯式Euler對此光滑線性問題預期呈一階時間收斂。實際觀測階應由
+
+$$
+p_{\mathrm{obs}}
+=
+\log_2\frac{E(\Delta t)}{E(\Delta t/2)}
+$$
+
+計算，不得預先捏造數值。
+
+### 非負性故障
+
+顯式交換維持單步凸組合的充分條件為
+
+$$
+\frac{\Delta t K}{V_1}\le1,
+\qquad
+\frac{\Delta t K}{V_2}\le1.
+$$
+
+超限時可能出現負濃度。不得裁零後再宣稱原方法具非負性。
+
+### 守恆故障注入
+
+若錯把第二式寫成`mass[1] -= dt*flux`，總質量每步改變$-2\Delta t J$。守恆測試應明確失敗。
+
+### 零步數與未知方法
+
+```python
+run("explicit", [2.0, 0.0], [1.0, 1.0], 0.1, 1.0, 0)
+```
+
+預期合法回傳初值。相對地，
+
+```python
+run("unknown", [2.0, 0.0], [1.0, 1.0], 0.1, 1.0, 0)
+```
+
+即使`steps=0`也預期引發`ValueError`。方法驗證不應依賴時間迴圈是否執行。
+
+### 性質分離
+
+- 守恆：檢查$V_1C_1+V_2C_2$。
+- 穩定性：檢查擾動是否受控。
+- 非負性：檢查每個濃度是否小於零。
+- 能量下降：檢查差異能量是否下降。
+- 收斂：以步長細化比較解析解或可靠參考解。
+
+任一項通過，都不能替代其他項目。
+
+---
+
+## 除錯與常見陷阱
+
+1. 把單向耦合稱為弱耦合；前者描述物理依賴，後者描述數值策略。
+2. 兩側各自重算介面通量，導致交換量不一致。
+3. 體積不同時仍用濃度和代替總質量。
+4. 只看固定點增量，不計算完整方程真殘差。
+5. 把耦合殘差小誤解為物理模型誤差小。
+6. 時間步細化時不相應收緊耦合容差，使內迭代誤差主導。
+7. 用欠鬆弛掩蓋符號、單位或Jacobian錯誤。
+8. 只檢查總量，忽略負值、振盪或相位誤差。
+9. 用`clip`恢復非負，卻不記錄質量改變。
+10. 只在時間迴圈內驗證方法名稱，使零步數繞過輸入契約。
+
+---
+
+## 養殖與相場案例
+
+### 合成池域中的熱與溶氧單向耦合
+
+可令給定溫度場影響合成耗氧率：
+
+$$
+R_C(T,C)=-k(T)C,
+$$
+
+其中$C$為$\mathrm{kg/m^3}$，$k$為$\mathrm{1/s}$。若$C$不回饋溫度方程，這是單向耦合。若把生化放熱加入熱方程，則成為雙向模型，但必須列出反應焓、單位及適用假設。
+
+本章資料均為合成資料，不提供現場管理閾值，也不允許agent依模擬結果自行投餌、加藥或操作曝氣設備。溶氧跨越管理閾值不是物理相變。
+
+### 相場與溫度的雙向耦合
+
+固液相變模型可能令自由能依賴溫度：
+
+$$
+F[\phi,T]
+=
+\int_\Omega
+\left[
+W(\phi,T)+\frac{\kappa}{2}|\nabla\phi|^2
+\right]d\mathbf x.
+$$
+
+相場變化又可能透過潛熱項回饋熱方程。此時交換能量必須以相容符號出現在兩條方程中。若只讓$T$影響$W$而忽略潛熱回饋，便是單向近似，不應宣稱總熱能守恆。
+
+連續總能量守恆或耗散，也不保證任意分區時間離散具有相同性質。時間層滯後、介面投影及非線性求解容差都可能引入額外能量誤差。
+
+---
+
+## 習題
+
+1. **手算題**  
+   對$V_1=2\,\mathrm{m^3}$、$V_2=1\,\mathrm{m^3}$、$K=0.3\,\mathrm{m^3/s}$，求交換時間尺度。若初值為$C_1=3$、$C_2=0\,\mathrm{kg/m^3}$，求平衡濃度。
+
+2. **程式題**  
+   修改程式，使兩區塊加入等量反向來源$S_1=s$、$S_2=-s$。檢查總量並以至少三個時間步比較誤差。
+
+3. **反例題**  
+   構造總量守恆但產生負濃度的單步顯式例子，說明守恆為何不能推出非負性。
+
+4. **整合題**  
+   某雙向分區算法的耦合殘差低於$10^{-8}$，但網格細化後結果顯著改變。判斷哪些誤差已受控、哪些尚未受控，並提出至少四項診斷。
+
+---
+
+## 習題解答
+
+### 第一題
+
+$$
+\lambda
+=
+K\left(\frac1{V_1}+\frac1{V_2}\right)
+=
+0.3\left(\frac12+1\right)
+=
+0.45\,\mathrm{1/s}.
+$$
+
+因此
+
+$$
+\tau_{\mathrm{ex}}
+=
+\frac1{0.45}
+\approx2.22\,\mathrm s.
+$$
+
+初始總質量為$2(3)+1(0)=6\,\mathrm{kg}$，平衡濃度為
+
+$$
+C_{\mathrm{eq}}
+=
+\frac6{2+1}
+=
+2\,\mathrm{kg/m^3}.
+$$
+
+### 第二題
+
+質量更新應為
+
+$$
+M_1^{n+1}=M_1^n+\Delta t(s-J^n),
+$$
+
+$$
+M_2^{n+1}=M_2^n+\Delta t(-s+J^n).
+$$
+
+相加後外部來源與內部交換均抵消，因此總量只應有浮點尺度誤差。步長細化檢查時間離散誤差；守恆本身不能給出收斂階。
+
+### 第三題
+
+取$V_1=V_2=1$、$K=0.1$、$C^0=[2,0]^T$及$\Delta t=20$，可得
+
+$$
+C^1=[-2,4]^T.
+$$
+
+總質量仍為$2\,\mathrm{kg}$，但第一區濃度為負。守恆只約束加權總和，不約束各分量符號。
+
+### 第四題
+
+低耦合殘差表示分區固定點大致停止變化，但不表示空間離散誤差小。應：
+
+1. 計算完整離散方程真殘差。
+2. 分別細化空間網格與時間步。
+3. 收緊耦合及代數求解容差。
+4. 檢查介面通量是否大小相等、符號相反。
+5. 檢查守恆量、非負性與能量收支。
+6. 以製造解或解析簡化問題核對實作。
+
+即使verification全部通過，物理模型誤差與現場validation仍是另一層問題。
+
+---
+
+## 本章小結
+
+多物理場耦合的核心是明確定義依賴方向、交換量、符號、單位、時間層與收斂準則。單向及雙向描述物理回饋；弱耦合及強耦合描述數值協調程度。整體式方法直接處理聯立系統，分區式方法則以資料交換及固定點迭代協調既有求解器。
+
+共享通量必須以相反符號加入兩側，才能保證內部交換不改變總量。守恆、穩定、非負、能量下降與收斂是不同性質，須分別證明或測試。步長細化診斷時間離散誤差，固定點殘差診斷耦合迭代，完整方程殘差診斷代數求解；它們都不能直接量測物理模型與現實之差。
+
+---
+
+## 參考來源
+
+1. FiPy，有限體積離散與邊界：https://pages.nist.gov/fipy/en/latest/numerical/discret.html
+2. FEniCSx，Poisson與弱形式：https://jsdokken.com/dolfinx-tutorial/chapter1/fundamentals.html
+3. PETSc，KSP線性求解器：https://petsc.org/release/manual/ksp/
+4. SciPy，稀疏線性代數API：https://docs.scipy.org/doc/scipy/reference/sparse.linalg.html
+5. FiPy，簡單相場與固液相變示例：https://pages.nist.gov/fipy/en/latest/generated/examples.phase.simple.html
+
+上述來源僅供相應主題參考。本章核心程式不依賴SciPy；FiPy相場示例的序參量與參數慣例亦不可直接套用至本卷。

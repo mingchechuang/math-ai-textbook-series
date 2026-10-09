@@ -1,0 +1,11 @@
+{
+  "key": "495f4bd4d885a47b24fae0e6941e94373d92cac6e3a7d22715e77a4c441b75bb",
+  "person": {
+    "id": "v5_editor_03",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 11,
+  "result": "- 原句：「這個命題也說明廣播的反向傳播規則：若參數原 shape 為 $(D,)$，前向時被重複到 $(B,T,D)$，則其梯度必須沿新增或大小為 $1$ 的軸求和，還原成 $(D,)$。」\n  \n  原因：前面的命題證明的是廣播值的前向總和，尚未推導梯度如何沿廣播軸累加。結論正確，但「命題也說明」略過了由微分得到反向規則的關鍵一步。\n  \n  最小修法：補一行推導，例如令輸出梯度為 $G$，由 $dL=\\sum_{b,t,d}G_{btd}\\,db_d$ 得 $\\partial L/\\partial b_d=\\sum_{b,t}G_{btd}$。\n\n- 原句：「total = losses[valid].sum(dtype=np.float64)」\n  \n  原因：`masked_token_mean` 未檢查有效位置上的 loss 是否有限；若有效位置含 NaN 或無限值，會回傳非有限結果而不拒絕。相較之下，習題解答中的 `valid_token_loss` 已檢查所有 loss 有限，兩個介面策略不一致。無效位置的非有限值可以不影響結果，但有效位置應明確處理。\n  \n  最小修法：在求和前檢查 `np.isfinite(losses[valid]).all()`，不成立時丟出 `ValueError`；或明確說明此函式不負責有限值驗證，並統一另一實作的契約。\n\n- 原句：「若使用相容的 NumPy 環境在 CPU 執行，預期如下。」\n  \n  原因：程式未執行的聲明清楚，沒有虛構測試成功；但「相容的 NumPy 環境」沒有說明最低版本或相容條件，使讀者難以判斷環境差異是否相關。\n  \n  最小修法：列明已知所需的 NumPy 功能／最低版本；若未核對版本，就改成「未指定或核對 NumPy 版本，以下為依程式推導的預期結果」。\n\n其餘抽查的手算數值、shape、廣播方向、有效 token 平均與切分順序一致；程式包含正常、邊界及故障案例，也沒有聲稱已執行。章稿已涵蓋本章核心，不因未提供完整 Transformer 或訓練 loop 而扣分，因本章範圍並非完整 Transformer 章。\n\nVERDICT: REVISE"
+}

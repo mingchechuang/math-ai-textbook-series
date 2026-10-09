@@ -1,0 +1,85 @@
+{
+  "key": "7e0e94c33d537eb1b5a246284c38d893a05d1f88394dac106a557038de292105",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 172,
+  "result": {
+    "patches": [
+      {
+        "chapter": 4,
+        "old": "考慮一維穩態擴散，物質流密度 $J$（單位時間通過單位面積的質量）與濃度梯度成正比：",
+        "new": "考慮一般一維擴散，物質流密度 $J$（單位時間通過單位面積的質量）與濃度梯度成正比："
+      },
+      {
+        "chapter": 4,
+        "old": "- **穩態、無零模態反應的純 Neumann 問題**需要右端相容性：$\\int_\\Omega R(c) \\, dx = \\int_{\\partial \\Omega} q \\, dS$，否則無穩態解或解不唯一（常數零空間）。",
+        "new": "- **穩態純 Neumann 問題**必須滿足收支相容性 $\\int_\\Omega R(c)\\,dV=\\int_{\\partial\\Omega}q\\,dS$，其中 $q=\\mathbf J\\cdot\\mathbf n$ 定義為向外通量。不滿足時無穩態解；滿足時，若方程不含解除常數零模態的反應或其他約束，例如 $R$ 是給定且不依賴 $c$ 的來源，解仍只確定到加法常數。若 $R=-kc$ 且 $k>0$，一般不能再聲稱有此常數零模態。"
+      },
+      {
+        "chapter": 4,
+        "old": "- 時間尺度 $\\tau_E = 1/(2D\\pi^2) \\approx 2.53 \\, \\text{s}$ 是能量衰減至 $1/e$ 的時間。\n- 高頻模式衰減更快。若初始條件含 $n=2$ 模式，其能量衰減時間尺度為 $\\tau_E/4 \\approx 0.63 \\, \\text{s}$。",
+        "new": "- 時間尺度 $\\tau_E = 1/(2D\\pi^2) \\approx 5.07 \\, \\text{s}$ 是能量衰減至 $1/e$ 的時間。\n- 高頻模式衰減更快。若初始條件含 $n=2$ 模式，其能量衰減時間尺度為 $\\tau_E/4 \\approx 1.27 \\, \\text{s}$。"
+      },
+      {
+        "chapter": 4,
+        "old": "```python\nimport numpy as np\n\ndef solve_diffusion_1d(D=0.01, L=1.0, n_points=101, t_end=10.0, \n                       initial_cond=None, boundary_type='dirichlet',\n                       dt=None):\n    \"\"\"\n    求解一維擴散方程 ∂c/∂t = D ∂²c/∂x²\n    \n    參數:\n        D: 擴散係數 (m²/s)\n        L: 域長度 (m)\n        n_points: 空間網格點數（含邊界）\n        t_end: 終止時間 (s)\n        initial_cond: 可選函數 f(x)，預設為 sin(pi*x/L)\n        boundary_type: 'dirichlet' 或 'neumann'\n        dt: 時間步長 (s)，預設根據CFL條件自動計算\n    \n    返回:\n        x: 空間座標陣列\n        t_values: 時間點列表\n        c_history: 各時間步的濃度剖面 (list of arrays)\n    \"\"\"\n    if D <= 0:\n        raise ValueError(\"D must be positive\")\n    if L <= 0:\n        raise ValueError(\"L must be positive\")\n    if n_points < 3:\n        raise ValueError(\"n_points must be at least 3\")\n    if t_end < 0:\n        raise ValueError(\"t_end must be non-negative\")\n    \n    if initial_cond is None:\n        initial_cond = lambda x: np.sin(np.pi * x / L)\n    \n    # 空間網格\n    x = np.linspace(0, L, n_points)\n    dx = x[1] - x[0]\n    \n    # 時間步長（CFL條件：dt <= dx²/(2D)）\n    if dt is None:\n        r_target = 0.4  # 取穩定上限的80%\n        dt = r_target * dx**2 / D\n    else:\n        if dt <= 0:\n            raise ValueError(\"dt must be positive\")\n        if dt > dx**2 / (2 * D):\n            raise ValueError(f\"dt={dt} exceeds CFL limit {dx**2/(2*D):.6f}\")\n    \n    n_steps = max(1, int(np.ceil(t_end / dt)))\n    dt = t_end / n_steps  # 精確終止時間\n    \n    c = initial_cond(x).astype(np.float64)\n    \n    if not np.all(np.isfinite(c)):\n        raise ValueError(\"initial condition must be finite\")\n    \n    c_history = [c.copy()]\n    t_values = [0.0]\n    \n    r = D * dt / dx**2\n    \n    for step in range(1, n_steps + 1):\n        c_new = c.copy()\n        \n        if boundary_type == 'dirichlet':\n            # 內點：FTCS\n            c_new[1:-1] = c[1:-1] + r * (c[2:] - 2*c[1:-1] + c[:-2])\n            # 邊界：Dirichlet\n            c_new[0] = 0.0\n            c_new[-1] = 0.0\n        elif boundary_type == 'neumann':\n            # 內點：FTCS\n            c_new[1:-1] = c[1:-1] + r * (c[2:] - 2*c[1:-1] + c[:-2])\n            # 邊界：Neumann，使用ghost cell方法\n            # 左邊界 c'(0)=0 => ghost_left = c[1]\n            # c_new[0] = c[0] + r * (ghost_left - 2*c[0] + c[1])\n            #          = c[0] + r * (c[1] - 2*c[0] + c[1])\n            #          = c[0] + 2*r*(c[1] - c[0])\n            c_new[0] = c[0] + 2*r*(c[1] - c[0])\n            \n            # 右邊界 c'(L)=0 => ghost_right = c[-2]\n            # c_new[-1] = c[-1] + r * (c[-2] - 2*c[-1] + ghost_right)\n            #           = c[-1] + r * (c[-2] - 2*c[-1] + c[-2])\n            #           = c[-1] + 2*r*(c[-2] - c[-1])\n            c_new[-1] = c[-1] + 2*r*(c[-2] - c[-1])\n        else:\n            raise ValueError(f\"Unknown boundary_type: {boundary_type}\")\n        \n        c = c_new\n        c_history.append(c.copy())\n        t_values.append(step * dt)\n    \n    return x, t_values, c_history\n\ndef compute_total_mass(c, dx):\n    \"\"\"計算總質量 ∫c dx 使用梯形法\"\"\"\n    return np.trapz(c, dx=dx)\n\ndef compute_energy(c, dx):\n    \"\"\"計算能量 ∫c² dx 使用梯形法\"\"\"\n    return np.trapz(c**2, dx=dx)\n\n# 使用範例\nif __name__ == '__main__':\n    print(\"=== Example 1: Dirichlet boundary ===\")\n    x, t_vals, c_hist = solve_diffusion_1d(\n        D=0.01, L=1.0, n_points=101, t_end=10.0,\n        boundary_type='dirichlet'\n    )\n    dx = x[1] - x[0]\n    print(f\"dt = {0.4 * dx**2 / 0.01:.6f} s\")\n    for i in range(0, len(t_vals), 100):\n        print(f\"t={t_vals[i]:.2f}s, E={compute_energy(c_hist[i], dx):.6e}, \"\n              f\"M={compute_total_mass(c_hist[i], dx):.6e}\")\n    \n    print(\"\\n=== Example 2: Neumann boundary ===\")\n    x, t_vals, c_hist = solve_diffusion_1d(\n        D=0.01, L=1.0, n_points=101, t_end=10.0,\n        initial_cond=lambda x: 1.0 + np.cos(2*np.pi*x),\n        boundary_type='neumann'\n    )\n    dx = x[1] - x[0]\n    print(f\"dt = {0.4 * dx**2 / 0.01:.6f} s\")\n    for i in range(0, len(t_vals), 100):\n        print(f\"t={t_vals[i]:.2f}s, E={compute_energy(c_hist[i], dx):.6e}, \"\n              f\"M={compute_total_mass(c_hist[i], dx):.6e}\")\n```",
+        "new": "```python\nimport numpy as np\n\n\ndef trapezoid_values(y, dx):\n    \"\"\"等距節點的梯形積分；不依賴特定版本的 trapz 名稱。\"\"\"\n    y = np.asarray(y, dtype=float)\n    return dx * (0.5 * y[0] + np.sum(y[1:-1]) + 0.5 * y[-1])\n\n\ndef solve_diffusion_1d(D=0.01, L=1.0, n_points=101, t_end=10.0,\n                       initial_cond=None, boundary_type='dirichlet', dt=None,\n                       h=None, c_ext=None):\n    \"\"\"節點含兩端；解 c_t=D*c_xx，齊次 Dirichlet/Neumann 或兩端 Robin。\"\"\"\n    for name, value in [('D', D), ('L', L), ('t_end', t_end)]:\n        if not np.isscalar(value) or not np.isfinite(value):\n            raise ValueError(f'{name} must be finite')\n    if D <= 0 or L <= 0 or t_end < 0:\n        raise ValueError('D,L must be positive; t_end nonnegative')\n    if isinstance(n_points, (bool, np.bool_)) or not isinstance(\n            n_points, (int, np.integer)) or n_points < 3:\n        raise ValueError('n_points must be an integer >= 3')\n    if boundary_type not in ('dirichlet', 'neumann', 'robin'):\n        raise ValueError('unknown boundary_type')\n    if boundary_type == 'robin':\n        if (h is None or c_ext is None or not np.isscalar(h)\n                or not np.isscalar(c_ext) or not np.isfinite(h)\n                or not np.isfinite(c_ext) or h < 0):\n            raise ValueError('Robin needs finite h >= 0 and finite c_ext')\n    elif h is not None or c_ext is not None:\n        raise ValueError('h and c_ext apply only to Robin')\n    if dt is not None and (not np.isscalar(dt) or not np.isfinite(dt)\n                           or dt <= 0):\n        raise ValueError('dt must be finite and positive')\n\n    x = np.linspace(0.0, L, n_points)\n    dx = L / (n_points - 1)\n    if initial_cond is None:\n        initial_cond = lambda xx: np.sin(np.pi * xx / L)\n    if not callable(initial_cond):\n        raise ValueError('initial_cond must be callable')\n    c = np.asarray(initial_cond(x), dtype=float)\n    if c.shape != x.shape or not np.all(np.isfinite(c)):\n        raise ValueError('initial condition must have x shape and be finite')\n    if boundary_type == 'dirichlet' and not np.allclose(\n            c[[0, -1]], 0.0, rtol=0.0, atol=1e-12):\n        raise ValueError('initial endpoints conflict with zero Dirichlet data')\n    if t_end == 0:\n        return x, [0.0], [c.copy()]\n\n    # 此界限也使各更新係數非負；Robin 另計邊界交換。\n    limit = 0.5 / (D / dx**2 + (h / dx if boundary_type == 'robin' else 0.0))\n    if dt is not None and dt > limit * (1.0 + 1e-12):\n        raise ValueError(f'dt exceeds explicit limit {limit:.6g}')\n    requested_dt = 0.8 * limit if dt is None else dt\n    n_steps = int(np.ceil(t_end / requested_dt))\n    actual_dt = t_end / n_steps\n    r = D * actual_dt / dx**2\n    exchange = (h * actual_dt / dx) if boundary_type == 'robin' else 0.0\n    history, times = [c.copy()], [0.0]\n    for step in range(1, n_steps + 1):\n        new = c.copy()\n        new[1:-1] = c[1:-1] + r * (c[2:] - 2*c[1:-1] + c[:-2])\n        if boundary_type == 'dirichlet':\n            new[0] = new[-1] = 0.0\n        else:\n            new[0] = c[0] + 2*r*(c[1] - c[0])\n            new[-1] = c[-1] + 2*r*(c[-2] - c[-1])\n            if boundary_type == 'robin':\n                new[0] -= 2*exchange*(c[0] - c_ext)\n                new[-1] -= 2*exchange*(c[-1] - c_ext)\n        c = new\n        history.append(c.copy())\n        times.append(step * actual_dt)\n    return x, times, history\n\n\ndef compute_total_mass(c, dx):\n    \"\"\"每單位截面積的濃度積分；有因次單位 kg/m²。\"\"\"\n    return trapezoid_values(c, dx)\n\n\ndef compute_energy(c, dx):\n    \"\"\"平方範數積分，不直接等於熱力學能量。\"\"\"\n    return trapezoid_values(np.asarray(c)**2, dx)\n\n\nif __name__ == '__main__':\n    for kind, f in [('dirichlet', lambda x: np.sin(np.pi*x)),\n                    ('neumann', lambda x: 1.0 + np.cos(2*np.pi*x))]:\n        x, times, states = solve_diffusion_1d(\n            initial_cond=f, boundary_type=kind)\n        print(kind, times[-1], compute_total_mass(states[-1], x[1]-x[0]),\n              compute_energy(states[-1], x[1]-x[0]))\n```"
+      },
+      {
+        "chapter": 4,
+        "old": "**程式說明**：\n- `solve_diffusion_1d` 使用顯式 FTCS 格式，空間二階精度，時間一階精度。\n- Dirichlet 邊界直接設定邊界值。\n- Neumann 邊界使用 ghost cell 方法實現二階精度：左邊界 $c'(0)=0$ 意味著 $c_{ghost} = c_1$，代入中心差分公式後簡化為 $c_0^{new} = c_0 + 2r(c_1 - c_0)$。\n- CFL 條件檢查：`dt` 若超過 $dx^2/(2D)$ 則拋出錯誤，避免非物理不穩定。\n- 輸入驗證：拒絕非有限初值、負數參數等。\n- 時間步長精確計算：使用 `ceil` 確保最終時間精確為 `t_end`。",
+        "new": "**程式說明**：\n- `solve_diffusion_1d` 使用節點含端點的顯式 FTCS；內點空間二階、時間一階。Neumann 邊界以鏡射 ghost 值更新，質量須用端點半權重的梯形積分檢查。邊界離散與整體誤差階仍應另以網格細化核對，不只憑內點公式宣稱。\n- Dirichlet 初值兩端須為零；`t_end=0` 只返回初值。非法形狀或非有限資料在更新前拒絕。\n- 純擴散的 $r=D\\,dt/dx^2\\leq1/2$ 是此格式更新係數非負的條件；Robin 還須 $r+h\\,dt/dx\\leq1/2$。程式依較嚴界限選步長。這些條件不等同模型正確，也不能代替誤差與守恆檢查。\n- `ceil` 後的實際步長為 `t_end/n_steps`，可精確指定終止時間；它不一定等於請求的 `dt`。程式只解無反應擴散，不能用其輸出冒稱已模擬 $R=-kc$。\n\n**反應收支的最小擴展**：若僅有齊次 Neumann 邊界與一階消耗 $R=-kc$，$k\\geq0$ 的量綱是 s$^{-1}$。在上述 `new` 完成擴散更新後、覆寫 `c` 前，同步加入 `new -= k * actual_dt * c`；各節點都使用舊值，切勿只更新內點。梯形權重下擴散部分總和抵消，故離散總量滿足 $M^{n+1}=(1-k\\,dt)M^n$。要保持此顯式反應更新對非負初值的非負性，還需合併考慮擴散與消耗的係數，例如內點要求 $2r+k\\,dt\\leq1$；這是另定的格式，不是目前函式已實作的功能。連續無通量且空間均勻的解析例則為 $c(t)=c_0e^{-kt}$、$M(t)=M(0)e^{-kt}$，可用來分辨反應耗損與邊界漏量。"
+      },
+      {
+        "chapter": 4,
+        "old": "- 驗證：`compute_total_mass` 返回值應在 $1.0 \\pm 10^{-5}$ 範圍內（數值誤差來自梯形積分與離散誤差）",
+        "new": "- 驗證：`compute_total_mass` 返回值預期在 $1.0 \\pm 10^{-5}$ 範圍內。對本例的齊次 Neumann 更新，端點半權重的離散總量在代數上逐步守恆；計算值的微小偏差主要來自浮點運算累積，不宜歸因於梯形積分截斷誤差。"
+      },
+      {
+        "chapter": 4,
+        "old": "- 驗證：對照正確實現，確認錯誤代碼導致質量誤差 $> 10^{-3}$",
+        "new": "- 驗證：對照正確實現，逐步計算端點半權重的質量收支；錯誤邊界行不再與相鄰內點通量抵消。漂移大小依初值、網格及演化時間而定，不預設必定超過 $10^{-3}$。"
+      },
+      {
+        "chapter": 4,
+        "old": "$e^{-20 \\times 0.05 \\times (3\\pi/2)^2} = e^{-20 \\times 0.05 \\times 7.402} = e^{-7.402} \\approx 0.0006$",
+        "new": "$e^{-20 \\times 0.05 \\times (3\\pi/2)^2}=e^{-(3\\pi/2)^2}=e^{-22.207}\\approx2.27\\times10^{-10}$"
+      },
+      {
+        "chapter": 4,
+        "old": "### 習題2解答\n\nRobin 邊界：$-D \\partial c/\\partial n = h(c - c_{\\text{ext}})$。\n\n左邊界 $x=0$，法向 $n=-1$（指向域外為 $-x$ 方向），故 $\\partial c/\\partial n = -\\partial c/\\partial x$。\n\n邊界條件：$-D (-\\partial c/\\partial x) = h(c - c_{\\text{ext}}) \\implies D \\partial c/\\partial x = h(c - c_{\\text{ext}})$。\n\n使用 ghost cell：$c_{ghost} = 2c_0 - c_1$（對稱假設）。一階導數在邊界使用中心差分：\n\n$$\n\\partial c/\\partial x \\approx \\frac{c_1 - c_{ghost}}{2dx} = \\frac{c_1 - (2c_0 - c_1)}{2dx} = \\frac{2c_1 - 2c_0}{2dx} = \\frac{c_1 - c_0}{dx}\n$$\n\n代入邊界條件：\n\n$$\nD \\frac{c_1 - c_0}{dx} = h(c_0 - c_{\\text{ext}})\n$$\n\n解出 $c_0$：\n\n$$\nD c_1 - D c_0 = h dx c_0 - h dx c_{\\text{ext}}\n$$\n$$\nD c_1 + h dx c_{\\text{ext}} = c_0 (D + h dx)\n$$\n$$\nc_0 = \\frac{D c_1 + h dx c_{\\text{ext}}}{D + h dx}\n$$\n\n更新 $c_0$ 使用 PDE：\n\n$$\nc_0^{new} = c_0 + D \\frac{dt}{dx^2} (c_{ghost} - 2c_0 + c_1)\n$$\n\n代入 $c_{ghost} = 2c_0 - c_1$：\n\n$$\nc_0^{new} = c_0 + D \\frac{dt}{dx^2} (2c_0 - c_1 - 2c_0 + c_1) = c_0\n$$\n\n這表明若邊界條件已滿足，內點更新不改變邊界值。但實際上，應將邊界條件代入 PDE 或使用邊界點的特殊更新式。\n\n更標準的方法：使用邊界條件消去 ghost cell，直接更新邊界點。\n\n由 $D \\partial c/\\partial x = h(c - c_{\\text{ext}})$，得 $\\partial c/\\partial x = \\frac{h}{D}(c - c_{\\text{ext}})$。\n\n二階導數在邊界：$\\partial^2 c/\\partial x^2 \\approx \\frac{c_2 - 2c_1 + c_0}{dx^2}$。\n\nPDE 在邊界：$\\partial c/\\partial t = D \\partial^2 c/\\partial x^2 + R$。\n\n此方法複雜。簡化：使用對流-擴散邊界的等效處理。\n\n程式修改：在 `solve_diffusion_1d` 中添加 `boundary_type='robin'`，參數 `h` 和 `c_ext`。\n\n預期：長期行為趨於 $c_{\\text{ext}}=5.0 \\times 10^{-3}$，因為 Robin 邊界允許與外部交換，最終系統達到與外部平衡。\n\n驗證：$t=100$ 時，$c$ 應接近 $5.0 \\times 10^{-3}$，誤差 $< 0.1 \\times 10^{-3}$。",
+        "new": "### 習題2解答\n\n設 $dx=L/(N-1)$、$r=D\\,dt/dx^2$。左端外法向為負，Robin 條件 $-D\\partial_nc=h(c-c_{\\mathrm{ext}})$ 因此成為 $Dc_x(0)=h(c_0-c_{\\mathrm{ext}})$。以中心差分近似端點導數，解出真正符合條件的 ghost 值：\n\n$$\n\\frac{c_1-c_{-1}}{2dx}=\\frac{h}{D}(c_0-c_{\\mathrm{ext}}),\\qquad\nc_{-1}=c_1-\\frac{2h\\,dx}{D}(c_0-c_{\\mathrm{ext}}).\n$$\n\n代入端點 FTCS，左右端分別得到\n\n$$\nc_0^{n+1}=c_0^n+2r(c_1^n-c_0^n)-\\frac{2h\\,dt}{dx}(c_0^n-c_{\\mathrm{ext}}),\n$$\n\n$$\nc_{N-1}^{n+1}=c_{N-1}^n+2r(c_{N-2}^n-c_{N-1}^n)-\\frac{2h\\,dt}{dx}(c_{N-1}^n-c_{\\mathrm{ext}}).\n$$\n\n正文完整程式已加入 `h`、`c_ext` 的有限性檢查、兩端更新，以及 $r+h\\,dt/dx\\leq1/2$ 的步長檢查。題目所列參數可直接如此接入；初值須與所指定的邊界類型一致，Robin 初值不要求端點等於外界值：\n\n```python\nx, times, states = solve_diffusion_1d(\n    D=0.01, L=1.0, n_points=101, t_end=100.0,\n    initial_cond=lambda x: np.sin(np.pi*x),\n    boundary_type='robin', h=0.05, c_ext=5.0e-3)\nprint(times[-1], states[-1][0], states[-1][-1])\n```\n\n均勻場 $c=c_{\\mathrm{ext}}$ 是穩態；$h>0$、無內部來源時，長期趨向此場。但 $t=100$ 是否已達指定的 $10^{-4}\\ \\mathrm{kg/m^3}$ 誤差，不能只憑穩態性斷言，須比較多個較晚時刻與空間最大誤差。也應檢查梯形加權總量的每步變化是否等於兩端 Robin 向外通量造成的損失；不可透過裁零製造非負結果。上述推導屬此節點離散，不能直接移植到 cell-centered 邊界行。"
+      },
+      {
+        "chapter": 4,
+        "old": "考慮 Neumann 邊界 $c'(0,t)=1$，$c'(1,t)=0$（左邊界有淨流入，右邊界絕緣）。",
+        "new": "考慮 Neumann 邊界 $c'(0,t)=1$，$c'(1,t)=0$（左邊界有淨流出，右邊界絕緣）。"
+      },
+      {
+        "chapter": 4,
+        "old": "擴散係數 $D \\approx 10^{-9} \\, \\text{m}^2/\\text{s}$（水中擴散典型值，合成示例）。反應項為生物耗氧 $R = -k c$，$k \\approx 10^{-6} \\, \\text{s}^{-1}$。",
+        "new": "為比較時間尺度，純作合成設定，取 $D=10^{-9}\\,\\text{m}^2/\\text{s}$；不宣稱它是本池量測值或有效混合係數。另取合成的一階耗氧項 $R=-kc$，$k=10^{-6}\\,\\text{s}^{-1}$。"
+      },
+      {
+        "chapter": 4,
+        "old": "若現場數據為 $8.0 \\, \\text{mg/L}$，則 $c_{in} = 8.0 \\times 10^{-3} \\, \\text{kg/m}^3$。",
+        "new": "若合成輸入值為 $8.0\\,\\text{mg/L}$，則 $c_{in}=8.0\\times10^{-3}\\,\\text{kg/m}^3$；此數值不是現場紀錄。"
+      },
+      {
+        "chapter": 4,
+        "old": "**注意**：此為簡化模型。實際養殖池有水流平流，需考慮平流-擴散方程（後續章節）。此外，DO 濃度管理閾值（如 $< 4 \\, \\text{mg/L}$ 為危險）是操作參數，非物理相變。",
+        "new": "**注意**：此為簡化的合成模型，並未以現場資料驗證。實際養殖池可能有水流平流，需另建平流—擴散模型。溶氧管理閾值不是物理相變；本例不提供現場危險閾值或操作建議。"
+      },
+      {
+        "chapter": 4,
+        "old": "**注意**：初始條件 $c=0$ 與邊界條件 $c'(0)=1$ 不相容（$c=0$ 意味著 $c'=0$）。這導致初始層（initial layer），短期內解快速調整。長期行為仍由邊界條件主導。",
+        "new": "**注意**：初始剖面 $c(x,0)=0$ 的端點導數為零，與要求 $t>0$ 立即滿足的 $c'(0,t)=1$ 不相容。因此不能宣稱解在時空角點具有符合兩項資料的古典光滑性；可在較弱意義下考慮 $t>0$ 的解，前述積分收支仍成立。所得負總量也提醒我們：這組持續流出、零初始濃度資料不是可信的非負濃度案例，不能以裁零掩蓋矛盾。"
+      }
+    ],
+    "reason": "依審查中可直接核算的式子，修正能量時間尺度、第三模態指數、純 Neumann 存在性與唯一性的區別及通量方向。將錯誤的 Robin ghost 推導替換為符合邊界條件的左右端更新，並在同一程式區塊補上可供習題直接呼叫的實作、步長與輸入檢查、零終止時間及相容的梯形積分。另修正未執行測試的過強預期、反應收支說明與合成資料措辭；未宣稱已執行程式。"
+  }
+}

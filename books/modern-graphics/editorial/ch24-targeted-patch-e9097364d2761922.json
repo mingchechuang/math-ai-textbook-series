@@ -1,0 +1,80 @@
+{
+  "key": "e9097364d27619225dcf97e25eb37d8107984674202c86c51907da908e5220c9",
+  "person": {
+    "id": "v2_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 192,
+  "result": {
+    "patches": [
+      {
+        "chapter": 24,
+        "old": "若使用共同隨機數，則出現 $2\\operatorname{Cov}(T,R_{ref})$ 的協方差項，$\\sigma_{test}^2 + \\sigma_{ref}^2$ 的公式不再成立。",
+        "new": "若使用共同隨機數，差值的方差須加入 $-2\\operatorname{Cov}(T,R_{ref})$，因此單純相加 $\\sigma_{test}^2 + \\sigma_{ref}^2$ 不再成立。"
+      },
+      {
+        "chapter": 24,
+        "old": "def calculate_metrics(test_img, ref_img):\n    \"\"\"計算 MSE, MAE, Max Abs Error。要求 shape 相同且有限。\"\"\"\n    if test_img.shape != ref_img.shape:\n        raise ValueError(\"Shapes must match\")\n    if not (np.all(np.isfinite(test_img)) and np.all(np.isfinite(ref_img))):\n        raise ValueError(\"Images must contain finite values\")\n    diff = test_img - ref_img",
+        "new": "def calculate_metrics(test_img, ref_img):\n    \"\"\"計算 MSE、MAE 與最大絕對誤差；要求非空、同形且有限。\"\"\"\n    test_img = np.asarray(test_img, dtype=np.float64)\n    ref_img = np.asarray(ref_img, dtype=np.float64)\n    if (test_img.ndim != 3 or ref_img.ndim != 3\n            or test_img.shape[2] != 3 or ref_img.shape[2] != 3):\n        raise ValueError(\"images must have shape (H, W, 3)\")\n    if test_img.shape != ref_img.shape:\n        raise ValueError(\"Shapes must match\")\n    if test_img.shape[0] == 0 or test_img.shape[1] == 0:\n        raise ValueError(\"image dimensions must be non-zero\")\n    if not (np.all(np.isfinite(test_img)) and np.all(np.isfinite(ref_img))):\n        raise ValueError(\"Images must contain finite values\")\n    diff = test_img - ref_img"
+      },
+      {
+        "chapter": 24,
+        "old": "            decomposed_mse = mean_error2 + ((K - 1) / K) * sample_variance\n            # 真實偏誤平方的無偏估計",
+        "new": "            decomposed_mse = mean_error2 + ((K - 1) / K) * sample_variance\n            assert np.allclose(empirical_mse, decomposed_mse)\n            # 真實偏誤平方的無偏估計"
+      },
+      {
+        "chapter": 24,
+        "old": "f\"Var̂={sample_variance:.6f} | Time={avg_time:.6f}s\")",
+        "new": "f\"Var̂={sample_variance:.6f} | toy_call_time={avg_time:.6f}s\")"
+      },
+      {
+        "chapter": 24,
+        "old": "    # 3a. 階梯影像：左半 0、右半 1。用來觀察邊緣滲色與過度平滑。\n    H, W, C = 16, 16, 3\n    step_ref = np.zeros((H, W, C), dtype=np.float64)\n    step_ref[:, W // 2:, :] = 1.0\n    rng_edge = np.random.default_rng(20250101)\n    step_noisy = step_ref + rng_edge.normal(0.0, 0.3, size=step_ref.shape)\n    step_blur = box_blur(step_noisy, radius=1)\n\n    left_col = W // 2 - 1\n    right_col = W // 2\n    left_bias = float(np.mean(step_blur[:, left_col, :] - step_ref[:, left_col, :]))\n    right_bias = float(np.mean(step_blur[:, right_col, :] - step_ref[:, right_col, :]))\n    print(f\"[Step edge] left bias={left_bias:+.4f} right bias={right_bias:+.4f} \"\n          f\"(一正一負代表 box filter 的邊緣混合)\")\n\n    grad_noisy = float(np.mean(np.abs(np.diff(step_noisy, axis=1))))\n    grad_blur = float(np.mean(np.abs(np.diff(step_blur, axis=1))))\n    print(f\"[Step edge] mean|grad| noisy={grad_noisy:.4f} blurred={grad_blur:.4f} \"\n          f\"(梯度下降代表過度平滑)\")",
+        "new": "    # 3a. 無噪聲階梯：隔離 Box filter 的確定性邊緣效應。\n    H, W, C = 16, 16, 3\n    step_ref = np.zeros((H, W, C), dtype=np.float64)\n    step_ref[:, W // 2:, :] = 1.0\n    step_blur_clean = box_blur(step_ref, radius=1)\n    rng_edge = np.random.default_rng(20250101)\n\n    left_col = W // 2 - 1\n    right_col = W // 2\n    left_value = float(step_blur_clean[H // 2, left_col, 0])\n    right_value = float(step_blur_clean[H // 2, right_col, 0])\n    left_bias = left_value - float(step_ref[H // 2, left_col, 0])\n    right_bias = right_value - float(step_ref[H // 2, right_col, 0])\n    print(f\"[Clean step] left={left_value:.4f} right={right_value:.4f} \"\n          f\"left_bias={left_bias:+.4f} right_bias={right_bias:+.4f}\")\n    # 中央橫列的局部剖面直接顯示原本的跳變如何被展寬；\n    # 不以含噪全圖的平均梯度推斷真實邊緣寬度。\n    profile = step_blur_clean[H // 2, left_col - 1:right_col + 2, 0]\n    print(f\"[Clean step] local_profile={profile}\")"
+      },
+      {
+        "chapter": 24,
+        "old": "    print(\"\\n註：Box filter 只展示模糊與邊緣滲色，\"\n          \"本身不會生成參考圖不存在的新結構。\"\n          \"資料驅動或非線性重建才可能產生假細節，本程式不涵蓋。\")",
+        "new": "    print(\"\\n註：Box filter 通常不會幻覺出新的高頻或語意細節，\"\n          \"但會產生中間色帶、邊緣拓寬與滲色等濾波偽影。\"\n          \"本程式不測試資料驅動的細節重建。\")"
+      },
+      {
+        "chapter": 24,
+        "old": "   - 有偏時（Bias=0.1），真實 $\\operatorname{Bias}^2 = 0.01$；`mean_image_err²` 和 `empirical_MSE` 在 $spp$ 增大時都會趨近 $0.01$，且**不會低於此值**。此 $0.01$ 才是偏誤在 MSE 上的底限。",
+        "new": "   - 有偏時（Bias=0.1），真實 $\\operatorname{Bias}^2=0.01$。理論期望的 `empirical_MSE` 為 $0.01+1/spp$，`mean_image_err²` 為 $0.01+1/(spp\\,K)$；兩者在 $spp\\to\\infty$ 時都趨近 $0.01$。有限 seed 的經驗值可能暫時低於 $0.01$，並不矛盾；$0.01$ 是期望 MSE 的偏誤底限與漸近值，而非每次觀測的下界。"
+      },
+      {
+        "chapter": 24,
+        "old": "   - Time：由於 `render_simulated` 的運算量不隨 $spp$ 改變（只生成固定大小的陣列並縮放噪聲標準差），Time 幾乎不變。程式刻意**不輸出** `Samples/s`，因為模擬器並未真正執行 $WH\\cdot spp$ 個樣本，任何速率值都不具路徑追蹤效能的意義。",
+        "new": "   - `toy_call_time`：`render_simulated` 只生成固定大小的陣列並縮放噪聲標準差，工作量不隨 $spp$ 成比例增加。列印的十次單獨呼叫平均值只是玩具程式的計時示意；呼叫過短，差異可能由計時及排程雜訊主導，不得據此判定效能。程式刻意**不輸出** `Samples/s`，因為模擬器並未真正執行 $WH\\cdot spp$ 個樣本。"
+      },
+      {
+        "chapter": 24,
+        "old": "   - **階梯邊緣**：左半 0、右半 1。Box blur 會在邊緣兩側產生不對稱偏誤：左側平均被拉高、右側平均被拉低，兩者符號相反。同時 `mean|grad|` 會下降，表示梯度被平滑掉。",
+        "new": "   - **無噪聲階梯邊緣**：左半為 0、右半為 1。半徑 1 的 $3\\times3$ Box blur 使邊界相鄰左欄成為 $1/3$、右欄成為 $2/3$；相對真值的偏誤分別為 $+1/3$、$-1/3$。中央橫列的局部剖面顯示邊緣展寬，不以含噪全圖的平均梯度作此判斷。"
+      },
+      {
+        "chapter": 24,
+        "old": "   - *注意*：以上皆是 Box filter 的**模糊與滲色**行為。Box filter 本身不會生成參考圖不存在的新結構，所以不能用它來示範「假細節」。會產生假細節的是資料驅動或非線性重建方法（例如以神經網路為基礎的影像重建），本章不涵蓋這些方法。",
+        "new": "   - *注意*：Box filter 通常不會幻覺出新的高頻或語意細節，但可能產生參考圖沒有的中間色帶、邊緣拓寬及滲色等偽影。因此本測試不能用來展示生成式假細節；資料驅動的細節重建也不在本程式範圍內。"
+      },
+      {
+        "chapter": 24,
+        "old": "   - **假細節**：輸出出現參考圖不存在的結構，較常見於資料驅動或非線性重建方法。簡單 Box filter 通常不會產生假細節，但會造成模糊與滲色。",
+        "new": "   - **假細節與濾波偽影**：資料驅動或非線性重建可能幻覺出參考圖不存在的高頻或語意細節；簡單 Box filter 通常不會如此，但仍會新增中間色帶並造成邊緣拓寬與滲色。"
+      },
+      {
+        "chapter": 24,
+        "old": "2. \n   當 $spp \\to \\infty$，噪聲項趨近於 0。\n   $T_i \\to R_i + 0.05$\n   $MSE \\to \\frac{1}{N} \\sum (0.05)^2 = 0.0025$\n   這說明 MSE 存在一個非零的下限，代表**偏誤**。僅增加樣本數無法消除偏誤，必須修正算法。",
+        "new": "2. 設程式中的 $K=30$、$\\sigma=1$，偏誤 $b=0.05$，每張影像各通道的噪聲方差為 $1/spp$。跨 seed 平均後，噪聲方差為 $1/(spp\\,K)$，因此 $\\mathbb E[\\text{mean\\_image\\_err}^2]=0.0025+1/(spp\\,K)$；逐張計算再平均則有 $\\mathbb E[\\text{empirical\\_MSE}]=0.0025+1/spp$。兩者在 $spp\\to\\infty$ 時都趨近 $0.0025$，這是**期望 MSE 的偏誤底限**，不是有限 seed 觀測值的硬性下界。有限 $K$ 時，經驗分解仍精確成立：`empirical_MSE = mean_image_err² + (K−1)/K × sample_variance`。`bias² estimate = mean_image_err² − sample_variance/K` 的期望為 $0.0025$；它是兩個隨機估計量之差，有限樣本下可能為負，並不表示偏誤平方真的為負。增加樣本數只會降低這個模型的噪聲項，不會消除 $0.05$ 的系統性偏誤。"
+      },
+      {
+        "chapter": 24,
+        "old": "Box filter 會造成模糊與邊緣滲色，本身不會生成假細節；會產生假細節的是資料驅動或非線性重建方法。",
+        "new": "Box filter 通常不會幻覺出高頻或語意細節，但會產生中間色帶、邊緣拓寬與滲色；資料驅動或非線性重建則可能另外生成假細節。"
+      }
+    ],
+    "reason": "修正協方差符號與有限樣本 MSE 下界敘述；以無噪聲階梯隔離濾波造成的邊緣變化，限定 Box filter 的假細節說法；補齊空影像檢查、經驗分解斷言、微型計時標籤及習題解答。未執行程式或驗證修後輸出。"
+  }
+}

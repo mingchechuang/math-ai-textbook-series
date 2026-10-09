@@ -1,0 +1,244 @@
+{
+  "volume": 5,
+  "chapter_count": 30,
+  "built_at": "2026-10-08T11:06:51.086Z",
+  "source_sha256": "503295df5fa74583951f9d5e4131af8f629259e40720c247bb49399bebd9f216",
+  "source_files": {
+    "00-preface.md": "17c330bdd5c9aa790a8a02aeea23b51b2547000e04249f043c64b5f942b355e9",
+    "chapters/01.md": "5b7f436e6d9b845e8471accc79e99be636d2b4353468c24bfbb39ea0d17d9e90",
+    "chapters/02.md": "2d74c0712a7775fd79a8c1ba9275f33f52cef033c844b9d5ea6fc4e010db8343",
+    "chapters/03.md": "d492ce1c0f62bd8b2dad000172e511bb7630c745bdb2b2bbbb7dbfb4bb9e2423",
+    "chapters/04.md": "a25d84b4b53b9e1b8c8718bc3bfee66a708bf0c203026b1ad010818c81165fa0",
+    "chapters/05.md": "3099c11d874f9e7a62d9e4f17d4c4497c03e33373b87836c82f1425cf22e3516",
+    "chapters/06.md": "6ca30de6723c1b34a08ef0fd02eeac8b900f5b643394416ba63ba245f335be52",
+    "chapters/07.md": "c48173acf63f16b2e6503f5d39c7e10ec441e03d8593bf226866c75546631b0a",
+    "chapters/08.md": "659ea2cba48c11414b11da3330d0f57fbd0423e9095b9c27db5c65d0a4eab65a",
+    "chapters/09.md": "db57fba38b7ba0e62950bbe26c0b6914af6eced959d2047e951ba0b25af55bf9",
+    "chapters/10.md": "05580867979966aacd9b21f9ec0aeda996650cf556f7ba0426336d4600ece3ca",
+    "chapters/11.md": "8ddc5a548f9c1d61f2d548d6908bc2532f52923ed81f53bee333bf5434b4d486",
+    "chapters/12.md": "0430c19791b6f72f936a51e70a3319cc5955cc054ac2032938aa9b54d9cb2467",
+    "chapters/13.md": "a8b1afa805907462c999a20f859e0de9f21bc3e346f4d77ce3c1ceb6d2277556",
+    "chapters/14.md": "b5e95a3d28cf516903aad700ff56f2653d928efa39f250d94e4cd40753df7945",
+    "chapters/15.md": "8f3e4a8c2ad5ce645350e8e927e0c4152febe74d61c701fe0e8685565c6a1a26",
+    "chapters/16.md": "f8878803b84ec1224de84c5f49e46bf47e170fcea7ed376467d56ac18070b655",
+    "chapters/17.md": "7bf26d75e849a7885b28eff3c0f30a8640f6bcc6d4ac8146d407df78dcc791dc",
+    "chapters/18.md": "84eb98103fae89fe68c294e6eb749a1997d1590fb28c67ce1e3cb32ac7d0f91b",
+    "chapters/19.md": "190cd3a437b45e01d8c57313630b690bae5741eaef1f5a71b47beda96ccafb1a",
+    "chapters/20.md": "ff5b7ac0b5d1958fa83bf0e571be6e2816eb27c08b04cb119d3a5e0ce06d4634",
+    "chapters/21.md": "3eaad07f918dbd3251fb1a7f258fff61307d00e8eb338eb560e70837da3bb635",
+    "chapters/22.md": "8e69f0f6e6079699b0bf0c883168d63fbf8a5db3399f128b7fd2b1f666e956ba",
+    "chapters/23.md": "d4bf3af31e3a27ba4104b5a21591e831641ac013f42120992ca22d9c9ee2ba94",
+    "chapters/24.md": "7d7f4de61cc4fa39dd4892b5a606040f6a6e788d4e08e9986ec783089d264ec0",
+    "chapters/25.md": "cf5f5a60068e2459fea72aced59805c096a30154678aa4c1965cf2c0143a536d",
+    "chapters/26.md": "1a7a6f7e8ff126a76381236e30a48f9d4d4339058de4e20d6df7812a3c9d5723",
+    "chapters/27.md": "f456789d7f89c237f9c012fc9f68d9a5e91bb9666051e7cdbefefaf4fbb504b6",
+    "chapters/28.md": "77da036c7bc647a76b4c103060da0a4e3b4c25630a7198ad6c28eff55e2d6837",
+    "chapters/29.md": "5d779da5148c66606e35ae84d34dfee546432d805409881a088dde0cf5db8f49",
+    "chapters/30.md": "9fef794fff0488a39e205e04873d65577ae5ecb254cfb61020bab4fad9ae2f34",
+    "99-appendix.md": "b12a45a7dc7398f209e741264be00e3caf067a896271283ce1e3edb91cca0e1e",
+    "REFERENCES.md": "2ce8cec1da7e73264405c2f3148f0240e6bd699cabd61f622c27f8646d49ee61",
+    "figures/backprop.svg": "4cf94d18c679191913772cf4c5540aac7f10682d2ae334421ce36e49c1996f1b",
+    "figures/evidence.svg": "3af28ef16fe276baa84ecb03a42f393a77fd837435a326e7a1e73a20961e2a5e",
+    "figures/mask.svg": "31d541b6ddd55ec5a9b92ecad20e7cd364e77af77c59a68b1a188041d68649f0",
+    "figures/pipeline.svg": "c7630a4ee0baa5f0d38d42c850def3abe37494f413a10aacc0dfbdd6c1d38af6",
+    "figures/shapes.svg": "1a0ff3f0286536ae710395f8bbf112fc59b8f9ed68311b9c845d5474194398c5"
+  },
+  "renderer_normalizations": [
+    {
+      "chapter": "ch07",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$GW^T:(B,D_{\\mathrm{out}})(D_{\\mathrm{out}},D_{\\mathrm{in}})\n\\rightarrow(B,D_{\\mathrm{in}})$",
+      "rendered": "$GW^T:(B,D_{\\mathrm{out}})(D_{\\mathrm{out}},D_{\\mathrm{in}}) \\rightarrow(B,D_{\\mathrm{in}})$"
+    },
+    {
+      "chapter": "ch07",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$X^TG:(D_{\\mathrm{in}},B)(B,D_{\\mathrm{out}})\n\\rightarrow(D_{\\mathrm{in}},D_{\\mathrm{out}})$",
+      "rendered": "$X^TG:(D_{\\mathrm{in}},B)(B,D_{\\mathrm{out}}) \\rightarrow(D_{\\mathrm{in}},D_{\\mathrm{out}})$"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Render star equation label without nested dollar delimiters",
+      "original": "\\tag{$\\ast$}",
+      "rendered": "\\tag{*}"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "\\mathbb{E}[g_i] = g^\\*",
+      "rendered": "\\mathbb{E}[g_i] = g^{*}"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "g^\\* \\in \\mathbb{R}^d",
+      "rendered": "g^{*} \\in \\mathbb{R}^d"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "\n\\mathbb{E}[m_t] = (1-\\beta_1^{\\,t})\\,g^\\*,\\qquad\n\\mathbb{E}[\\hat m_t] = g^\\*.\n",
+      "rendered": "\n\\mathbb{E}[m_t] = (1-\\beta_1^{\\,t})\\,g^{*},\\qquad\n\\mathbb{E}[\\hat m_t] = g^{*}.\n"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "\\mathbb{E}[g_i]=g^\\*",
+      "rendered": "\\mathbb{E}[g_i]=g^{*}"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "\n\\mathbb{E}[m_t] = (1-\\beta_1)\\sum_{i=1}^{t}\\beta_1^{\\,t-i}\\,g^\\* .\n",
+      "rendered": "\n\\mathbb{E}[m_t] = (1-\\beta_1)\\sum_{i=1}^{t}\\beta_1^{\\,t-i}\\,g^{*} .\n"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "\n\\mathbb{E}[m_t] = (1-\\beta_1)\\cdot g^\\* \\cdot \\frac{1-\\beta_1^{\\,t}}{1-\\beta_1} = (1-\\beta_1^{\\,t})\\,g^\\* .\n",
+      "rendered": "\n\\mathbb{E}[m_t] = (1-\\beta_1)\\cdot g^{*} \\cdot \\frac{1-\\beta_1^{\\,t}}{1-\\beta_1} = (1-\\beta_1^{\\,t})\\,g^{*} .\n"
+    },
+    {
+      "chapter": "ch11",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "\\mathbb{E}[\\hat m_t] = g^\\*",
+      "rendered": "\\mathbb{E}[\\hat m_t] = g^{*}"
+    },
+    {
+      "chapter": "ch14",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "\n\\frac{\\partial L}{\\partial S}_{:,j} = A_{:,j} \\left( G_A_{:,j} - \\sum_{l=1}^{T_k} A_{:,l} G_A_{:,l} \\right)\n",
+      "rendered": "\n\\frac{\\partial L}{\\partial S}_{:,j} = A_{:,j} \\left( {G_A}_{:,j} - \\sum_{l=1}^{T_k} A_{:,l} {G_A}_{:,l} \\right)\n"
+    },
+    {
+      "chapter": "ch19",
+      "rule": "Normalize inline TeX whitespace",
+      "original": "$O_2 = 0.2482 \\cdot [1, 0] + 0.5035 \\cdot [0, 1] + 0.2482 \\cdot [1, 1] $",
+      "rendered": "$O_2 = 0.2482 \\cdot [1, 0] + 0.5035 \\cdot [0, 1] + 0.2482 \\cdot [1, 1]$"
+    },
+    {
+      "chapter": "ch26",
+      "rule": "Repair TeX spelling/grouping only: escaped star, nested subscript, log spacing",
+      "original": "p_0(\\logp_0-\\logq_0)=1\\cdot(0-(-1000))=1000",
+      "rendered": "p_0(\\log p_0-\\log q_0)=1\\cdot(0-(-1000))=1000"
+    }
+  ],
+  "manuscript_sha256": "872435ee5f21b6c0cce5ef6b90e0e5dc99e9110e6b5099c29b6d0ad238d3f199",
+  "source_status": "completed_model_review_pending_human",
+  "characters": 130923,
+  "mathCount": 5325,
+  "inspection": {
+    "math": 5325,
+    "figures": 3,
+    "missingLinks": [],
+    "chapterCount": 30,
+    "unrenderedDollars": [],
+    "cjkFontLoaded": true,
+    "overflow": []
+  },
+  "mobile": {
+    "viewport": 390,
+    "bodyWidth": 390
+  },
+  "scaled_math": [
+    {
+      "text": "=1+9+25+49=84=1+9+25+49=84=1+9+25+49=84",
+      "scale": 0.9954508451850788
+    },
+    {
+      "text": "E[P^n]=p\\mathbb E[\\widehat P_n]=pE[Pn​]=p",
+      "scale": 0.9962857348254296
+    },
+    {
+      "text": "L=∑bvbℓ(z(b),yb)L=\\sum_b v_b\\ell(z^{(b)},y_b)L=∑b​vb​ℓ(z(b),yb​)",
+      "scale": 0.9960470520591265
+    },
+    {
+      "text": "softmax⁡(z+c1)i=exp⁡(zi+c−LSE⁡(z+c1))=exp⁡(zi+c−LSE⁡(z)−c)=exp⁡(zi−LSE⁡(z))=softmax⁡(z)i.\n\\operatorn",
+      "scale": 0.8988045052640682
+    },
+    {
+      "text": "S≈1.019228S\\approx1.019228S≈1.019228",
+      "scale": 0.9987028585154937
+    },
+    {
+      "text": "LSE⁡=2+log⁡1.367879≈2.313262\\operatorname{LSE}=2+\\log1.367879\\approx2.313262LSE=2+log1.367879≈2.3132",
+      "scale": 0.991651958212088
+    },
+    {
+      "text": "log⁡p1≈−100\\log p_1\\approx -100logp1​≈−100",
+      "scale": 0.9944508228090317
+    },
+    {
+      "text": "db=(1+7,)=(8,)db=(1+7,)=(8,)db=(1+7,)=(8,)",
+      "scale": 0.9884456278826494
+    },
+    {
+      "text": "db=(1/2,1/2)db=(1/2,1/2)db=(1/2,1/2)",
+      "scale": 0.9881637115558302
+    },
+    {
+      "text": "v^1=4\\hat v_1 = 4v^1​=4",
+      "scale": 0.995403179467535
+    },
+    {
+      "text": "1−β13=0.2711-\\beta_1^3 = 0.2711−β13​=0.271",
+      "scale": 0.999302968393222
+    },
+    {
+      "text": "v1=0.001⋅2.012=0.0040401v_1 = 0.001\\cdot 2.01^2 = 0.0040401v1​=0.001⋅2.012=0.0040401",
+      "scale": 0.9941179283630625
+    },
+    {
+      "text": "v1=(1−β2)λ2v_1 = (1-\\beta_2)\\lambda^2v1​=(1−β2​)λ2",
+      "scale": 0.9897633671380279
+    },
+    {
+      "text": "θ2=1.95−0.05⋅(−1.1)=2.005\\theta_2 = 1.95 - 0.05\\cdot(-1.1) = 2.005θ2​=1.95−0.05⋅(−1.1)=2.005",
+      "scale": 0.9923146689579455
+    },
+    {
+      "text": "θ1=2.0−0.05⋅1/(1+10−8)≈1.95\\theta_1 = 2.0 - 0.05\\cdot 1/(1+10^{-8}) \\approx 1.95θ1​=2.0−0.05⋅1/(1+10",
+      "scale": 0.9912500298023508
+    },
+    {
+      "text": "m^2=−0.11/0.19≈−0.578947\\hat m_2 = -0.11/0.19 \\approx -0.578947m^2​=−0.11/0.19≈−0.578947",
+      "scale": 0.9977681249850009
+    },
+    {
+      "text": "v3=0.999⋅0.004999+0.001⋅0.25=0.005244001v_3 = 0.999\\cdot 0.004999 + 0.001\\cdot 0.25 = 0.005244001v3​",
+      "scale": 0.9953316894496181
+    },
+    {
+      "text": "d′=dd'=dd′=d",
+      "scale": 0.9883516379023439
+    },
+    {
+      "text": "z=hET+c∈RVz=hE^{\\mathsf T}+c\\in\\mathbb R^Vz=hET+c∈RV",
+      "scale": 0.9951887402159083
+    },
+    {
+      "text": "τ=0.8\\tau=0.8τ=0.8",
+      "scale": 0.9898576258273416
+    },
+    {
+      "text": "LSEs−LSEt=1.59861−1.68028=−0.08167\\mathrm{LSE}_s-\\mathrm{LSE}_t=1.59861-1.68028=-0.08167LSEs​−LSEt​=",
+      "scale": 0.9963334851062811
+    },
+    {
+      "text": "0×(−1000)=00\\times(-1000)=00×(−1000)=0",
+      "scale": 0.991297298586109
+    },
+    {
+      "text": "≈0.7⋅(−0.3558)+0.2⋅5.9915+0.1⋅5.2983\\approx0.7\\cdot(-0.3558)+0.2\\cdot5.9915+0.1\\cdot5.2983≈0.7⋅(−0.3",
+      "scale": 0.999951897638174
+    }
+  ],
+  "external_requests": [],
+  "files": {
+    "html": 12073770,
+    "pdf": 8848279
+  },
+  "html_sha256": "cb01d918c0c34b189b12f37e232100d7fb59c576e4e3edfa77754dc4dc586cb0",
+  "pdf_sha256": "5c97c927477ff75536f14b8eea86e4f1011ddaec43bd9e814b0f667c3ede0a60"
+}

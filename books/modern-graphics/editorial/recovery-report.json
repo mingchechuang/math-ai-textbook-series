@@ -1,0 +1,107 @@
+[
+  {
+    "chapter": 3,
+    "recovered": true,
+    "source": "editorial/rejected-000005.txt",
+    "characters": 2552,
+    "remaining_issues": [
+      "正文不足，需补足推導及實作說明"
+    ]
+  },
+  {
+    "chapter": 5,
+    "recovered": true,
+    "source": "editorial/rejected-000008.txt",
+    "characters": 3175,
+    "remaining_issues": []
+  },
+  {
+    "chapter": 4,
+    "recovered": true,
+    "source": "editorial/rejected-000015.txt",
+    "characters": 1108,
+    "remaining_issues": [
+      "正文不足，需补足推導及實作說明"
+    ]
+  },
+  {
+    "chapter": 8,
+    "recovered": true,
+    "source": "editorial/rejected-000020.txt",
+    "characters": 3069,
+    "remaining_issues": []
+  },
+  {
+    "chapter": 13,
+    "recovered": true,
+    "source": "editorial/rejected-000038.txt",
+    "characters": 3229,
+    "remaining_issues": []
+  },
+  {
+    "chapter": 9,
+    "recovered": true,
+    "source": "editorial/rejected-000033.txt",
+    "characters": 2705,
+    "remaining_issues": [
+      "正文不足，需补足推導及實作說明"
+    ]
+  },
+  {
+    "chapter": 14,
+    "recovered": true,
+    "source": "editorial/rejected-000042.txt",
+    "characters": 2818,
+    "remaining_issues": [
+      "正文不足，需补足推導及實作說明"
+    ]
+  },
+  {
+    "chapter": 23,
+    "recovered": true,
+    "source": "editorial/rejected-000076.txt",
+    "characters": 3046,
+    "remaining_issues": []
+  },
+  {
+    "chapter": 19,
+    "recovered": true,
+    "source": "editorial/rejected-000080.txt",
+    "characters": 1911,
+    "remaining_issues": [
+      "正文不足，需补足推導及實作說明"
+    ]
+  },
+  {
+    "chapter": 25,
+    "recovered": true,
+    "source": "editorial/rejected-000082.txt",
+    "characters": 3337,
+    "remaining_issues": []
+  },
+  {
+    "chapter": 28,
+    "recovered": true,
+    "source": "editorial/rejected-000092.txt",
+    "characters": 3222,
+    "remaining_issues": []
+  },
+  {
+    "chapter": 24,
+    "recovered": true,
+    "source": "editorial/rejected-000083.txt",
+    "characters": 1933,
+    "remaining_issues": [
+      "正文不足，需补足推導及實作說明"
+    ]
+  },
+  {
+    "chapter": 29,
+    "recovered": true,
+    "source": "editorial/rejected-000102.txt",
+    "characters": 2363,
+    "remaining_issues": [
+      "正文不足，需补足推導及實作說明"
+    ]
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "key": "7f9547ddc79c0010a049292d9533e88705d5cd745b22e2af10e531eaa543b4b5",
+  "person": {
+    "id": "v2_editor_38",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 201,
+  "result": {
+    "patches": [
+      {
+        "chapter": 14,
+        "old": "    # 對稱棋盤的 u=1.0 與 u=0.5 可能同色，不能據此判定分支正確。\n    # 另以非對稱 ramp 測位址：連續分支中點是 1.0，錯誤分支中點是 0.5。\n    seam_tex = generate_stripe_texture(8, 8)\n    seam_ok = sample_bilinear(seam_tex, 1.0, 0.5, wrap=True)\n    seam_bad = sample_bilinear(seam_tex, 0.5, 0.5, wrap=True)\n    assert np.allclose(seam_ok, sample_bilinear(seam_tex, 0.0, 0.5,\n                                                wrap=True))\n    assert not np.allclose(seam_ok, seam_bad)",
+        "new": "    # 非線性、非對稱欄值可區分連續分支中點 u=1.0 與錯誤中點 u=0.5。\n    seam_values = np.array([0.0, 0.05, 0.15, 0.30,\n                            0.50, 0.65, 0.80, 1.0], dtype=np.float32)\n    seam_tex = np.zeros((8, 8, 3), dtype=np.float32)\n    for x, g in enumerate(seam_values):\n        seam_tex[:, x, :] = g\n    seam_ok = sample_bilinear(seam_tex, 1.0, 0.5, wrap=True)\n    seam_bad = sample_bilinear(seam_tex, 0.5, 0.5, wrap=True)\n    assert np.allclose(seam_ok, sample_bilinear(seam_tex, 0.0, 0.5,\n                                                wrap=True))\n    assert not np.allclose(seam_ok, seam_bad)"
+      },
+      {
+        "chapter": 14,
+        "old": "    body_tri_1 = (A_ndc, B_ndc, D_ndc)\n    body_tri_2 = (B_ndc, C_ndc, D_ndc)\n\n    uv_A = np.array([0.0, 0.5])\n    uv_B = np.array([0.5, 1.0])\n    uv_C = np.array([1.0, 0.5])\n    uv_D = np.array([0.5, 0.0])\n\n    # 同一三角形內部三個 w 各不相同，才能觀察透視與仿射插值差異。\n    # 若同一三角形三個 w 相等，透視插值公式會退化為仿射插值，無法比較。\n    # 同一幾何位置的 clip w 必須相同；接縫複製屬性亦不改變它。\n    w_A, w_B, w_C, w_D = 1.0, 2.0, 3.5, 3.0\n    w1 = (w_A, w_B, w_D)\n    w2 = (w_B, w_C, w_D)",
+        "new": "    # 依 NDC 的 Y 向上約定，兩個魚身三角形均為逆時針。\n    body_tri_1 = (A_ndc, D_ndc, B_ndc)\n    body_tri_2 = (B_ndc, D_ndc, C_ndc)\n\n    uv_A = np.array([0.0, 0.5])\n    uv_B = np.array([0.5, 1.0])\n    uv_C = np.array([1.0, 0.5])\n    uv_D = np.array([0.5, 0.0])\n\n    # 同一三角形內部三個 w 各不相同，才能觀察透視與仿射插值差異。\n    # 同一幾何位置的 clip w 必須相同；接縫複製屬性亦不改變它。\n    w_A, w_B, w_C, w_D = 1.0, 2.0, 3.5, 3.0\n    w1 = (w_A, w_D, w_B)\n    w2 = (w_B, w_D, w_C)\n    assert edge_function(A_ndc, D_ndc, B_ndc) > 0\n    assert edge_function(B_ndc, D_ndc, C_ndc) > 0"
+      },
+      {
+        "chapter": 14,
+        "old": "    # 使用非對稱條紋貼圖，避免對稱 checker 在接縫比較時偶然同色。\n    tex_seam = generate_stripe_texture(16, 16)\n\n    rasterize_triangle(\n        img_pc,\n        body_tri_1[0], body_tri_1[1], body_tri_1[2],\n        uv_A, uv_B, uv_D,\n        w1[0], w1[1], w1[2],\n        tex_seam, wrap=True, perspective=True,\n    )\n    rasterize_triangle(\n        img_pc,\n        body_tri_2[0], body_tri_2[1], body_tri_2[2],\n        uv_B, uv_C, uv_D,\n        w2[0], w2[1], w2[2],\n        tex_seam, wrap=True, perspective=True,\n    )\n    rasterize_triangle(\n        img_affine,\n        body_tri_1[0], body_tri_1[1], body_tri_1[2],\n        uv_A, uv_B, uv_D,\n        w1[0], w1[1], w1[2],\n        tex_seam, wrap=True, perspective=False,\n    )\n    rasterize_triangle(\n        img_affine,\n        body_tri_2[0], body_tri_2[1], body_tri_2[2],\n        uv_B, uv_C, uv_D,\n        w2[0], w2[1], w2[2],\n        tex_seam, wrap=True, perspective=False,\n    )",
+        "new": "    # checker 用於魚身貼圖與透視／仿射對照；非對稱條紋另作接縫定位測試。\n    tex_checker = generate_checker_texture(16, 16)\n    tex_seam = generate_stripe_texture(16, 16)\n    img_checker_pc = np.zeros((H_img, W_img, 3), dtype=np.uint8)\n    img_checker_affine = np.zeros((H_img, W_img, 3), dtype=np.uint8)\n\n    for tri, uvs, ws in [\n        (body_tri_1, (uv_A, uv_D, uv_B), w1),\n        (body_tri_2, (uv_B, uv_D, uv_C), w2),\n    ]:\n        rasterize_triangle(img_pc, *tri, *uvs, *ws, tex_seam,\n                           wrap=True, perspective=True)\n        rasterize_triangle(img_affine, *tri, *uvs, *ws, tex_seam,\n                           wrap=True, perspective=False)\n        rasterize_triangle(img_checker_pc, *tri, *uvs, *ws, tex_checker,\n                           wrap=True, perspective=True)\n        rasterize_triangle(img_checker_affine, *tri, *uvs, *ws, tex_checker,\n                           wrap=True, perspective=False)"
+      },
+      {
+        "chapter": 14,
+        "old": "    write_ppm(\"fish_pc.ppm\", img_pc)\n    write_ppm(\"fish_affine.ppm\", img_affine)",
+        "new": "    write_ppm(\"fish_pc.ppm\", img_pc)\n    write_ppm(\"fish_affine.ppm\", img_affine)\n    write_ppm(\"fish_checker_pc.ppm\", img_checker_pc)\n    write_ppm(\"fish_checker_affine.ppm\", img_checker_affine)"
+      },
+      {
+        "chapter": 14,
+        "old": "    ws = np.array([w0, w1, w2])\n    lams = np.array([lam0, lam1, lam2])\n    if not np.all(np.isfinite(ws)) or np.any(np.abs(ws) < 1e-12):",
+        "new": "    ws = np.array([w0, w1, w2], dtype=float)\n    lams = np.array([lam0, lam1, lam2], dtype=float)\n    uvs = np.asarray([uv0, uv1, uv2], dtype=float)\n    if uvs.shape != (3, 2) or not np.all(np.isfinite(uvs)):\n        raise ValueError(\"UVs must be finite 2D coordinates\")\n    if not np.all(np.isfinite(ws)) or np.any(np.abs(ws) < 1e-12):"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   獨立的接縫分支測試改採非對稱灰階條紋 `generate_stripe_texture`：每一固定 $x$ 的直欄灰階為 $x/(W-1)$。程式比較連續分支 $0.9\\to1.1$ 的中點 $u=1.0$，與錯誤分支 $0.9\\to0.1$ 的中點 $u=0.5$；Repeat 下兩者取樣不同。這測的是**位址與插值分支**，不是外觀無縫。此 ramp 左右邊界內容不相容，不能據其魚身影像宣稱接縫附近天然平滑；若要檢查外觀無縫，另須使用邊界內容相容的週期貼圖。魚身的兩三角形保留相同的共享邊 UV，用於比較透視與仿射插值，並未刻意在魚身建立週期接縫。",
+        "new": "    *   接縫分支測試使用欄值為 $[0,0.05,0.15,0.30,0.50,0.65,0.80,1]$ 的非對稱貼圖。寬度 $W=8$ 時，$u=1.0$ 的取樣位置為 $x=7.5$，跨第7欄與第0欄，值為 $(1+0)/2=0.5$；$u=0.5$ 的位置為 $x=3.5$，跨第3欄與第4欄，值為 $(0.30+0.50)/2=0.40$，兩者可區分。此測試檢查**位址與插值分支**，不是外觀無縫；貼圖兩側內容不相容時，Repeat 不能保證接縫平滑。魚身兩三角形的共享邊 UV 相同，用於比較透視與仿射插值，並未刻意建立週期接縫。"
+      }
+    ],
+    "reason": "精確修正有審稿證據支持的接縫斷言、魚身checker輸出、三角形繞序及UV有限值檢查；以完整局部程式片段避免重複匹配，未宣稱程式已執行。"
+  }
+}

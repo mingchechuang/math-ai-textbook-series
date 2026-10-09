@@ -1,0 +1,12 @@
+{
+  "name": "marketsim-book-publishing",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node publish.mjs" },
+  "dependencies": {
+    "katex": "0.18.10",
+    "markdown-it": "15.0.2",
+    "markdown-it-texmath": "1.0.0",
+    "playwright-core": "1.63.0"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "key": "fd2c342436ea29530437f80cd9e34d4cccf4f439f9a4052a301a1cba27b3a03d",
+  "person": {
+    "id": "v3_editor_38",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 225,
+  "result": {
+    "patches": [
+      {
+        "chapter": 14,
+        "old": "    if not isinstance(b, np.ndarray) or b.ndim != 1 or b.size == 0\n            or not np.issubdtype(b.dtype, np.number):\n        return None, 0, np.nan, False, \"invalid_input: b must be a nonempty 1D numeric array\"",
+        "new": "    if (not isinstance(b, np.ndarray) or b.ndim != 1 or b.size == 0\n            or not np.issubdtype(b.dtype, np.number)\n            or np.issubdtype(b.dtype, np.complexfloating)):\n        return None, 0, np.nan, False, \"invalid_input: b must be a nonempty 1D real numeric array\""
+      },
+      {
+        "chapter": 14,
+        "old": "    if indptr[-1] != len(data):\n        raise ValueError(\"indptr[-1] must equal len(data)\")\n    if len(indices) != len(data):\n        raise ValueError(\"indices and data lengths must match\")\n    if not np.all(np.isfinite(data)):\n        raise ValueError(\"Data contains NaN/Inf\")",
+        "new": "    if not isinstance(data, np.ndarray) or data.ndim != 1:\n        raise ValueError(\"data must be a 1D array\")\n    if not np.issubdtype(data.dtype, np.number) or np.issubdtype(data.dtype, np.complexfloating):\n        raise ValueError(\"data must contain real numeric values\")\n    if indptr[-1] != len(data):\n        raise ValueError(\"indptr[-1] must equal len(data)\")\n    if len(indices) != len(data):\n        raise ValueError(\"indices and data lengths must match\")\n    if not np.all(np.isfinite(data)):\n        raise ValueError(\"Data contains NaN/Inf\")"
+      },
+      {
+        "chapter": 14,
+        "old": "    if x0 is None:\n        x = np.zeros(n)\n    else:\n        if x0.shape != b.shape or not np.all(np.isfinite(x0)):\n            return None, 0, np.nan, False, \"invalid_x0\"\n        x = x0.copy()",
+        "new": "    if x0 is None:\n        x = np.zeros(n)\n    else:\n        try:\n            x0 = np.asarray(x0)\n        except (TypeError, ValueError):\n            return None, 0, np.nan, False, \"invalid_x0\"\n        if (x0.ndim != 1 or x0.shape != b.shape\n                or not np.issubdtype(x0.dtype, np.number)\n                or np.issubdtype(x0.dtype, np.complexfloating)\n                or not np.all(np.isfinite(x0))):\n            return None, 0, np.nan, False, \"invalid_x0\"\n        x = x0.astype(float, copy=True)"
+      },
+      {
+        "chapter": 14,
+        "old": "    if norm_r_true < atol + rtol * norm_b:\n        return x, 0, norm_r_true, True, \"success\"",
+        "new": "    if norm_r_true <= atol + rtol * norm_b:\n        return x, 0, norm_r_true, True, \"success\""
+      },
+      {
+        "chapter": 14,
+        "old": "        if norm_r_true < atol + rtol * norm_b:\n            return x, k + 1, norm_r_true, True, \"success\"",
+        "new": "        if norm_r_true <= atol + rtol * norm_b:\n            return x, k + 1, norm_r_true, True, \"success\""
+      },
+      {
+        "chapter": 14,
+        "old": "### 2. 邊界測試（零右端）\n*   **輸入**：$b = 0$。\n*   **預期**：\n    *   `converged = True`。\n    *   `niters = 0`（初始猜測 $x=0$ 即為解）。\n    *   `residual = 0`。",
+        "new": "### 2. 邊界測試（零右端與零容差）\n*   **輸入**：$b=0$，以及一組已知精確解 $x_0$，令 $b=Ax_0$；第二項測試設定 `atol=0, rtol=0`。\n*   **預期**：零右端且預設 $x=0$ 時，`converged = True`、`niters = 0`、`residual = 0`。精確初始解配零容差時，真殘差恰為零，亦應立即回報成功，而非繼續迭代後誤報 breakdown。停止判定使用 `<=`，因此等於容差的殘差亦合格。"
+      }
+    ],
+    "reason": "修補 CG 停止條件的零容差邊界、x0 非陣列輸入造成的未處理例外，以及複數資料不符合本章實數 SPD 求解契約的問題，並補上相應邊界測試。程式未執行。"
+  }
+}

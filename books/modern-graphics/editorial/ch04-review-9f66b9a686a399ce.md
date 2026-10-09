@@ -1,0 +1,78 @@
+# 審稿結果
+
+## 核對通過項目
+
+- 右手世界系與相機看向 $-Z_c$ 的約定一致。
+- look-at 基底
+
+$$
+f=\frac{c-e}{\|c-e\|},\qquad
+x_c=\frac{f\times u}{\|f\times u\|},
+$$
+
+$$
+y_c=x_c\times f,\qquad z_c=-f
+$$
+
+滿足 $x_c\times y_c=z_c$ 且行列式為 $+1$，沒有鏡射錯誤。
+- $B$ 的三個縱列及 $B^T$ 的三個橫列用語已修正。
+- column vector 下的作用順序正確：$V=R\,T(-e)$ 表示先平移、再旋轉。
+- 齊次位置與方向的維度、$w=1$／$w=0$、平移欄 $-B^Te$ 均推導正確。
+- Camera-to-World 與視圖矩陣互逆：
+
+$$
+C=
+\begin{bmatrix}
+B&e\\
+0\;0\;0&1
+\end{bmatrix},
+\qquad
+V=C^{-1}=
+\begin{bmatrix}
+B^T&-B^Te\\
+0\;0\;0&1
+\end{bmatrix}.
+$$
+
+- `position_eps`、`direction_eps` 與 `angular_eps` 已依量綱分開，角度容差亦限制於有效範圍。
+- 平行 `up` 的 roll 不唯一性、備援策略及動畫不連續風險交代完整。
+- 近平面判定正確區分頂點分類、完整視錐測試、遮擋與三角形裁切。
+- 程式沒有宣稱已實際執行，測試均標為預期。
+
+## 手算複核
+
+養殖案例結果正確：
+
+$$
+P_{pool}^{cam}
+=
+\left(
+10,-\frac5{\sqrt2},-\frac{15}{\sqrt2},1
+\right)^T
+\approx(10,-3.536,-10.607,1)^T.
+$$
+
+習題 1 的矩陣亦正確：
+
+$$
+V=
+\begin{bmatrix}
+\frac1{\sqrt2}&0&-\frac1{\sqrt2}&0\\
+-\frac1{\sqrt6}&\frac2{\sqrt6}&-\frac1{\sqrt6}&0\\
+\frac1{\sqrt3}&\frac1{\sqrt3}&\frac1{\sqrt3}&-\sqrt3\\
+0&0&0&1
+\end{bmatrix}.
+$$
+
+近平面索引案例中，$z=4$ 映到 $z_{cam}=-1$，位於近平面；$z=4.5$ 映到 $-0.5$，應列入；$z=3$ 映到 $-2$，不列入，因此預期索引 `[1]` 正確。
+
+## 可選改進，不影響批准
+
+- 將 `Fallback`、`Norm is`、`Translation` 統一改為「備援策略」、「長度為」、「平移」，使語言一致。
+- `vertices_before_near` 對 `near` 亦可增加實數型別檢查，避免複數輸入造成比較例外。
+- `angular_eps=1` 雖符合數學範圍，但會把幾乎所有非完全垂直的方向判為退化；可在文件中建議實務值應遠小於 1。
+- 「若誤用 $z_c=f$，導致所有物體在 $+Z$」可精確改為「原本位於相機前方的物體會落在 $+Z_c$ 側」。
+- G1、G4、G5 仍是候選背景來源，不等於獨立查證；特別是 G5 指定頁面是否直接涵蓋 look-at，仍待人工回查。
+- 本審查未執行 NumPy 程式；仍保留人工執行容差、備援切換、逆矩陣及近平面測試的待辦。
+
+VERDICT: APPROVE

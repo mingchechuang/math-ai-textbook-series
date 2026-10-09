@@ -1,0 +1,606 @@
+# 第 30 章　整合專題：可稽核養殖數位分身
+
+## 學習目標與先備知識
+
+本章把場景、動畫、渲染、標註與查詢串成一個可重現的合成資料專題。完成後，你應能：
+
+- 用一致的影格編號、時間、物件ID、單位與座標系管理輸出。
+- 產生合成影像及由同一影格狀態建立的標註。
+- 保存完整生成設定，讓輸出能追溯到所用參數與生成器版本。
+- 撰寫唯讀查詢，驗證manifest與影格標註一致，並附上查詢依據。
+- 區分合成資料、實測資料與控制指令。
+
+先備為本卷向量、矩陣、相機、渲染、動畫及合成資料概念，以及 Python 基本語法。核心實驗只使用 Python 3.10+ 標準庫，不要求GPU、Blender、網路或第三方套件。程式產生二維合成影像、ID遮罩、JSON標註及清單；它不是完整三維渲染器，也不模擬真實水下光學、魚類生態或養殖設備。
+
+## 問題與直覺
+
+若場景、影像、動畫狀態和標註各自生成，卻沒有共同的影格編號、時間戳及設定來源，影像就難以追溯：標記是哪個物件？位置來自哪個影格？影像和標註是否使用同一份狀態？
+
+本章所稱的「可稽核」，是每個輸出都能透過manifest追溯到影格、時間、完整生成設定及生成器版本；標註欄位也明示單位、座標系與資料來源。這只表示資料流程可追蹤，不表示結果正確描述真實養殖場。
+
+專題流程為：
+
+1. **設定場景**：列出影像尺寸、座標範圍、物件初始狀態及顏色。
+2. **取樣動畫**：以固定影格率計算每個物件的位置。
+3. **生成觀測**：由同一影格狀態生成彩色影像、物件ID遮罩及標註。
+4. **記錄清單**：在manifest保存設定快照、版本識別、影格時間和輸出路徑。
+5. **唯讀查詢**：讀取manifest與標註，驗證相互一致後回傳物件資料及來源。
+
+彩色影像是示意圖；ID遮罩是由生成狀態產生的合成通道；JSON記錄的是合成狀態標註。三者都不是攝影機或現場感測器的實測輸出。
+
+## 數學與幾何推導
+
+### 固定時間步與影格狀態
+
+令影格編號為整數 \(k\)，影格頻率為 \(f\) 影格／秒，影格時間為
+
+$$
+t_k=\frac{k}{f}.
+$$
+
+本章用固定影格率取樣。若物件 \(i\) 沿水平方向等速移動，其位置為
+
+$$
+x_i(t)=x_{i,0}+v_i t,
+$$
+
+其中 \(x_{i,0}\) 的單位是公尺，速度 \(v_i\) 的單位是公尺／秒。這是程式定義的合成運動，不代表真實魚類行為。
+
+### 世界座標映射至影像座標
+
+世界座標採右手系，\(+X\) 向右、\(+Y\) 向上、\(+Z\) 由畫面向觀者。影像原點在左上角，水平索引 \(u\) 向右增加，垂直索引 \(v\) 向下增加。影像寬、高分別為 \(W,H\)，整數索引範圍為 \(0\leq u<W\)、\(0\leq v<H\)。
+
+本例不做透視投影，而將水平範圍 \([x_{\min},x_{\max}]\) 和垂直範圍 \([y_{\min},y_{\max}]\) 線性映射到像素索引：
+
+$$
+u=\operatorname{round}\left(
+\frac{x-x_{\min}}{x_{\max}-x_{\min}}(W-1)
+\right),
+$$
+
+$$
+v=\operatorname{round}\left(
+\frac{y_{\max}-y}{y_{\max}-y_{\min}}(H-1)
+\right).
+$$
+
+要求 \(x_{\max}>x_{\min}\)、\(y_{\max}>y_{\min}\)。第二式使用 \(y_{\max}-y\)，是因為世界Y向上而影像列索引向下。
+
+本章將「世界範圍出界」定義為 \(x\) 或 \(y\) 超出設定範圍，並在取整、像素夾取之前判斷：
+
+$$
+\text{outside}=
+(x<x_{\min})\lor(x>x_{\max})\lor
+(y<y_{\min})\lor(y>y_{\max}).
+$$
+
+像素索引仍會夾取至影像邊界，但標註同時保留未夾取前的世界位置和出界旗標。如此可避免把邊界像素位置誤認為物件真實世界位置。
+
+### 同步生成與追溯
+
+令生成設定為 \(C\)，生成器版本識別為 \(V\)，影格輸出影像為 \(I_k\)、ID遮罩為 \(M_k\)、狀態標註為 \(A_k\)。三者應由相同的影格狀態生成：
+
+$$
+(I_k,M_k,A_k)=G(C,V,k,t_k).
+$$
+
+manifest需保存 \(C\) 的完整快照或可追溯設定檔及內容識別碼，也要保存 \(V\)、影格時間、影像和標註路徑。若只記錄程式檔名，卻不識別其內容版本，無法確認日後執行的是同一份生成器。
+
+影像色彩數值也必須明確。本章直接指定8-bit sRGB編碼值作為示意顏色，不做線性光照或色彩運算。ID遮罩中的整數是標籤，不是顏色；不可對ID值做sRGB轉換或插值。
+
+## 逐步手算例題
+
+### 例一：影格時間與合成位置
+
+某合成物件的初始水平位置為 \(x_0=0.20\) 公尺，速度為 \(v=0.10\) 公尺／秒，影格率為 \(f=5\) 影格／秒。求第3影格時間與位置。
+
+1. 影格時間：
+
+   $$
+   t_3=\frac{3}{5}=0.6\ \text{秒}.
+   $$
+
+2. 合成位置：
+
+   $$
+   x(0.6)=0.20+0.10\times0.6=0.26\ \text{公尺}.
+   $$
+
+### 例二：映射至像素索引
+
+影像寬 \(W=16\)，水平範圍為 \([-1,1]\) 公尺。將 \(x=0.26\) 公尺映射到水平索引：
+
+1. 正規化位置為
+
+   $$
+   \frac{0.26-(-1)}{1-(-1)}=0.63.
+   $$
+
+2. 乘上 \(W-1=15\)，得到 \(9.45\)，因此
+
+   $$
+   u=\operatorname{round}(9.45)=9.
+   $$
+
+索引9是第10個像素欄，因為索引從0開始。此像素位置是線性映射後的影像座標，不是世界位置的精確測量。
+
+## 實作與程式
+
+以下程式只使用 Python 3.10+ 標準庫。它產生：
+
+- 8-bit sRGB示意彩色PPM影像。
+- 以整數ID表示物件的PGM遮罩。
+- 逐影格JSON標註。
+- 含完整設定快照、生成器版本識別、影格路徑與時間的manifest。
+- 驗證manifest、標註及物件來源一致性的唯讀查詢函式。
+
+將程式存為 `digital_twin.py`。執行會在目前目錄建立 `output/`，不讀取外部檔案或網路。
+
+```python
+import hashlib
+import json
+from pathlib import Path
+
+
+WIDTH = 64
+HEIGHT = 48
+FPS = 4
+FRAME_COUNT = 5
+X_RANGE = (-1.0, 1.0)
+Y_RANGE = (-0.75, 0.75)
+DISC_RADIUS = 3
+
+# 直接指定的8-bit sRGB示意編碼值；不做線性光照運算。
+OBJECTS = [
+    {"id": 1, "x0": -0.60, "y": -0.10, "vx": 0.20,
+     "srgb8": [240, 150, 50]},
+    {"id": 2, "x0": 0.35, "y": 0.25, "vx": -0.10,
+     "srgb8": [70, 210, 170]},
+]
+
+GENERATOR_VERSION = "synthetic-demo-1"
+OUTPUT = Path("output")
+
+
+def configuration():
+    """回傳本次生成使用的完整設定快照。"""
+    return {
+        "width": WIDTH,
+        "height": HEIGHT,
+        "fps": FPS,
+        "frame_count": FRAME_COUNT,
+        "x_range_m": list(X_RANGE),
+        "y_range_m": list(Y_RANGE),
+        "disc_radius_px": DISC_RADIUS,
+        "objects": OBJECTS,
+        "background_srgb8": [18, 36, 54],
+        "color_semantics": "8-bit sRGB display codes; no lighting",
+        "mask_semantics": "integer object IDs; 0 is background",
+        "world_convention":
+            "right-handed; +X right, +Y up, +Z toward viewer",
+        "image_convention":
+            "origin upper-left; integer pixel indices increase right/down",
+    }
+
+
+def config_id(config):
+    """以穩定JSON序列化後的SHA-256識別設定內容。"""
+    payload = json.dumps(
+        config, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def map_to_pixel(x, y):
+    xmin, xmax = X_RANGE
+    ymin, ymax = Y_RANGE
+    if not xmin < xmax or not ymin < ymax:
+        raise ValueError("世界座標範圍必須遞增")
+
+    # 出界依世界座標判定，先於取整與像素夾取。
+    outside = not (
+        xmin <= x <= xmax and ymin <= y <= ymax
+    )
+
+    raw_u = round((x - xmin) / (xmax - xmin) * (WIDTH - 1))
+    raw_v = round((ymax - y) / (ymax - ymin) * (HEIGHT - 1))
+
+    u = max(0, min(WIDTH - 1, raw_u))
+    v = max(0, min(HEIGHT - 1, raw_v))
+    return u, v, outside
+
+
+def set_pixel(image, x, y, value):
+    if 0 <= x < WIDTH and 0 <= y < HEIGHT:
+        image[y][x] = value
+
+
+def draw_disc(image, cx, cy, radius, value):
+    for y in range(cy - radius, cy + radius + 1):
+        for x in range(cx - radius, cx + radius + 1):
+            if (x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2:
+                set_pixel(image, x, y, value)
+
+
+def render_frame(frame_index):
+    """由單一影格狀態同時產生影像、ID遮罩與狀態標註。"""
+    time_s = frame_index / FPS
+    background = (18, 36, 54)
+
+    color_image = [
+        [background for _ in range(WIDTH)]
+        for _ in range(HEIGHT)
+    ]
+    id_mask = [
+        [0 for _ in range(WIDTH)]
+        for _ in range(HEIGHT)
+    ]
+    annotations = []
+
+    for obj in OBJECTS:
+        x = obj["x0"] + obj["vx"] * time_s
+        y = obj["y"]
+        u, v, outside = map_to_pixel(x, y)
+
+        draw_disc(color_image, u, v, DISC_RADIUS, tuple(obj["srgb8"]))
+        draw_disc(id_mask, u, v, DISC_RADIUS, obj["id"])
+
+        annotations.append({
+            "object_id": obj["id"],
+            "position_world_m": [x, y, 0.0],
+            "position_pixel_uv": [u, v],
+            "outside_world_range": outside,
+            "source": "simulated",
+        })
+
+    return time_s, color_image, id_mask, annotations
+
+
+def write_ppm(path, image):
+    with open(path, "w", encoding="ascii") as f:
+        f.write(f"P3\n{WIDTH} {HEIGHT}\n255\n")
+        for row in image:
+            f.write(" ".join(
+                f"{r} {g} {b}" for r, g, b in row
+            ))
+            f.write("\n")
+
+
+def write_pgm(path, mask):
+    with open(path, "w", encoding="ascii") as f:
+        f.write(f"P2\n{WIDTH} {HEIGHT}\n255\n")
+        for row in mask:
+            f.write(" ".join(str(value) for value in row))
+            f.write("\n")
+
+
+def write_json(path, value):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(value, f, ensure_ascii=False, indent=2)
+
+
+def validate_frame_record(manifest, frame_index, output_dir=OUTPUT):
+    """唯讀查詢：驗證指定影格並回傳具來源依據的物件資料。"""
+    if manifest.get("data_status") != "simulated":
+        raise ValueError("本查詢只接受明確標記為 simulated 的資料")
+
+    frames = manifest.get("frames")
+    if not isinstance(frames, list):
+        raise ValueError("manifest 缺少 frames 清單")
+
+    matches = [
+        item for item in frames
+        if item.get("frame_index") == frame_index
+    ]
+    if len(matches) != 1:
+        raise ValueError("影格不存在或影格索引重複")
+
+    record = matches[0]
+    annotation_path = output_dir / record["annotation"]
+    with open(annotation_path, "r", encoding="utf-8") as f:
+        annotation = json.load(f)
+
+    if annotation.get("frame_index") != frame_index:
+        raise ValueError("manifest 與標註的影格編號不一致")
+    if annotation.get("time_s") != record.get("time_s"):
+        raise ValueError("manifest 與標註的時間不一致")
+
+    objects = annotation.get("objects")
+    if not isinstance(objects, list):
+        raise ValueError("標註缺少 objects 清單")
+
+    required = {
+        "object_id",
+        "position_world_m",
+        "position_pixel_uv",
+        "source",
+    }
+    seen_ids = set()
+    for obj in objects:
+        if not isinstance(obj, dict) or not required.issubset(obj):
+            raise ValueError("物件標註缺少必要欄位")
+        if obj["source"] != "simulated":
+            raise ValueError("物件來源不是 simulated")
+        if obj["object_id"] in seen_ids:
+            raise ValueError("影格內物件ID重複")
+        seen_ids.add(obj["object_id"])
+
+        world = obj["position_world_m"]
+        pixel = obj["position_pixel_uv"]
+        if not isinstance(world, list) or len(world) != 3:
+            raise ValueError("世界位置須為三維座標")
+        if not isinstance(pixel, list) or len(pixel) != 2:
+            raise ValueError("像素位置須為二維索引")
+
+    return {
+        "dataset_id": manifest["dataset_id"],
+        "config_id": manifest["config_id"],
+        "generator_version": manifest["generator_version"],
+        "frame_index": frame_index,
+        "time_s": record["time_s"],
+        "annotation_file": record["annotation"],
+        "fields_used": [
+            "objects[].object_id",
+            "objects[].position_world_m",
+            "objects[].position_pixel_uv",
+            "objects[].source",
+        ],
+        "objects": objects,
+    }
+
+
+def test_logic():
+    # 角落映射。
+    assert map_to_pixel(X_RANGE[0], Y_RANGE[1]) == (0, 0, False)
+    assert map_to_pixel(X_RANGE[1], Y_RANGE[0]) == (
+        WIDTH - 1, HEIGHT - 1, False
+    )
+
+    # 世界座標略微超界，取整後即使仍接近邊界也必須標示出界。
+    assert map_to_pixel(X_RANGE[0] - 0.001, 0.0)[2] is True
+
+    # 同一狀態同時生成影像、遮罩與標註。
+    time_s, color, mask, objects = render_frame(0)
+    assert time_s == 0.0
+    assert len(objects) == 2
+    assert {obj["object_id"] for obj in objects} == {1, 2}
+    assert {value for row in mask for value in row} == {0, 1, 2}
+    assert all(
+        0 <= channel <= 255
+        for row in color
+        for pixel in row
+        for channel in pixel
+    )
+    assert all(obj["source"] == "simulated" for obj in objects)
+
+
+def test_query_rejects_wrong_source(manifest, output_dir):
+    """以複製的標註測試查詢拒絕非合成來源。"""
+    record = manifest["frames"][0]
+    path = output_dir / record["annotation"]
+    with open(path, "r", encoding="utf-8") as f:
+        original = json.load(f)
+
+    altered = json.loads(json.dumps(original))
+    altered["objects"][0]["source"] = "measured"
+    write_json(path, altered)
+    try:
+        try:
+            validate_frame_record(manifest, 0, output_dir)
+        except ValueError as error:
+            assert "不是 simulated" in str(error)
+        else:
+            raise AssertionError("查詢未拒絕非合成來源")
+    finally:
+        write_json(path, original)
+
+
+def main():
+    test_logic()
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+
+    config = configuration()
+    manifest = {
+        "dataset_id": "synthetic-tank-demo-v1",
+        "data_status": "simulated",
+        "config_id": config_id(config),
+        "config_snapshot": config,
+        "generator_version": GENERATOR_VERSION,
+        "units": {
+            "position_world": "m",
+            "time": "s",
+            "velocity": "m/s",
+            "pixel_position": "integer pixel index",
+        },
+        "color_space": "sRGB encoded 8-bit display codes",
+        "mask_semantics": "integer object IDs; 0 is background",
+        "fps": FPS,
+        "frame_count": FRAME_COUNT,
+        "frames": [],
+    }
+
+    for k in range(FRAME_COUNT):
+        time_s, color, mask, objects = render_frame(k)
+        image_name = f"frame_{k:04d}.ppm"
+        mask_name = f"mask_{k:04d}.pgm"
+        annotation_name = f"frame_{k:04d}.json"
+
+        write_ppm(OUTPUT / image_name, color)
+        write_pgm(OUTPUT / mask_name, mask)
+        write_json(OUTPUT / annotation_name, {
+            "frame_index": k,
+            "time_s": time_s,
+            "objects": objects,
+        })
+
+        manifest["frames"].append({
+            "frame_index": k,
+            "time_s": time_s,
+            "image": image_name,
+            "id_mask": mask_name,
+            "annotation": annotation_name,
+        })
+
+    write_json(OUTPUT / "manifest.json", manifest)
+
+    # 由輸出的manifest再讀入，示範唯讀查詢。
+    with open(OUTPUT / "manifest.json", "r", encoding="utf-8") as f:
+        saved_manifest = json.load(f)
+    result = validate_frame_record(saved_manifest, 2)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### 生成設定與版本識別
+
+`config_snapshot` 保存本次生成使用的影像尺寸、影格率、範圍、物件初始狀態、顏色、標記半徑及座標約定。`config_id` 是將設定以排序鍵序列化後計算的SHA-256摘要；設定欄位改變時，摘要也會改變。`generator_version` 是手動維護的生成器版本標籤；修改生成演算法時應更新它。它不是程式檔案的自動雜湊。
+
+目錄預期如下：
+
+```text
+project/
+  README.md
+  digital_twin.py
+  output/
+    manifest.json
+    frame_0000.ppm
+    mask_0000.pgm
+    frame_0000.json
+    ...
+```
+
+本例由 `configuration()` 建立設定快照並寫入manifest，不需要額外的 `config.json`。若改成外部設定檔，應記錄實際讀取的設定內容或內容摘要，並在manifest保存檔名及識別碼。
+
+## 測試與預期結果
+
+程式會呼叫 `test_logic()`，再生成五組影格產物。按程式邏輯，預期每個影格包括一張PPM、一張PGM ID遮罩及一份JSON標註，另有一份manifest。程式最後載入已寫出的manifest，查詢第2影格，並驗證標註影格編號、時間、必要欄位及逐物件來源標記。這些是依程式推得的預期，並非已執行結果。
+
+`test_query_rejects_wrong_source()` 提供一個反例測試：它暫時把一筆標註來源改成 `measured`，確認查詢會拒絕，最後還原原始JSON。此測試只能在產生輸出後呼叫；若要手動執行，可在生成manifest及影格檔案後呼叫：
+
+```python
+test_query_rejects_wrong_source(saved_manifest, OUTPUT)
+```
+
+手動驗收時確認：
+
+1. manifest有完整 `config_snapshot`、`config_id` 及 `generator_version`。
+2. 每個影格編號只有一筆manifest記錄，標註JSON時間與該記錄相同。
+3. 彩色影像、ID遮罩與標註由同一個 `render_frame` 狀態生成。
+4. PPM顏色是示意性8-bit sRGB編碼值；PGM遮罩使用整數ID，背景為0。
+5. 查詢結果附有資料集ID、設定ID、生成器版本、影格、時間、標註檔名及欄位。
+6. 出界物件保留原始世界座標，並以世界座標範圍判定 `outside_world_range`。
+
+## 除錯與常見陷阱
+
+- **只記錄生成器檔名**：相同檔名的程式內容可能改變。本例記錄手動維護的版本標籤；正式專案也可記錄程式碼提交識別或檔案雜湊。
+- **設定快照與生成參數不一致**：若修改常數卻未更新 `configuration()`，manifest便不能代表實際生成狀態。應讓生成器從同一個設定物件讀值，並以該物件渲染及寫入快照。
+- **時間或影格索引錯位**：本例第0影格時間為0秒，時間公式為 \(k/f\)。若改用從1開始的索引，須同步修改公式、清單與測試。
+- **影像Y軸方向顛倒**：世界Y向上、影像列索引向下，映射時需翻轉Y。
+- **邊界夾取掩蓋出界狀態**：像素位置會夾在影像範圍，但 `outside_world_range` 在取整及夾取前按世界座標判定。不得把邊界像素當成物件原始位置。
+- **混淆色彩與標籤**：PPM通道值是示意性sRGB編碼值；PGM中的ID是整數標籤，不應套用色彩轉換或插值。
+- **把影像當成三維定位證據**：本例沒有相機模型或深度；二維像素位置不能唯一決定三維世界位置。
+- **查詢只檢查整體資料來源**：manifest標成 `simulated` 不保證每一筆物件標註都來自模擬。查詢還須逐筆檢查 `source`、必要欄位及唯一ID；有任何不符就拒絕回答。
+- **查詢越權或猜測**：查詢只讀資料並驗證欄位一致性。欄位缺漏、時間不同、影格重複或來源不符時，不應自行補猜。
+
+## 養殖數位分身案例
+
+本章以移動標記代表合成魚，示範如何連結影像、ID遮罩與狀態標註。若擴充到三維圖學場景，資料流可包括：
+
+1. **場景資料**：池體尺寸、魚體資產、世界變換及材質識別碼；長度使用公尺。
+2. **動畫資料**：固定影格率、時間及穩定物件ID的變換。動畫是合成設定，不表示實際魚類行為。
+3. **相機資料**：影像尺寸、投影類型、內外參、近平面與遠平面；明示相機座標系。
+4. **渲染輸出**：彩色影像、物件ID遮罩，以及若有實作才提供的深度通道。ID與深度是資料通道，不作sRGB色彩處理。
+5. **標註與清單**：每影格記錄ID、時間、相機識別碼、輸出檔名及資料來源。由場景直接生成的標註應標成合成標註。
+6. **唯讀查詢**：讀取manifest與標註，核對資料集ID、影格和時間，並逐筆確認來源標記後，回傳物件欄位與依據。
+
+本章程式實際生成彩色影像及ID遮罩，並提供合成狀態JSON和唯讀查詢；它沒有生成三維相機深度、真實感測資料或完整三維渲染結果。
+
+### 執行順序與驗收
+
+執行順序為：確認設定與單位，執行 `digital_twin.py`，檢查manifest快照與識別碼，再抽查一個影格的PPM、PGM和JSON。唯讀查詢應驗證影格存在、時間一致、物件欄位完整且每筆來源皆為 `simulated`。
+
+專題驗收至少涵蓋：
+
+- **設定可追溯**：快照包含實際使用的物件位置、速度、顏色、影像範圍與標記半徑。
+- **輸出可對應**：同一影格的影像、遮罩及JSON使用相同索引與時間。
+- **查詢可稽核**：回答附上資料集ID、設定ID、生成器版本、影格編號、時間、標註檔案及欄位。
+- **失效可辨識**：設定缺失、影格重複、時間不符、必要欄位缺漏或物件來源不符時，查詢拒絕回答。
+- **用途受限**：合成輸出只說明生成器設定，不代替現場觀測、物理驗證或生物判斷。
+
+唯讀查詢只整理記錄，不連接真實設備、不發出控制指令，也不自行加藥、投餌或操作養殖系統。若問題超出資料欄位，應回答「資料未提供」，而不是由合成動畫推測現實狀態。
+
+## 習題
+
+### 習題一：手算時間與像素
+
+影格率為10影格／秒，第7影格的合成物件位置為 \(x=0.25\) 公尺。水平範圍為 \([-1,1]\) 公尺，影像寬 \(W=21\)。計算時間與像素欄索引。
+
+### 習題二：程式測試設計
+
+將 `FRAME_COUNT` 改為8、`FPS` 改為2。列出三項檢查manifest與影格時間一致的測試。
+
+### 習題三：反例與除錯
+
+某生成器把影像、ID遮罩和JSON分開計算；同一物件在影像使用第2影格位置，JSON卻使用第3影格位置。說明為何檔名相同仍不足以證明它們一致，並提出修正方法。
+
+### 習題四：整合應用
+
+設計唯讀查詢以回答「資料集的第 \(k\) 影格有哪些合成物件？其世界位置與像素位置為何？」列出讀取資料、驗證步驟與答案應附的依據，並說明此回答不能推論什麼。
+
+## 習題解答
+
+### 解答一
+
+影格時間為
+
+$$
+t_7=\frac{7}{10}=0.7\ \text{秒}.
+$$
+
+像素索引為
+
+$$
+u=\operatorname{round}\left(
+\frac{0.25-(-1)}{1-(-1)}(21-1)
+\right)
+=\operatorname{round}(12.5)=12.
+$$
+
+Python的 `round` 對中點採銀行家捨入，所以12.5得到12。若專案採其他取整規則，生成器與測試必須明確採用同一規則。
+
+### 解答二
+
+可測：
+
+1. manifest的影格數為8，索引恰為0至7且無重複。
+2. 每筆時間等於 `frame_index / FPS`；第0影格為0秒，第7影格為3.5秒。
+3. 每個影格標註中的 `frame_index` 和 `time_s` 分別與manifest相符。
+4. 每筆影格記錄均包含影像、遮罩及標註路徑。
+
+檔案是否存在須在實際生成後於本機檢查；單靠程式邏輯不能證明檔案已成功寫出。
+
+### 解答三
+
+相同檔名只表示檔名一致，不代表生成時使用同一份狀態。若影像和JSON採用不同影格位置，兩者語意不一致，會造成錯誤標註。應由一個共用的影格狀態計算函式取得時間與物件位置，再將同一份狀態傳給影像、遮罩和JSON生成器；測試應核對三種輸出的影格編號、時間、ID及對應位置。
+
+### 解答四
+
+查詢讀取manifest及該影格的JSON標註。先確認資料集ID與整體 `data_status`，再檢查影格索引唯一存在、JSON中的影格編號與manifest相符、時間相等。接著確認 `objects` 是清單，每筆物件包含必要欄位、ID不重複，且每筆 `source` 都是 `simulated`；任一檢查失敗便拒絕回答。
+
+答案應附資料集ID、設定ID、生成器版本、影格編號、時間、標註檔名及使用欄位。它只能回報合成資料中記錄的位置，不能推論現場魚數、真實三維位置、健康狀態、生態行為或感測器讀值。
+
+## 本章小結
+
+可稽核的合成專題需讓設定、生成器版本、影格、影像、遮罩與標註彼此可追溯。本章以固定時間步生成PPM影像、PGM ID遮罩及JSON合成狀態，將完整設定快照寫入manifest，並提供驗證影格、時間與逐筆來源的唯讀查詢。顏色是示意性8-bit sRGB編碼值，ID是整數標籤；兩者語意不同。合成輸出不等於實測，也不構成生物、物理或養殖控制驗證。
+
+## 參考來源
+
+以下資料供延伸閱讀；列出來源不表示本章已逐項獨立核對或執行官方範例。
+
+- [G1] PBRT 4：Transformations，https://pbr-book.org/4ed/Geometry_and_Transformations/Transformations
+- [G3] PBRT 4：The Light Transport Equation，https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/The_Light_Transport_Equation
+- [G5] LearnOpenGL：Transformations，https://learnopengl.com/Getting-started/Transformations
+- [G8] Khronos glTF 2.0規格，https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html

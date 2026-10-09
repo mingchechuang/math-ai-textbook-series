@@ -1,0 +1,11 @@
+{
+  "key": "25b9df9db37809cbd6a1cbaa3e7146902122bd3f6d3eaf6e826549cd2936eace",
+  "person": {
+    "id": "v5_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 262,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n$M^{(s)}_{bi}=1$ 表示該位置有效。本章使用位置級遮罩；\n<<<NEW>>>\n$M^{(s)}_{bi}=1$ 表示該位置有效。數學上以二值表示；程式要求 `torch.bool`，其中 `True` 表示有效，整數遮罩須先驗證並轉換。本章使用位置級遮罩；\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    if mask.shape != times.shape:\n        raise ValueError(\"mask須為(B,T)\")\n<<<NEW>>>\n    if mask.shape != times.shape:\n        raise ValueError(\"mask須為(B,T)\")\n    if mask.dtype != torch.bool:\n        raise ValueError(\"mask須為torch.bool\")\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n    for sigma, window in (\n        (float(\"nan\"), 1.0), (float(\"inf\"), 1.0), (0.0, 1.0),\n<<<NEW>>>\n    expect_value_error(\n        lambda: aligned_pool(\n            h, times, torch.tensor([[1]], dtype=torch.int64), tau, 1.0, 1.0\n        ),\n        \"mask須為torch.bool\",\n    )\n    for sigma, window in (\n        (float(\"nan\"), 1.0), (float(\"inf\"), 1.0), (0.0, 1.0),\n<<<END>>>"
+}

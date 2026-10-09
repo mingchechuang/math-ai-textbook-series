@@ -1,0 +1,25 @@
+{
+  "key": "2b7542f9877a530a655242443033220a6a3bee45fcc2ef7c3e3ccc0eecd344ed",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 388,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "$$\nu=a\\sin(kx)\\cos(ky),\\qquad\nv=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$"
+      },
+      {
+        "chapter": 19,
+        "old": "$$\nu_i^{n+1}=u_i^\\star-\\frac{\\Delta t}{\\rho}\n\\frac{p_i-p_{i-1}}{\\Delta x}.\n$$",
+        "new": "$$\nu_{i,\\mathrm{face}}^{n+1}=u_i^\\star-\\frac{\\Delta t}{\\rho}\n\\frac{p_i-p_{i-1}}{\\Delta x}.\n$$"
+      }
+    ],
+    "reason": "修正速度與運動黏度的符號混淆；未執行程式。"
+  }
+}

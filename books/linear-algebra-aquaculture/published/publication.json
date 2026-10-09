@@ -1,0 +1,111 @@
+{
+  "volume": 1,
+  "chapter_count": 20,
+  "built_at": "2026-10-08T11:01:38.193Z",
+  "source_sha256": "5f896d7b5efbee5c4e98f11e4883965b5929d6844a574a553cb5b5b09b3eeb64",
+  "source_files": {
+    "00-preface.md": "f3774a79174ea26812258975c30c870c336204d812c1d5d5452caaae5b5d2341",
+    "chapters/01.md": "452cfa74b99fae88439a4048c3c52d8bf6ade81a90d628bdea2a8341a7dbc10a",
+    "chapters/02.md": "0ab2667c9bfb295ec9c18f9c870186c120470059173aebec5350ae0efc9b729f",
+    "chapters/03.md": "207108aa3fda52f1cfb2384887fb181a9cce7be53a8b91704639c6dfc874da82",
+    "chapters/04.md": "3bb0b3d1481a268ad4b9e7b8299fe377a5ffd823056c936d949bd323c7ce4dce",
+    "chapters/05.md": "ba7bdc5ac1c954305ccc934e78601b97a84f90edd9b43519ae01beba1142d9db",
+    "chapters/06.md": "e56bdbb5a47f8637de22f92bf262d28ea4c393cb2001a792fe9c82f0a2cf8956",
+    "chapters/07.md": "9e9f8c1228a51cff285a2dbc068542d2795ee8624c14b262a44137f157196ebf",
+    "chapters/08.md": "2d168c8ead62179ca08bb2ce57510c5318de26a57bca121ee7270a2cf00c529a",
+    "chapters/09.md": "9161e1c2db91a43c8fd591ced5c8154e3199cc68926910513754115fab58b925",
+    "chapters/10.md": "6afc59005ed09e03c4b48e8e4a3f407a7b0acd081bf2c1de8ee192619fe95857",
+    "chapters/11.md": "0f72ef256ba4c00e1d935b0606085e6203666260e5c952a7543f0d4e242bf9e5",
+    "chapters/12.md": "6df46cc6ffcfd46faf7f49af7dc6bd11ef80d8fb1027e6f541a4fa68a504538d",
+    "chapters/13.md": "b0036be76950138aa0836874246a5a48003ed6017d5000d367449a1dfc7b7241",
+    "chapters/14.md": "d60e30cf1cf6cc78fe1ead01761f0a4b505b4fdb3b6ceaad60ff9741673256bb",
+    "chapters/15.md": "8ac6c960a795b7f5ac2b2b16fd55d3913cbd4b832b048088a5fa7b5fd61f090d",
+    "chapters/16.md": "078568229a8085d010fac2cc07af9f3ff552a60bd6313985462ccaaa7bc4c75c",
+    "chapters/17.md": "c1861857f721294871433078609fcb50800b56fb99b8ae64e09ad52c8fbf49bc",
+    "chapters/18.md": "2772f96c4a5cf9a69a15ff15c42b5a36bacea773b2149b70dbccfc1cb78fea05",
+    "chapters/19.md": "aa5b4ed6f677787a534175a60a5bdec3ceb7db97bebe122f46f4364a28a06e41",
+    "chapters/20.md": "4d3c4fcb5859ac1ad1303979cfc467d2dc4012710fb9af107301140f52064849",
+    "99-appendix.md": "d20ee752338b88282721d4421bd2264fa2c113e83baaec6313337ee9b6c6a7f9",
+    "REFERENCES.md": "d666d099e2a29fac9fdf304fee929d725f231eb1a7c92932be729c97ee6813f3",
+    "figures/agent-safety.svg": "1f4bd682f6ba0cd05767c6c6f08fc663c180460aebdec257b58dd85ee93466e3",
+    "figures/attention.svg": "2992df0b2372298ce1cf8d49b9dd75622f8b35b07e566a1ee376fbaebbe102ec",
+    "figures/fusion.svg": "5a3df324fe535435177f2eb525d7a4221af24bf46e17375b50738913d9e9b528",
+    "figures/roadmap.svg": "d1de34579c399676b545db6167a36ea2772f4b209c588333712e34d6566b922f",
+    "figures/shapes.svg": "409021d76e4a3ef646a3916e3556ca8ec010d37267572cbcedfe4764e5e556d2"
+  },
+  "renderer_normalizations": [],
+  "manuscript_sha256": "3c5f56146c1667e5289b5a86ebd98b5a8b57b4eb2edd6e2009766e3c259557ae",
+  "source_status": "completed_model_review_pending_human",
+  "characters": 50062,
+  "mathCount": 2199,
+  "inspection": {
+    "math": 2199,
+    "figures": 3,
+    "missingLinks": [],
+    "chapterCount": 20,
+    "unrenderedDollars": [],
+    "cjkFontLoaded": true,
+    "overflow": []
+  },
+  "mobile": {
+    "viewport": 390,
+    "bodyWidth": 390
+  },
+  "scaled_math": [
+    {
+      "text": "1⋅1+1⋅2+3⋅3=1+2+9=121\\cdot 1+1\\cdot 2+3\\cdot 3=1+2+9=121⋅1+1⋅2+3⋅3=1+2+9=12",
+      "scale": 0.9941416991463619
+    },
+    {
+      "text": "−1(1)+0(0)+3(2)=5-1(1)+0(0)+3(2)=5−1(1)+0(0)+3(2)=5",
+      "scale": 0.9918175528996398
+    },
+    {
+      "text": "r′=rank⁡([A∣b])r'=\\operatorname{rank}([A\\mid b])r′=rank([A∣b])",
+      "scale": 0.9879523798208303
+    },
+    {
+      "text": "z2+2z4=0z_2+2z_4=0z2​+2z4​=0",
+      "scale": 0.991344571878204
+    },
+    {
+      "text": "P−1=12PP^{-1}=\\frac12PP−1=21​P",
+      "scale": 0.989810494238644
+    },
+    {
+      "text": "X∈Rn×dX\\in\\mathbb R^{n\\times d}X∈Rn×d",
+      "scale": 0.9935240280067866
+    },
+    {
+      "text": "∂L∂y=y−t∈Rm\\dfrac{\\partial L}{\\partial \\mathbf{y}}=\\mathbf{y}-\\mathbf{t}\\in\\mathbb{R}^m∂y∂L​=y−t∈Rm",
+      "scale": 0.994474609515153
+    },
+    {
+      "text": "m×rm\\times rm×r",
+      "scale": 0.9929782660616193
+    },
+    {
+      "text": "x=[temperature, do, ph]Tx = [\\text{temperature},\\ \\text{do},\\ \\text{ph}]^Tx=[temperature, do, ph]T",
+      "scale": 0.9990628379190196
+    },
+    {
+      "text": "k>Nk>Nk>N",
+      "scale": 0.9896455690176382
+    },
+    {
+      "text": "det⁡(Σ)>0\\det(\\Sigma)>0det(Σ)>0",
+      "scale": 0.9901640905951559
+    },
+    {
+      "text": "W=[111−1]∈R2×2W=\\begin{bmatrix}1&1\\\\1&-1\\end{bmatrix}\\in\\mathbb{R}^{2\\times2}W=[11​1−1​]∈R2×2",
+      "scale": 0.9951410995954906
+    }
+  ],
+  "external_requests": [],
+  "files": {
+    "html": 5767723,
+    "pdf": 3198957
+  },
+  "html_sha256": "ff4a2de3c189e0e71f2a926836095e7b507d9f24a8f8824db43b7f40b7aae036",
+  "pdf_sha256": "6cd8c67c4b438c0af6b24a77f319b50ea75f79751871dfe2f3effadd6100dbdb"
+}

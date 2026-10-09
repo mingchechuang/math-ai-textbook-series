@@ -1,0 +1,1 @@
+I'll verify the chapter file exists and check for any count script, then produce the corrected full chapter.

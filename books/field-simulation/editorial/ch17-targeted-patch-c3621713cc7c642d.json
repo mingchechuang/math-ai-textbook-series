@@ -1,0 +1,35 @@
+{
+  "key": "c3621713cc7c642ded6127558b34c9c39b0e16031d5e0849c5694bbe4459758e",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 237,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "離散相容性為\n\n$$\n\\mathbf1^Tb=0.\n$$\n\n浮點程式不能直接比較是否等於零，而應使用例如",
+        "new": "對**單一連通分量**，離散相容性為\n\n$$\n\\mathbf1^Tb=0.\n$$\n\n若網格有多個互不連通、且均無 Dirichlet 約束及反應項控制的分量，每個分量各有常數零模態，須對每個分量分別檢查其右端之和為零；不同分量的缺陷不得互相抵消。下方程式的檢查函式只接收一個右端列向量，呼叫者須先確認網格連通，或逐分量擷取右端後分別呼叫。\n\n浮點程式不能直接比較是否等於零，而應使用例如"
+      },
+      {
+        "chapter": 17,
+        "old": "    # 非零且由有限元素組裝而來：四角形節點沿 x 對稱，\n    # 對相同三角網格的來源 f=x-1/2，以三點精確積分組裝右端。\n    # 各元素的 f*N_a 為二次式，不能沿用常數來源的負載公式。",
+        "new": "    # 非零且由有限元素組裝而來：使用上方已經 assemble 驗證的\n    # 同一組 points、triangles；來源 f=x-1/2，以三點精確積分。\n    # 各元素的 f*N_a 為二次式，不能沿用常數來源的負載公式。"
+      },
+      {
+        "chapter": 17,
+        "old": "            b_manufactured[tri] += (area/3.0)*(x_quad-0.5)*N",
+        "new": "            local_load = (area/3.0)*(x_quad-0.5)*N\n            for a, node in enumerate(tri):\n                b_manufactured[node] += local_load[a]"
+      },
+      {
+        "chapter": 17,
+        "old": "假設三維薄層的場沿厚度方向不變；以下自由能均按**每單位實際厚度**計，其有因次形式為 $F_{\\rm phys}/H=\\int_{\\Omega_{\\rm phys}}[f_0W(\\phi)+K_g|\\nabla_{\\rm phys}\\phi|^2/2]\\,dA_{\\rm phys}$，其中 $K_g$ 的單位是 J/m，故兩個被積項同為 J/m³，而 $F_{\\rm phys}/H$ 的單位是 J/m。",
+        "new": "假設三維薄層厚度為 $H>0$，且場沿厚度方向不變。令 $F_{\\rm phys}$ 表示**整片厚度為 $H$ 的薄層總自由能**，則 $F_{\\rm phys}=H\\int_{\\Omega_{\\rm phys}}[f_0W(\\phi)+K_g|\\nabla_{\\rm phys}\\phi|^2/2]\\,dA_{\\rm phys}$；因此右側二維積分等於 $F_{\\rm phys}/H$，是**每單位厚度自由能**，不是總自由能。其中 $K_g$ 的單位是 J/m，故兩個被積項同為 J/m³，$F_{\\rm phys}$ 的單位為 J，而 $F_{\\rm phys}/H$ 的單位為 J/m。"
+      }
+    ],
+    "reason": "補足非連通純 Neumann 網格須逐分量檢查的條件，將製造來源的負載改為逐局部節點累加，並釐清薄層總自由能與每單位厚度自由能。審稿所引 `$$\\nu` 在輸入 JSON 中由換行跳脫 `\\n` 後接變數 `u` 組成；解碼後公式是 $u=g_D$ 與 $u=0$，並非希臘字母或梯度，故不更動正確邊界條件。未執行程式。"
+  }
+}

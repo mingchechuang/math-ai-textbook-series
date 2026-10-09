@@ -1,0 +1,50 @@
+{
+  "key": "256a4368cf331bb67a78955c8d85a32569872e1170c792d5baff1d1464dfc533",
+  "person": {
+    "id": "v3_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 207,
+  "result": {
+    "patches": [
+      {
+        "chapter": 24,
+        "old": "- **一階敏感度分析**：計算偏導數 $S_i = \\frac{\\partial f}{\\partial \\theta_i}$。這表示參數 $\\theta_i$ 在小擾動下對輸出的線性影響。",
+        "new": "- **一階敏感度分析**：計算偏導數 $S_i=\\frac{\\partial f}{\\partial\\theta_i}$。它表示參數 $\\theta_i$ 小幅變動時，輸出的局部線性變化；其單位為輸出單位除以參數單位，因此不能直接跨不同單位參數比較大小。若 $f\\ne0$ 且 $\\theta_i\\ne0$，可用無因次相對敏感度 $S_i^{\\rm rel}=\\frac{\\theta_i}{f}\\frac{\\partial f}{\\partial\\theta_i}$ 比較相對影響；當 $f=0$ 或 $\\theta_i=0$ 時，應改用明確參考尺度定義無因次敏感度。"
+      },
+      {
+        "chapter": 24,
+        "old": "        idx_mid = n_pts // 2\n        c_exact_final = exact_solution_diffusion(x, 0.1, D_true, L=1.0)[idx_mid]\n        err = abs(c_exact_final - c_final[idx_mid])\n        errors.append(err)\n        print(f\"n_points={n_pts}, dx={dx:.4f}, Error={err:.6e}\")",
+        "new": "        c_exact_final = exact_solution_diffusion(x, 0.1, D_true, L=1.0)\n        err = float(np.sqrt(dx * np.sum((c_final - c_exact_final)**2)))\n        errors.append(err)\n        print(f\"n_points={n_pts}, dx={dx:.4f}, weighted_L2_Error={err:.6e}\")"
+      },
+      {
+        "chapter": 24,
+        "old": "    # 實驗 B 採另一初值及獨立噪聲；仍只是合成資料檢查。\n    def initial_b(x):\n        return 0.7 * np.sin(np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_truth = 0.7 * np.exp(-0.1 * np.pi**2 * b_times)\n    b_observed = b_truth + np.random.default_rng(10000).normal(0.0, 0.01, b_times.size)\n    b_rmse, b_predicted = independent_validation(\n        float(D_cal_samples[0]), 0.0, b_times, b_observed, initial_b)\n    b_residual = b_predicted - b_observed",
+        "new": "    # 實驗 B 使用不同波數初值與獨立噪聲；仍是合成資料檢查而非物理 Validation。\n    def initial_b(x):\n        return 0.7 * np.sin(2.0 * np.pi * x)\n\n    b_times = np.array([1.0, 2.0])\n    b_truth = 0.7 * np.exp(-(0.1 * (2.0 * np.pi)**2) * b_times)\n    b_observed = b_truth + np.random.default_rng(10000).normal(0.0, 0.01, b_times.size)\n    b_rmse_samples, b_prediction_samples, b_residual_samples = [], [], []\n    for D_cal in D_cal_samples:\n        b_rmse, b_predicted = independent_validation(\n            float(D_cal), 0.0, b_times, b_observed, initial_b)\n        b_rmse_samples.append(float(b_rmse))\n        b_prediction_samples.append(b_predicted.tolist())\n        b_residual_samples.append((b_predicted - b_observed).tolist())"
+      },
+      {
+        "chapter": 24,
+        "old": "            \"experiment_b_rmse\": float(b_rmse),\n            \"experiment_b_prediction\": b_predicted.tolist(),\n            \"experiment_b_residual_pred_minus_obs\": b_residual.tolist(),",
+        "new": "            \"experiment_b_rmse_samples\": b_rmse_samples,\n            \"experiment_b_prediction_samples\": b_prediction_samples,\n            \"experiment_b_residual_samples_pred_minus_obs\": b_residual_samples,\n            \"experiment_b_observed\": b_observed.tolist(),"
+      },
+      {
+        "chapter": 24,
+        "old": "**測試1：空間收斂階（耦合細化）**\n- 輸入：$D=0.1$，$t=0.1$，$n_points \\in [21, 41, 81]$，$dt = 0.1 dx^2$。\n- 預期：由於 $dt=O(dx^2)$，時間誤差與空間誤差同階，觀測階將反映兩者的合成效果，通常接近 2。\n- 驗證：誤差隨網格細化而顯著下降。",
+        "new": "**測試1：加權範數的耦合細化**\n- 輸入：$D=0.1$，$t=0.1$，$n_{\\rm points}\\in[21,41,81]$，$dt=0.1dx^2$。\n- 誤差：計算 $E_h=(dx\\sum_i|c_i-c_{{\\rm exact},i}|^2)^{1/2}$，不只檢查中心單點。\n- 預期：這是 $dt=O(dx^2)$ 的空間與時間耦合細化，不是純空間收斂階；觀測階須由各網格誤差計算，不能預先保證。\n- 驗證：記錄加權 $L_2$ 誤差與相鄰網格觀測階。"
+      },
+      {
+        "chapter": 24,
+        "old": "- 檢查：10 個估計值的分位區間只描述這些模擬結果，不保證涵蓋真值。若需模型條件式的置信界線，須固定估計程序、噪聲模型與目標參數，再透過充分多次獨立模擬校準估計誤差分位數並檢查覆蓋率；本章十個 seed 的輸出不足以宣稱已建立具可靠覆蓋率的置信區間，更不包含模型形式誤差。",
+        "new": "- 初步的 10 個 seed 分位範圍只作描述，不宣稱可靠覆蓋率。若要估計模型條件式置信界線，固定估計程序、噪聲模型與真值，進行多次獨立合成重複並保存 $e_b=\\widehat D_b-D_{\\rm true}$。以誤差分位數 $q_{0.025},q_{0.975}$ 建立估計區間 $[\\widehat D-q_{0.975},\\widehat D-q_{0.025}]$，並按參數範圍處理邊界。另用獨立外層重複檢查真值落入區間的經驗比例，報告重複數及覆蓋比例。有限次試驗只能估計覆蓋率；此界線只適用於指定噪聲與模型假設，不含模型形式誤差。"
+      },
+      {
+        "chapter": 24,
+        "old": "- 真實參數：$D=10^{-9}, k=10^{-6}$。\n- 觀測噪聲：$\\sigma = 0.01 \\times c_{true}$。",
+        "new": "- 真實參數：$D=10^{-9}\\,\\mathrm{m^2/s}$、$k=10^{-6}\\,\\mathrm{s^{-1}}$；合成初始振幅為 $1\\,\\mathrm{kg/m^3}$，濃度以 $\\mathrm{kg/m^3}$ 表示。\n- 觀測噪聲：$\\sigma=0.01\\,c_{\\rm true}$，其單位與濃度相同。"
+      }
+    ],
+    "reason": "精準修補審查指出的敏感度量綱、全域加權誤差、不同波數的獨立合成驗證與逐 seed 傳播、置信界線及有因次合成數據標示。各 old 相對原稿唯一且互不重疊；未執行程式。"
+  }
+}

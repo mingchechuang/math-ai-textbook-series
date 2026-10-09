@@ -1,0 +1,14 @@
+{
+  "key": "b366db1b3a4fe4bc6165101db403df1b1b609feb02108503af9ea552dcbcc3fd",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 262,
+  "result": {
+    "patches": [],
+    "reason": "本次唯一審稿指摘來自將 JSON 字串的換行跳脫 `\\n` 與緊接的字母 `u` 或 `u_h` 連讀為 LaTeX `\\nu`。解碼後三處原稿實為換行後的 `u=g_D`、`u_h=\\sum_{a=1}^3U_aN_a`、`u=0`，均正確；依只修真錯誤的要求，不產生補丁。未執行工具或程式。"
+  }
+}

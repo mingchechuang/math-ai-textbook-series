@@ -1,0 +1,30 @@
+{
+  "key": "2c163ef0b5e31b1c2cb5c89309d2b69299f595b8017358df1082dad41ee71649",
+  "person": {
+    "id": "v3_editor_18",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 398,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "$$\\nu_x=a\\sin(kx)\\cos(ky),\\qquad\n\\nu_y=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "$$u=a\\sin(kx)\\cos(ky),\\qquad\nv=-a\\cos(kx)\\sin(ky),\n$$"
+      },
+      {
+        "chapter": 19,
+        "old": "$$\\nu_{i,\\mathrm{face}}^{n+1}=u_i^\\star-\\frac{\\Delta t}{\\rho}\n\\frac{p_i-p_{i-1}}{\\Delta x}.\n$$",
+        "new": "$$u_{i,\\mathrm{face}}^{n+1}=u_i^\\star-\\frac{\\Delta t}{\\rho}\n\\frac{p_i-p_{i-1}}{\\Delta x}.\n$$"
+      },
+      {
+        "chapter": 19,
+        "old": "2. **無外力邊界情形。** 將 `alpha` 設為 `2*nu*(2*np.pi/L)**2`，解析 `force_coefficient` 為零，預期外力均方根為零。完整方程仍含兩分量對流項與非恆定壓力；這不是刪掉對流項的 Stokes 測試。",
+        "new": "2. **無外力參數情形。** 將 `alpha` 設為 `2*nu*(2*np.pi/L)**2`，解析 `force_coefficient` 為零，預期外力均方根為零。完整方程仍含兩分量對流項與非恆定壓力；這不是刪掉對流項的 Stokes 測試。"
+      }
+    ],
+    "reason": "統一製造場速度分量的 u、v 符號，修正手算校正式中的速度變數筆誤，並澄清無外力設定是參數選擇而非邊界條件。"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "key": "13516460311f1c501a19f30fcdf6705f8a0ba640f41618bda62b6fc542cdebdc",
+  "person": {
+    "id": "v3_editor_07",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 343,
+  "result": "## 重算與核對\n\n- 實驗B在 $x_{\\mathrm{obs}}=0.25\\,\\mathrm m$ 時有 $\\sin(2\\pi x/L)=1$，解析真值與數值觀測位置一致。\n- FTCS非負係數條件 $2r+kdt\\le1$、重分步檢查及安全步長一致。\n- 合成置信界線的建構樣本與覆蓋檢查樣本使用不同seed，統計流程本身一致。\n- 加權 $L_2$ 誤差、留出殘差與實驗B逐點殘差的shape均一致。\n\n## 必須修正事項\n\n### 1. 診斷配置的濃度與噪聲單位互相矛盾\n\n> `\"noise_std_dimensionless\": 0.01`  \n> `\"experiment_b_initial\": \"0.7 kg/m^3 * sin(2*pi*x/L)\"`  \n> `\"experiment_b_amplitude_kg_m3\": 0.7`  \n> `\"experiment_a_amplitude_kg_m3\": 1.0`\n\n**原因：** 程式以同一數值 `0.01` 作實驗A及實驗B的加性噪聲。配置卻把噪聲標為無因次，同時把兩組場振幅標為 $\\mathrm{kg/m^3}$。若觀測值是濃度，噪聲標準差也必須是 $\\mathrm{kg/m^3}$；若場已無因次化，振幅及觀測就不應標成 $\\mathrm{kg/m^3}$。\n\n**最小修法：** 二選一並全文一致：\n\n- 有因次方案：恢復 `\"noise_std_kg_m3\": 0.01`，並明示解析解與程式陣列代表 $\\mathrm{kg/m^3}$；或\n- 無因次方案：把兩個振幅鍵改成無因次，刪除實驗B字串中的 `kg/m^3`，並列出濃度參考尺度。\n\n### 2. 養殖案例仍把合成資料稱為獨立Validation\n\n> 「**獨立驗證**：使用實驗 B……合成觀測數據進行驗證」  \n> 「計算驗證 RMSE」  \n> 學習目標：「使用合成數據進行校準與獨立驗證」\n\n**原因：** 同章其他位置已正確說明實驗B是由同一模型生成的跨初值合成資料，不是獨立物理Validation。案例中的名稱與診斷假設\n\n> `\"Experiment B is independently generated synthetic data, not physical validation\"`\n\n互相衝突。\n\n**最小修法：** 將上述位置統一改為「合成獨立測試」及「合成測試RMSE」。保留「Validation」給來自獨立物理實驗的觀測資料；本章沒有此類資料。\n\n### 3. 設定雜湊尚未涵蓋置信界線實驗的實際配置\n\n> `confidence_diagnostic = synthetic_confidence_demo()`  \n> `config_hash = hash_config(cfg_full)`\n\n**原因：** `synthetic_confidence_demo` 實際使用：\n\n- `n_build=200`\n- `n_check=200`\n- seed `20001`、`20002`\n- $\\sigma=0.01$\n- 時間 $[2,4]$\n- 搜尋範圍及50點格網\n\n但這些設定未收入 `cfg_full`。因此改動置信界線的重複數、seed或估計器設定，`config_hash`仍可能不變，不能代表完整實驗配置。\n\n**最小修法：** 將以上設定顯式放入 `cfg_full`，並以配置參數呼叫函數，而不是依賴函數內硬編碼值。實驗B的 `n_points=51` 也宜明列。\n\n## 非阻擋但應修正文句\n\n> 「高噪聲……$D_{cal}$ 樣本標準差顯著增大」\n\n有限seed、離散搜尋及參數邊界下不保證每次都「顯著」增大。宜改成「比較其標準差及分佈是否增大，結果須由實際樣本報告」。\n\nVERDICT: REVISE"
+}

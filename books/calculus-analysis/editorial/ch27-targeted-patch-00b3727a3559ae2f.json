@@ -1,0 +1,11 @@
+{
+  "key": "00b3727a3559ae2fc5d4872e5591fe782e6b81d2f5706d61b46cdb7181b1ded6",
+  "person": {
+    "id": "v4_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 303,
+  "result": "<<<PATCH 27>>>\n<<<OLD>>>\n由$V(x_\\ast)=0$及連續性，可令初值充分接近$x_\\ast$，使$x_0\\in B_s(x_\\ast)$且$V(x_0)<c$。\n<<<NEW>>>\n由$V(x_\\ast)=0$及連續性，可選$0<\\delta\\le s$，使$\\|x_0-x_\\ast\\|_2<\\delta$時同時有$x_0\\in B_s(x_\\ast)$及$V(x_0)<c$。\n<<<END>>>"
+}

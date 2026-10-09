@@ -1,0 +1,90 @@
+{
+  "key": "b894120b613903f527caee0d91295701e9c2fd51f4872255d81eda74cd06c22f",
+  "person": {
+    "id": "v3_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 149,
+  "result": {
+    "patches": [
+      {
+        "chapter": 9,
+        "old": "目標時間 $ t=0.2 $（即 2 個時間單位 $ \\lambda^{-1} $ 的 1/5，或者說 $ t=0.2 $ 時 $ \\lambda t = 20 $）。",
+        "new": "目標時間 $ t=0.2 $ 相當於 20 個特徵衰減時間 $ \\lambda^{-1}=0.01 $，故 $ \\lambda t = 20 $。"
+      },
+      {
+        "chapter": 9,
+        "old": "    $ y^{200} = (1/1.1)^{200} \\approx 2.48 \\times 10^{-9} $。\n    解析解 $ 2.06 \\times 10^{-9} $。相對誤差約 20%。",
+        "new": "    $ y^{200} = (1/1.1)^{200} \\approx 5.27 \\times 10^{-9} $。\n    解析解 $ 2.06 \\times 10^{-9} $。相對誤差約 156%。"
+      },
+      {
+        "chapter": 9,
+        "old": "    $ y^{200} = (0.95/1.05)^{200} \\approx 1.99 \\times 10^{-9} $。\n    解析解 $ 2.06 \\times 10^{-9} $。相對誤差約 3.5%。",
+        "new": "    $ y^{200} = (0.95/1.05)^{200} \\approx 2.03 \\times 10^{-9} $。\n    解析解 $ 2.06 \\times 10^{-9} $。相對誤差約 1.5%。"
+      },
+      {
+        "chapter": 9,
+        "old": "問題：$ u_t = \\nu u_{xx} $，域 $ [0, 2\\pi] $，週期邊界。$ \\nu = 1 $。",
+        "new": "問題：$ u_t = \\nu u_{xx} $。本例已無因次化：參考長度 $ L_0 $、參考時間 $ T_0 = L_0^2/\\nu_0 $，固定點上 $ \\nu=1 $、$ x\\in[0, 2\\pi] $。方程無來源項，週期邊界，採用 node-centered 格網 $ x_i = i\\Delta x $（$ i=0,\\dots,N-1 $），不重複儲存 $ x=2\\pi $。"
+      },
+      {
+        "chapter": 9,
+        "old": "    $ R_{BE} = \\frac{1}{1+4.053} \\approx 0.198 $。\n    $ R_{CN} = \\frac{1 - 2.026}{1 + 2.026} = \\frac{-1.026}{3.026} \\approx -0.339 $。\n    解析衰減 10 步：$ e^{-40.53 \\times 0.1} = e^{-4.053} \\approx 0.0173 $。\n    BE 10 步：$ 0.198^{10} \\approx 8.6 \\times 10^{-8} $。BE 幾乎完全抑制了高頻。\n    CN 10 步：$ (-0.339)^{10} \\approx 1.8 \\times 10^{-5} $。CN 衰減較慢，且每步反號。",
+        "new": "    $ R_{BE} = 1/(1+4.053) \\approx 0.1979 $。\n    $ R_{CN} = (1 - 4.053/2)/(1 + 4.053/2) \\approx -0.3392 $。\n    十步半離散精確衰減：$ e^{-40.53} \\approx 2.5 \\times 10^{-18} $。\n    BE 十步：$ R_{BE}^{10} \\approx 9.2 \\times 10^{-8} $。\n    CN 十步：$ |R_{CN}|^{10} \\approx 2.0 \\times 10^{-5} $，符號每步反轉（第 10 步為正）。\n    兩者皆遠大於半離散精確值；有限 $ q $ 下並不能精確重現指數衰減。當 $ q \\gg 1 $ 時，BE 的 $ R \\to 0 $，比 CN 更有效地抑制高頻。"
+      },
+      {
+        "chapter": 9,
+        "old": "*   **CN 能量**：雖然 $ |R_{CN}(q)| \\le 1 $ 保證範數不增（穩定），但對於高頻模態 $ R_{CN} \\approx -1 $，其能量衰減極慢。這意味著 CN 在數值上幾乎「保存」了高頻雜訊的能量。",
+        "new": "*   **CN 能量**：雖然 $ |R_{CN}(q)| \\le 1 $ 保證範數不增（穩定），但對於高頻模態 $ R_{CN} \\approx -1 $，其能量衰減極慢。這意味著 CN 在數值上幾乎「保存」了高頻雜訊的能量。\n\n*   **CN 能量不增的離散內積推導**：對 BE，$ (\\mathbf{I} - \\Delta t \\mathbf{A}) $ 為對稱正定；由 A 的負半定性，對每個模態 $ \\mu_k \\le 0 $ 皆滿足 $ |R_{BE}(q_k)| \\le 1 $，故均勻權重下的 $ L_2 $ 離散能量 $ E^n = \\frac12 \\mathbf{u}^{n,T} \\mathbf{u}^n $ 單調不增。對 CN，$ (\\mathbf{I} - \\frac{\\Delta t}{2} \\mathbf{A})^{-1} (\\mathbf{I} + \\frac{\\Delta t}{2} \\mathbf{A}) $ 可由對稱 A 的特徵分解對角化；每個模態的能量比為 $ |R_{CN}(q_k)|^2 \\le 1 $，故 $ L_2 $ 能量亦單調不增。但 $ |R_{CN}(q)|^2 \\to 1 $ 當 $ q \\to \\infty $，所以高頻模態的能量幾乎不衰減；這就是非 L-穩定性在能量觀點下的表現。\n\n*   **時間收斂觀測階與真殘差判準**：在空間離散固定下細化時間步 $ \\Delta t \\to \\Delta t/2 \\to \\Delta t/4 $，可計算兩個相鄰誤差範數之比 $ r = \\|e_{\\Delta t}\\| / \\|e_{\\Delta t/2}\\| $；若誤差以 $ \\Delta t^p $ 為主導，則 $ p \\approx \\log_2 r $。對 BE 期望 $ p \\approx 1 $，對 CN 期望 $ p \\approx 2 $，但實際觀測階須由數值資料計算，不可預先斷言。直接求解器雖無迭代停止問題，仍須事後檢查每步的真殘差 $ \\|\\mathbf{r}\\|_2 = \\|\\mathbf{b} - M_{\\text{left}} \\mathbf{u}^{n+1}\\|_2 $，並以 $ \\mathrm{atol} + \\mathrm{rtol} \\|\\mathbf{b}\\|_2 $ 為門檻。門檻超標時表示組裝、邊界閉合或數值條件有問題，不可宣稱「解已求好」。若改用 CG 等迭代求解器，此門檻即為停止條件；且應避免把「殘差小」等同「誤差小」。"
+      },
+      {
+        "chapter": 9,
+        "old": "def validate_inputs(u0, nu, dx, dt, n_steps):\n    u0 = np.asarray(u0, dtype=float)\n    if u0.ndim != 1 or u0.size < 3:\n        raise ValueError(\"u0 must be a 1D array with at least 3 points\")\n    if not np.all(np.isfinite(u0)):\n        raise ValueError(\"u0 contains non-finite values\")\n    \n    params = np.array([nu, dx, dt])\n    if not np.all(np.isfinite(params)):\n        raise ValueError(\"nu, dx, dt must be finite\")\n    if nu <= 0 or dx <= 0 or dt <= 0:\n        raise ValueError(\"nu, dx, dt must be positive\")\n    if not isinstance(n_steps, int) or n_steps < 0:\n        raise ValueError(\"n_steps must be a non-negative integer\")",
+        "new": "def validate_inputs(u0, nu, dx, dt, n_steps, atol=1e-12, rtol=1e-12):\n    u0 = np.asarray(u0, dtype=float)\n    if u0.ndim != 1 or u0.size < 3:\n        raise ValueError(\"u0 must be a 1D array with at least 3 points\")\n    if not np.all(np.isfinite(u0)):\n        raise ValueError(\"u0 contains non-finite values\")\n    params = np.array([nu, dx, dt, atol, rtol], dtype=float)\n    if not np.all(np.isfinite(params)):\n        raise ValueError(\"nu, dx, dt, atol, rtol must be finite\")\n    if nu <= 0 or dx <= 0 or dt <= 0:\n        raise ValueError(\"nu, dx, dt must be positive\")\n    if atol < 0 or rtol < 0:\n        raise ValueError(\"atol and rtol must be non-negative\")\n    if not isinstance(n_steps, int) or n_steps < 1:\n        raise ValueError(\"n_steps must be a positive integer\")\n    return u0"
+      },
+      {
+        "chapter": 9,
+        "old": "    validate_inputs(u0, nu, dx, dt, n_steps)\n    N = len(u0)",
+        "new": "    u0 = validate_inputs(u0, nu, dx, dt, n_steps, atol, rtol)\n    N = len(u0)\n    if N % 2 != 0:\n        raise ValueError(\"Nyquist 投影需要偶數 N；請使用偶數網格點數\")"
+      },
+      {
+        "chapter": 9,
+        "old": "    residual_history = []\n    mass_history = []\n    energy_history = []\n    nyq_amp_history = []",
+        "new": "    residual_history = []\n    residual_ok_history = []\n    mass_history = []\n    energy_history = []\n    nyq_amp_history = []"
+      },
+      {
+        "chapter": 9,
+        "old": "        r = rhs - Mat_left @ u_new\n        abs_res = np.linalg.norm(r, ord=2)\n        rel_res = abs_res / np.linalg.norm(rhs, ord=2) if np.linalg.norm(rhs, ord=2) > 0 else 0.0\n        residual_history.append(abs_res)",
+        "new": "        r = rhs - Mat_left @ u_new\n        abs_res = np.linalg.norm(r, ord=2)\n        rhs_norm = np.linalg.norm(rhs, ord=2)\n        rel_res = abs_res / rhs_norm if rhs_norm > 0 else 0.0\n        threshold = atol + rtol * rhs_norm\n        residual_ok = bool(abs_res <= threshold)\n        residual_history.append(abs_res)\n        residual_ok_history.append(residual_ok)"
+      },
+      {
+        "chapter": 9,
+        "old": "    return u, residual_history, mass_history, energy_history, nyq_amp_history",
+        "new": "    return u, residual_history, residual_ok_history, mass_history, energy_history, nyq_amp_history"
+      },
+      {
+        "chapter": 9,
+        "old": "    u_be, res_be, m_be, e_be, nyq_be = solve_implicit(u0, nu, dx, dt, n_steps, method='BE')\n    print(f\"Running CN...\")\n    u_cn, res_cn, m_cn, e_cn, nyq_cn = solve_implicit(u0, nu, dx, dt, n_steps, method='CN')",
+        "new": "    u_be, res_be, ok_be, m_be, e_be, nyq_be = solve_implicit(u0, nu, dx, dt, n_steps, method='BE')\n    print(f\"Running CN...\")\n    u_cn, res_cn, ok_cn, m_cn, e_cn, nyq_cn = solve_implicit(u0, nu, dx, dt, n_steps, method='CN')"
+      },
+      {
+        "chapter": 9,
+        "old": "    *   能量 $ E $ 的衰減速率：BE 快於 CN（因為 BE 抑制高頻，而高頻貢獻大部分梯度能量）。",
+        "new": "    *   若 $ q_{\\mathrm{high}} \\gg 1 $，BE 的 Nyquist 振幅衰減遠快於 CN；但 $ L_2 $ 能量被低頻模態主導（本例低頻振幅為 1，高頻僅 0.1），故不能宣稱總 $ L_2 $ 能量必然由 BE 衰減更快。當 $ 0 < q < 2 $ 時，CN 對該模態的單步衰減甚至可能大於 BE。"
+      },
+      {
+        "chapter": 9,
+        "old": "*   熟悉線性代數中的特徵值分解，特別是對稱實矩陣的正交对角化。",
+        "new": "*   熟悉線性代數中的特徵值分解，特別是對稱實矩陣的正交對角化。"
+      },
+      {
+        "chapter": 9,
+        "old": "5.  **驗證**：必須通過能量下降（耗散）、模態衰減分析和製造解收斂測試來驗證數值解的可信度。線性殘差檢查是偵測組裝錯誤的必要手段。",
+        "new": "5.  **驗證**：必須通過能量下降（耗散）、模態衰減分析，以及解析模態或製造解收斂測試來驗證數值解的可信度。線性殘差檢查（含 $ \\mathrm{atol} $、$ \\mathrm{rtol} $ 判準）是偵測組裝錯誤的必要手段；本章正文展示的是解析模態核對，一般製造解測試留給後續章節。"
+      }
+    ],
+    "reason": "依審稿結論逐項修訂：(1) 例 1 時間描述改為「20 個特徵衰減時間」，避免與 1/5 混淆；(2) 例 1 細步長 BE 結果更正為 5.27e-9、相對誤差 156%；(3) 例 1 細步長 CN 結果更正為 2.03e-9、相對誤差 1.5%；(4) 例 2 明列無因次化、node-centered 格網、無來源項；(5) 例 2 高頻模態以完整 R 公式計算並與十步半離散精確值 e^{-40.53} 比較，修正原本以一步值 e^{-4.053} 誤標為十步的錯誤；(6) 新增 CN 能量不增的離散內積推導、時間收斂觀測階公式與真殘差 atol/rtol 判準說明，補足最低字數；(7) validate_inputs 加入 atol/rtol 檢驗並回傳 u0，避免 list 輸入時型別不一致；(8) solve_implicit 呼叫端接收回傳值並加上偶數 N 檢查以符合 Nyquist 投影前提；(9) 新增 residual_ok_history 並在每步以 atol+rtol·||b|| 判定真殘差；(10) 更新回傳與主程式的解包以配合新增欄位；(11) 能量敘述限定為 q_high≫1 條件下 Nyquist 振幅，避免宣稱總 L2 能量必然由 BE 更快衰減；(12) 修正簡繁字形「对角」→「對角」；(13) 小結「製造解收斂測試」改為「解析模態或製造解收斂測試」，避免宣稱正文未提供的測試。"
+  }
+}

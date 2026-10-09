@@ -1,0 +1,11 @@
+{
+  "key": "1a290d0a75b378b444319f6fcc02fa7dd433f9586bd752d4b125ec18172df2da",
+  "person": {
+    "id": "v5_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 485,
+  "result": "<<<PATCH 26>>>\n<<<OLD>>>\n**B1.** 逐列版本的 critical 行是 `max_abs = np.max(np.abs(W), axis=1, keepdims=True)`，形狀 $(D_{\\mathrm{in}},1)$；`scale = np.where(max_abs==0, 1.0, max_abs/qmax)`；`q = np.clip(np.round(W/scale), -qmax, qmax)`；反量化 `Wr = q*scale`。誤差界：對第 $i$ 列，$\\max_j|W_{ij}-W_{r,ij}|\\le s_i/2$，證明與命題 26.1 逐列套用相同。\n<<<NEW>>>\n**B1.** 逐行版本的 critical 行是 `max_abs = np.max(np.abs(W), axis=1, keepdims=True)`，形狀 $(D_{\\mathrm{in}},1)$；`scale = np.where(max_abs==0, 1.0, max_abs/qmax)`；`q = np.clip(np.round(W/scale), -qmax, qmax)`；反量化 `Wr = q*scale`。誤差界：對第 $i$ 行，$\\max_j|W_{ij}-W_{r,ij}|\\le s_i/2$，證明與命題 26.1 逐行套用相同。\n<<<END>>>"
+}

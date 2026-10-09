@@ -1,0 +1,11 @@
+{
+  "key": "55f50c9562a44f1c2fccf90ef3f8e86f3d384392f7ce3dafdfab6e2041bbf23e",
+  "person": {
+    "id": "v4_editor_13",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 287,
+  "result": "## 必須修正\n\n1. **Hurwitz 積分解的證明仍然錯誤。**  \n   原文：「$\\frac{d}{dt}(e^{A^Tt}Qe^{At})=A^Te^{A^Tt}Qe^{At}+e^{A^Tt}Qe^{At}A$。」  \n   原因：正確的乘積導數為$e^{A^Tt}A^TQe^{At}+e^{A^Tt}QAe^{At}$。矩陣與自身指數交換，不能跨過$Q$改變次序；因此不能推出$A^TP+PA=-Q$。  \n   最小修法：更正導數並重寫推導，或把命題明確標成引用的有限維 Lyapunov 定理，刪除錯誤證明。\n\n2. **局部 Lyapunov 定理的正定條件仍未限制在函數定義域。**  \n   原文：「$V(x_\\ast)=0,\\qquad V(x)>0\\quad(x\\ne x_\\ast)$。」  \n   原因：$V$只定義於$D$，目前量詞卻涵蓋域外點。  \n   最小修法：改成對所有$x\\in D\\setminus\\{x_\\ast\\}$成立。\n\n3. **程式的時間步數處理只在文字說明，程式介面卻未拒絕不整除輸入。**  \n   原文程式：「`steps = int(round(final_time / dt))`」；測試段：「實際末端時間為`steps * dt`，不一定等於要求的`final_time`。」  \n   原因：使用者呼叫函式時可能誤以為報告涵蓋指定終止時間；取整後的步數也可能令實際時間超過或短於要求值。  \n   最小修法：明確讓函式回報實際末端時間，或要求`final_time / dt`為整數並在不符合時拒絕輸入。\n\n4. **線性化定理缺少明確的平衡點域條件。**  \n   原文：「設$U\\subset\\mathbb R^n$為開集，$f\\in C^1(U,\\mathbb R^n)$，且$f(x_\\ast)=0$。」  \n   原因：應明列$x_\\ast\\in U$，並把正則性條件定位於平衡點附近。  \n   最小修法：加上「$x_\\ast\\in U$」，並寫明$f$在$x_\\ast$的一個開鄰域內為$C^1$。\n\n5. **敘述把一般 Lyapunov 函數的子水平集說成橢球。**  \n   原文：「適當的Lyapunov函數則提供另一種加權幾何，使對應橢球半徑單調下降。」  \n   原因：一般$V$的子水平集不一定是橢球；只有正定二次 Lyapunov 函數才有此幾何。  \n   最小修法：改成「適當的正定二次 Lyapunov 函數可使其橢球子水平集單調收縮。」\n\nVERDICT: REVISE"
+}

@@ -1,0 +1,14 @@
+{
+  "key": "b9fa9cf85153b04944826dc54c685472f522bec186d603130952abee8759e875",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 270,
+  "result": {
+    "patches": [],
+    "reason": "審稿所見 `$$\\nu` 是 JSON 表示中的換行跳脫 `\\n` 緊接普通字母 `u`；解碼後三處公式分別是 `u=g_D`、`u_h=\\sum_{a=1}^3U_aN_a` 與 `u=0`，並無 LaTeX 命令 `\\nu`。本次未發現有證據支持的實際錯誤，因此依只修真錯誤的要求保留原稿，不為消除表示層面的誤讀而改寫正確公式。"
+  }
+}

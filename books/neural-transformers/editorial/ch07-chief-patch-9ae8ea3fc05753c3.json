@@ -1,0 +1,11 @@
+{
+  "key": "9ae8ea3fc05753c34a0d5324205032a245bd4da925980159395c72f450156406",
+  "person": {
+    "id": "v5_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 142,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n\\nu^TJ_f(x)^Tv=\\langle u,J_f(x)^Tv\\rangle=\\langle J_f(x)^Tv,u\\rangle.\n<<<NEW>>>\nu^TJ_f(x)^Tv=\\langle u,J_f(x)^Tv\\rangle=\\langle J_f(x)^Tv,u\\rangle.\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n當 $\\nabla f(x)\\ne0$ 時，取\n\n$$\n\\nu=\\frac{\\nabla f(x)}{\\|\\nabla f(x)\\|_2}\n$$\n\n可達到等號，因此梯度是歐氏距離下的局部最陡上升方向。\n<<<NEW>>>\n當 $\\nabla f(x)\\ne0$ 時，取\n\n$$\nu=\\frac{\\nabla f(x)}{\\|\\nabla f(x)\\|_2}\n$$\n\n可達到等號，因此梯度是歐氏距離下的局部最陡上升方向。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n實作只需計算這個乘積，不必配置完整的 $m\\times n$ Jacobian。\n\n### 小命題：JVP與VJP的內積對偶\n<<<NEW>>>\n實作只需計算這個乘積，不必配置完整的 $m\\times n$ Jacobian。\n\n當輸入維度 $n$ 遠大於輸出維度 $m$ 時，VJP 只付出一次前向與一次反向的成本，即可得到與輸入同 shape 的梯度；反之 JVP 要逐一走過每個輸入方向，才能湊出完整 Jacobian。訓練損失是純量，因此 $m=1$，反向傳播的 VJP 形式幾乎總是最有效率的選擇。前向模式微分則適合輸出維度遠大於輸入維度的情形，例如少量參數影響大量輸出。選擇模式只看哪一側維度較小，與函數是否可微無關。\n\n### 小命題：JVP與VJP的內積對偶\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n    expect_value_error(\n        \"non-finite logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.inf]]), np.array([[1.0]])\n        ),\n    )\n<<<NEW>>>\n    expect_value_error(\n        \"non-finite logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.inf]]), np.array([[1.0]])\n        ),\n    )\n    expect_value_error(\n        \"NaN logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.nan]]), np.array([[1.0]])\n        ),\n    )\n<<<END>>>"
+}

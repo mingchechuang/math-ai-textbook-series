@@ -1,0 +1,30 @@
+{
+  "key": "9fa3b16bdf19ecdd1d9eb216314aa7768e19f296a4122d7705658b93d3f4bd9c",
+  "person": {
+    "id": "v3_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 414,
+  "result": {
+    "patches": [
+      {
+        "chapter": 26,
+        "old": "若 $\\partial_n \\mu = 0$ 於 $\\partial \\Omega$（即 $M\\partial_n \\mu$ 通量為零），則總量守恆。這是**第二個自然邊界條件**，與 $\\partial_n \\phi = 0$ 並存。Cahn–Hilliard 需要**兩組邊界條件**：$\\partial_n \\phi = 0$ 與 $\\partial_n \\mu = 0$。",
+        "new": "若 $\\partial_n \\mu = 0$ 於 $\\partial \\Omega$（即 $M\\partial_n \\mu$ 通量為零），則總量守恆。此條件**並非**由自由能第一變分自然導出，而是為使組分通量 $\boldsymbol J=-M\\nabla\\mu$ 的外法向分量為零另行指定的**無通量邊界條件**；自由能變分的自然邊界條件仍然是 $\\partial_n \\phi = 0$。Cahn–Hilliard 需要**兩組邊界條件**：自然邊界條件 $\\partial_n \\phi = 0$ 與另行指定的無通量條件 $\\partial_n \\mu = 0$。兩者的來源與作用不同，不可混稱。"
+      },
+      {
+        "chapter": 26,
+        "old": "化學勢 $\\mu = \\delta F / \\delta \\phi$ 是整個推導的核心，其與邊界條件共同決定了自然邊界（$\\partial_n \\phi = 0$，CH 還需 $\\partial_n \\mu = 0$）。",
+        "new": "化學勢 $\\mu = \\delta F / \\delta \\phi$ 是整個推導的核心。自由能第一變分自然導出 $\\partial_n \\phi = 0$（齊次 Neumann）；無通量條件 $\\partial_n \\mu = 0$ 則是為使 $\\boldsymbol J=-M\\nabla\\mu$ 不穿越邊界而**另行指定**，並非自然邊界條件。Cahn–Hilliard 需要**兩組**邊界條件，但只有前者屬自由能的自然邊界；兩者的來源與性質不同，不可混稱。"
+      },
+      {
+        "chapter": 26,
+        "old": "**習題 1 解答** 定義化學勢 $\\mu := \\delta F / \\delta \\phi = V'(\\phi) - \\Delta \\phi$（本題 $\\kappa$ 併入 $V$ 或單獨處理；兩者等價）。",
+        "new": "**習題 1 解答** 定義化學勢 $\\mu := \\delta F / \\delta \\phi = V'(\\phi) - \\Delta \\phi$。此處題目已將梯度能係數取為 $1$；局部函數 $V(\\phi)$ 描述的是均勻自由能密度，不能吸收梯度項的係數——兩者在變分中分別產生 $V'(\\phi)$ 與 $-\\Delta\\phi$。若題目改為一般係數 $\\kappa\\ge 0$，則化學勢寫成 $\\mu = V'(\\phi) - \\kappa\\Delta\\phi$，$\\kappa$ 是梯度能係數而非併入 $V$。"
+      }
+    ],
+    "reason": "依審稿結論修正第26章兩處可定位問題：(1) 〈H^{-1} 梯度流〉段落及〈本章小結〉把 $\\partial_n\\mu=0$ 誤稱為『第二個自然邊界條件』；自然邊界條件來自自由能第一變分的邊界項，只有 $\\partial_n\\phi=0$；$\\partial_n\\mu=0$ 是為使組分通量 $\\boldsymbol J=-M\\nabla\\mu$ 不穿越邊界而另行指定的無通量條件。兩處均改為區分來源與性質的措辭。(2) 〈習題1解答〉括號內稱『$\\kappa$ 併入 $V$ 或單獨處理；兩者等價』，實際上局部函數 $V(\\phi)$ 與梯度項係數 $\\kappa$ 在變分中分別產生不同項，不能互換；改為說明本題梯度能係數已取為 1、$V(\\phi)$ 為均勻自由能密度，並在一般係數下寫成 $\\mu=V'(\\phi)-\\kappa\\Delta\\phi$。其餘 CH 正號、界面積分常數、Hessian 局部線性化反例等前輪已修正內容未更動。"
+  }
+}

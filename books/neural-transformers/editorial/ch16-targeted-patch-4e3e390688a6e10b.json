@@ -1,0 +1,11 @@
+{
+  "key": "4e3e390688a6e10b54c1b73bdd39b875df219ce0e2314fb5ad555f4bd416bf67",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 533,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n4. **非布林遮罩**：傳入 `float32` mask → 拋 `ValueError`；這避免用 0/1 混過布林約定。\n<<<NEW>>>\n4. **非布林遮罩**：傳入 `float32` mask → 拋 `TypeError`；這避免用 0/1 混過布林約定。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n**檢查**：兩個頭對同一 token 的輸出不同，說明這個例子中兩頭學到了不同的「模式」。若把 `X` 改成兩頭得到相同投影的情形（例如 `X = [[1,0,1,0],[0,1,0,1]]`），兩頭的輸出一模一樣——這正是「頭塌縮」的小型演示。\n<<<NEW>>>\n**檢查**：兩個頭對同一 token 的輸出不同，只說明手工指定的輸入與恆等投影產生了不同結果；此例沒有訓練，不能說兩頭「學到了」不同模式。若改用 `X = [[1,0,1,0],[0,1,0,1]]`，兩頭的輸入與投影相同，輸出也相同；這不能證明訓練後發生了頭塌縮。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\nm = torch.nn.MultiheadAttention(D, H, batch_first=True, bias=True, dropout=0.0)\n<<<NEW>>>\nm = torch.nn.MultiheadAttention(D, H, batch_first=True, bias=True, dropout=0.0).double()\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n- 縮放因子用 `√dh` 而非 `√D`：每個頭的內積來自 `dh` 維，若各維獨立同分布、均值 0、變異數 1，則內積方差維 `dh`，除以 `√dh` 後方差歸一。\n<<<NEW>>>\n- 縮放因子用 `√dh` 而非 `√D`：每個頭的內積來自 `dh` 維。若 query 與 key 的分量彼此獨立、均值為 0、變異數為 1，且各維乘積互不相關，則內積方差為 `dh`，除以 `√dh` 後方差為 1；這是尺度估計的假設，不保證訓練後仍成立。\n<<<END>>>"
+}

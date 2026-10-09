@@ -1,0 +1,117 @@
+### 獨立審稿報告
+
+**1. 重算與核對**
+
+*   **字數檢查**：
+    *   目標：4500字。
+    *   實測：5032字。
+    *   狀態：符合目標。
+
+*   **數學推導與計算核對**：
+    *   **例題 2**：
+        *   一維 FTCS 穩定條件：$r = D \Delta t / \Delta x^2 \le 1/2$。
+        *   參數：$D=0.01, \Delta x=0.01$。
+        *   計算：$0.01 \cdot \Delta t / 0.0001 \le 0.5 \Rightarrow 100 \Delta t \le 0.5 \Rightarrow \Delta t \le 0.005$ s。
+        *   文稿計算：$0.5 \cdot (0.01)^2 / 0.01 = 0.5 \cdot 0.01 = 0.005$ s。正確。
+        *   無因次化：$\Delta t^* = \Delta t \cdot D / L^2 = 0.005 \cdot 0.01 / 1 = 5 \times 10^{-5}$。
+        *   無因次穩定檢查：$\Delta t^* / (\Delta x^*)^2 = 5 \times 10^{-5} / (0.01)^2 = 5 \times 10^{-5} / 10^{-4} = 0.5$。符合 $\le 0.5$。正確。
+    *   **習題 4**：
+        *   $D=2\times 10^{-9}, L=0.1, N=51$。
+        *   $\Delta x = L / (N-1)$ (Node-centered) 或 $L/N$ (Cell-centered)。
+        *   文稿習題4解答中計算 $\Delta x = 0.1/51$。這暗示使用的是 Cell-centered 定義 $\Delta x = L/N$ 或者 Node-centered 但誤用了 $N$ 而非 $N-1$。
+        *   文稿在例題2中明確指出：「注意此例採用節點定義 $\Delta x = L/(N_x-1)$，與程式 `dx_dy` 的格心定義 $\Delta x = L/N_x$ 不同」。
+        *   程式 `dx_dy` 定義為 `cfg["Lx"] / cfg["Nx"]`，即格心定義 $\Delta x = L/N$。
+        *   習題4設定為「一維設定」，若沿用程式的 `make_config` 邏輯，應使用格心定義 $\Delta x = L/N = 0.1/51$。
+        *   計算 $\Delta x \approx 1.9608 \times 10^{-3}$ m。
+        *   $\Delta t_{max} = 0.5 \Delta x^2 / D = 0.5 \cdot (1.9608 \times 10^{-3})^2 / (2 \times 10^{-9}) = 0.25 \cdot 3.8447 \times 10^{-6} / 2 \times 10^{-9} = 0.25 \cdot 1922.35 \approx 480.6$ s。
+        *   **文稿計算**：$\Delta t \approx 961.2$ s。
+        *   讓我們重新檢查文稿的計算：$0.5 \cdot (3.844 \times 10^{-6}) / (2 \times 10^{-9})$。
+        *   $3.844 \times 10^{-6}$ 是 $\Delta x^2$。
+        *   $0.5 \cdot 3.844 \times 10^{-6} = 1.922 \times 10^{-6}$。
+        *   $1.922 \times 10^{-6} / 2 \times 10^{-9} = 0.961 \times 10^3 = 961$ s。
+        *   這裡的差異在於公式 $D \Delta t / \Delta x^2 \le 1/2$。
+        *   $\Delta t \le \frac{1}{2} \frac{\Delta x^2}{D}$。
+        *   文稿計算：$0.5 \cdot \Delta x^2 / D$。這是正確的公式應用。
+        *   為什麼我上面的手算得到 480.6？
+        *   $0.25 \cdot 3.8447 \times 10^{-6} / 2 \times 10^{-9}$。
+        *   啊，$0.5 \cdot \Delta x^2 / D$。
+        *   $0.5 \cdot 3.8447 \times 10^{-6} = 1.92235 \times 10^{-6}$。
+        *   $1.92235 \times 10^{-6} / 2 \times 10^{-9} = 0.961175 \times 10^3 = 961.175$ s。
+        *   我之前的手算錯在 $0.25 \cdot 1922.35$。應該是 $1.92235 \times 10^{-6} / 2 \times 10^{-9} = 1922.35 / 2 = 961.175$。
+        *   所以文稿計算 **961.2 s** 是正確的。
+        *   步數：$60 / 961.2 < 1$。一步足夠。邏輯正確。
+
+*   **程式碼邏輯檢查**：
+    *   `make_config`：
+        *   檢查 `Nx, Ny` 為 `int`。
+        *   檢查 `units` 與 `REQUIRED_UNITS` 完全一致（鍵集合與值）。
+        *   檢查有限性、正負性。
+        *   `dx_dy` 返回 `Lx/Nx, Ly/Ny`。
+    *   `explicit_diffusion_limit`：
+        *   返回 $0.5 / (D (1/dx^2 + 1/dy^2))$。這是二維 FTCS 的穩定條件 $D \Delta t (1/\Delta x^2 + 1/\Delta y^2) \le 1/2$ 的上限。正確。
+    *   故障測試 (5)：`units` 不一致拒絕。程式碼中有 `missing` 和 `extra` 檢查，以及逐項值比對。正確。
+    *   故障測試 (6)：`Nx` 浮點數拒絕。程式碼中有 `isinstance(Nx, int)`。正確。
+
+*   **概念一致性**：
+    *   文稿明確區分了 Node-centered ($\Delta x = L/(N-1)$) 和 Cell-centered ($\Delta x = L/N$)。
+    *   程式 `dx_dy` 使用 $L/N$ (Cell-centered)。
+    *   例題 2 使用 Node-centered 並明確標註。
+    *   習題 4 使用 $0.1/51$，即 $L/N$，與程式 `dx_dy` 一致。
+    *   這種混用在教科書中若明確標註是允許的，但需確保讀者不混淆。文稿在例題2中加了註記，這是好的做法。
+
+**2. 問題清單**
+
+1.  **例題 2 的 $N_x$ 定義潛在混淆**
+    *   定位：「例題 2：無因次化與時間步估算」段落。
+    *   原句：「取 $N_x=101$ 個節點（node-centered），$\Delta x = 0.01\,\text{m}$... 注意此例採用節點定義 $\Delta x = L/(N_x-1)$，與程式 `dx_dy` 的格心定義 $\Delta x = L/N_x$ 不同」
+    *   分析：若 $L=1$ m 且 $\Delta x = 0.01$ m，則節點數 $N = L/\Delta x + 1 = 100 + 1 = 101$。此處 $N_x$ 通常指網格間隔數（intervals）或點數。文稿說「$N_x=101$ 個節點」，且 $\Delta x = L/(N_x-1) = 1/100 = 0.01$。這在數學上是自洽的。
+    *   然而，程式 `make_config` 接收 `Nx` 並計算 `dx = Lx / Nx`。如果用戶使用程式的 `explicit_diffusion_limit`，他必須知道傳入的 `Nx` 是格心定義的（即 cells 數量，等於間隔數）。
+    *   在例題 2 中，手算使用 node-centered 定義。在測試 (3) 中，提到「對例題 2 的參數... 計算二維顯式擴散時間步上限，得到約 $2.5 \times 10^{-3}$ s」。
+    *   讓我們檢查測試 (3) 的計算：
+        *   二維穩定條件：$D \Delta t (1/\Delta x^2 + 1/\Delta y^2) \le 1/2$。
+        *   假設 $\Delta x = \Delta y = 0.01$ m。
+        *   $0.01 \cdot \Delta t \cdot (10000 + 10000) \le 0.5$。
+        *   $0.01 \cdot \Delta t \cdot 20000 \le 0.5$。
+        *   $200 \Delta t \le 0.5 \Rightarrow \Delta t \le 0.0025$ s = $2.5 \times 10^{-3}$ s。
+        *   文稿測試 (3) 的預期結果是 $2.5 \times 10^{-3}$ s。正確。
+    *   **潛在問題**：測試 (3) 說「對例題 2 的參數... 計算二維...」。例題 2 是一維手算。測試 (3) 將其推廣到二維。這裡的「參數」指 $D=0.01, \Delta x=0.01$。這是合理的延伸，但應明確說明是從一維 $\Delta x$ 推廣到二維 $\Delta x=\Delta y$。文稿寫「$N_x=N_y=101$ 個節點、$\Delta x=\Delta y=0.01$ m」，這暗示了二維網格。這是可接受的。
+
+2.  **程式碼 `make_config` 中 `Nx` 的語意**
+    *   定位：`make_config` 函式。
+    *   原因：`dx_dy` 計算 `Lx / Nx`。這定義 `Nx` 為 **格心數** (cell count) 或 **間隔數** (intervals)。
+    *   在節點中心 (node-centered) 網格中，如果 $N_x$ 是節點數，則間隔數是 $N_x-1$。
+    *   文稿在例題 2 中明確區分了這兩者。
+    *   但在 `make_config` 中，`Nx` 直接用於 $L/Nx$。這意味著 `make_config` **預設** 使用格心/間隔定義。
+    *   如果讀者混淆了節點數和格心數，可能會出錯。
+    *   **建議**：變數名 `Nx` 略顯模糊。更安全的做法是在 `make_config` 的 docstring 或 `REQUIRED_UNITS` 註記中明確說明 `Nx` 是指 **cell 數量** (intervals)，還是 **node 數量**。
+    *   根據 conventions：「cell中心... 展平k=j*Nx+i」。這暗示 `Nx` 是 cell 的數量。
+    *   在 conventions 中：「二維物理網格q[j,i]形狀(Ny,Nx)」。這確認 `Nx` 是 x 方向的 **cell 數量**。
+    *   因此，`dx = Lx / Nx` 是正確的（Cell-centered）。
+    *   例題 2 使用 Node-centered 並明確標註，這是為了展示手算與程式定義的差異，或僅作為手算練習。
+    *   **結論**：無實質錯誤，但建議在 `make_config` 旁加註 `Nx` 為 cell count 以減少混淆。鑑於文稿已在例題2中做了解釋，且 conventions 定義了 `Nx` 為 shape (Ny, Nx) 中的 x 維度（即 cell count），此處可視為符合慣例。
+
+3.  **習題 4 解答中的無因次化參數**
+    *   定位：習題 4 解答。
+    *   原句：「取 $L=0.1\,\text{m}$、$T_{\text{ref}}=L^2/D = 5\times 10^6\,\text{s}$，則 $D^*=1$、$\Delta x^* \approx 1.9608\times 10^{-2}$、$\Delta t^* \le 0.5 \cdot(\Delta x^*)^2 \approx 1.92\times 10^{-4}$」
+    *   分析：
+        *   $T_{ref} = L^2/D = 0.01 / (2\times 10^{-9}) = 5 \times 10^6$ s。正確。
+        *   $\Delta x^* = \Delta x / L = (0.1/51) / 0.1 = 1/51 \approx 0.0196078$。文稿寫 $1.9608 \times 10^{-2}$。正確。
+        *   $\Delta t^* = \Delta t / T_{ref}$。
+        *   穩定條件：$D^* \Delta t^* / (\Delta x^*)^2 \le 1/2$。
+        *   無因次擴散方程 $\partial_t c^* = \nabla^{*2} c^*$ (若 $D^*=1$ 且時間尺度為 $L^2/D$)。
+        *   FTCS 穩定條件：$\Delta t^* / (\Delta x^*)^2 \le 1/2$。
+        *   $\Delta t^* \le 0.5 \cdot (1/51)^2 = 0.5 \cdot (0.0196078)^2 \approx 0.5 \cdot 0.00038446 \approx 1.9223 \times 10^{-4}$。
+        *   文稿寫 $1.92 \times 10^{-4}$。正確。
+        *   對應有因次 $\Delta t = \Delta t^* T_{ref} = 1.9223 \times 10^{-4} \cdot 5 \times 10^6 = 961.15$ s。
+        *   文稿寫 $961.2$ s。正確。
+
+**3. 結論**
+
+文稿在數學推導、程式邏輯和概念區分上均無實質錯誤。
+*   字數達標。
+*   程式碼正確實現了單位檢查、型別檢查和穩定條件計算。
+*   手算例題和習題解答的數值計算正確。
+*   明確區分了 Node-centered 和 Cell-centered 網格定義，並指出程式使用 Cell-centered ($\Delta x = L/N$)。
+*   符合 conventions 中關於 `q[j,i]` 形狀和 `Nx` 定義的約定。
+
+VERDICT: APPROVE

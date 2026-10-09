@@ -1,0 +1,40 @@
+{
+  "key": "0aa0fae052fb119a93b326346a734cc25924556f0dc0de10325d63624b838434",
+  "person": {
+    "id": "v3_editor_06",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "author"
+  },
+  "call": 330,
+  "result": {
+    "patches": [
+      {
+        "chapter": 1,
+        "old": "這將在第 09 章有限體積守恆通量中展開。",
+        "new": "這將在第 10 章有限體積與守恆通量中展開。"
+      },
+      {
+        "chapter": 1,
+        "old": "這些將在第 25 章之後展開。",
+        "new": "這些將自第 25 章的熱力學橋接起，於第 27 章 Allen–Cahn 與第 28 章 Cahn–Hilliard 中展開。"
+      },
+      {
+        "chapter": 1,
+        "old": "3. 對例題 2 的參數計算 `explicit_diffusion_limit`，得到約 $1.25\\times 10^{-3}\\,\\text{s}$（以 $N_x=N_y=101$ 為例，二維情況）；",
+        "new": "3. 對例題 2 的參數（$D=0.01\\,\\mathrm{m}^2/\\mathrm{s}$、$N_x=N_y=101$ 個節點、$\\Delta x=\\Delta y=0.01\\,\\mathrm{m}$），計算二維顯式擴散時間步上限，得到約 $2.5\\times 10^{-3}\\,\\mathrm{s}$；"
+      },
+      {
+        "chapter": 1,
+        "old": "若把 $\\Delta x$ 減半為 0.005 m，則 $\\Delta t \\le 0.00125\\,\\mathrm{s}$，時間步被迫縮小四倍，說明空間細化對顯式時間格式的成本衝擊。",
+        "new": "注意：此處 $N_x=101$ 指節點數（node count），對應 $100$ 個區間與 $\\Delta x = L_x/(N_x-1)$。若採 cell-centered 定義（$N_x$ 個單元），$\\Delta x = L_x/N_x$，數值會略有差異。本章程式碼預設使用節點定義，與此例題一致。"
+      },
+      {
+        "chapter": 6,
+        "old": "本章與第 24 章的相場橋接是兩件事",
+        "new": "本章與第 25 章起的相場橋接是兩件事"
+      }
+    ],
+    "reason": "修正跨章編號錯誤：第01章誤引第09章（應為第10章）及模糊的第25章表述；第06章誤引第24章（相場應自第25章起）。修正第01章顯式擴散時間步數值錯誤：原1.25e-3 s錯誤，依D=0.01、dx=0.01應為2.5e-3 s。澄清第01章node/cell定義：明示例題使用節點定義Nx=101，與程式碼一致，避免與cell-centered定義混淆。"
+  }
+}

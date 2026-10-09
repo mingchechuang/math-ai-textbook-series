@@ -1,0 +1,40 @@
+{
+  "key": "d35f946ab8f657f968b4921181a0d4f8d55e94cd1c10e32c49bfdeb57b167cc1",
+  "person": {
+    "id": "v3_editor_06",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "author"
+  },
+  "call": 356,
+  "result": {
+    "patches": [
+      {
+        "chapter": 1,
+        "old": "這將在第 09 章有限體積守恆通量中展開。",
+        "new": "這將在第 10 章有限體積與守恆通量中展開。"
+      },
+      {
+        "chapter": 1,
+        "old": "3. 對例題 2 的參數計算 `explicit_diffusion_limit`，得到約 $1.25\\times 10^{-3}\\,\\text{s}$（以 $N_x=N_y=101$ 為例，二維情況）；",
+        "new": "3. 對例題 2 的參數（$D=0.01\\,\\mathrm{m^2/s}$、$N_x=N_y=101$ 個節點、$\\Delta x=\\Delta y=0.01\\,\\mathrm{m}$），計算二維顯式擴散時間步上限，得到約 $2.5\\times 10^{-3}\\,\\mathrm{s}$；"
+      },
+      {
+        "chapter": 1,
+        "old": "取 $N_x=101$ 個 node，$\\Delta x = 0.01\\,\\text{m}$，則 $\\Delta t \\le 0.5 \\cdot (0.01)^2 / 0.01 = 0.005\\,\\text{s}$。",
+        "new": "取 $N_x=101$ 個節點（node-centered），$\\Delta x = 0.01\\,\\text{m}$，則 $\\Delta t \\le 0.5 \\cdot (0.01)^2 / 0.01 = 0.005\\,\\text{s}$。注意此例採用節點定義 $\\Delta x = L/(N_x-1)$，與程式 `dx_dy` 的格心定義 $\\Delta x = L/N_x$ 不同；跨章引用時必須明示所用定義。"
+      },
+      {
+        "chapter": 6,
+        "old": "本章與第 24 章的相場橋接是兩件事",
+        "new": "本章與第 25 章起的相場橋接是兩件事"
+      },
+      {
+        "chapter": 1,
+        "old": "這些將在第 25 章之後展開。",
+        "new": "這些將自第 25 章的熱力學橋接起，於第 27 章 Allen–Cahn 與第 28 章 Cahn–Hilliard 中展開。"
+      }
+    ],
+    "reason": "修正四項阻擋問題：A)第01章跨章章號09→10；B)第01章測試段數值1.25e-3→2.5e-3並註明節點式dx定義；C)第06章跨章章號24→25；D)第01章例題2加註node-centered定義與格心定義之區別；另精化相場章號引用。"
+  }
+}

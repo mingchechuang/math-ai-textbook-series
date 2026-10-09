@@ -1,0 +1,11 @@
+{
+  "key": "df07de48740b61229e32854994a6b063e0d0037944807cd77f9f8d1137bcfde2",
+  "person": {
+    "id": "v5_editor_03",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 501,
+  "result": "### 第19章仍有禁止的 `pass`\n\n**原句：**\n\n> `except ValueError:`  \n> `        pass`\n\n**原因：**這段仍在 `max_len=0` 故障測試中，違反「程式不得留 `pass`」的明確契約。第23章已改用旗標確認例外，這個修改尚未同步到第19章。\n\n**最小修法：**仿照第23章，捕獲例外時設定旗標，並在 `try/except` 後檢查；移除 `pass`。\n\n本次更新已修正第21章 checkpoint 案例的狀態完整性說法，也把 RNG 故障測試改為不宣稱單次 dropout 遮罩必定不同；第23章的 `pass` 亦已移除。剩下上述一項明確契約違規。\n\nVERDICT: REVISE"
+}

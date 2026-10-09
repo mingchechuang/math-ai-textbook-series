@@ -1,0 +1,40 @@
+{
+  "key": "1fddf32a9de4aa31d64cb611b26d6737370d18e36d918e6acbdab5e47f62080b",
+  "person": {
+    "id": "v2_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 189,
+  "result": {
+    "patches": [
+      {
+        "chapter": 9,
+        "old": "### 分段 Bézier 樣條\n\n分段樣條由多段 Bézier 曲線拼接而成。\n*   **局部參數**：每段使用局部參數 $u \\in [0, 1]$。全域時間需映射至對應段。\n*   **局部控制性**：移動某段內部的控制點（非接點），僅影響該段形狀。若移動接點或為維持連續性連動相鄰控制點，則會影響相鄰段。\n*   **拼接條件**：為保持整體流暢，需嚴格管理各接點處的 $C^0$、$G^1$ 或 $C^1$ 連續性。",
+        "new": "### 分段 Bézier 樣條\n\n分段樣條由多段 Bézier 曲線拼接而成。\n*   **局部參數**：每段使用局部參數 $u\\in[0,1]$。全域時間需先映射至所屬曲段，再由該段的局部參數求值。\n*   **局部控制性**：移動某段內部的控制點（非接點），通常只影響該段形狀。若移動接點或為維持連續性連動相鄰控制點，則會影響相鄰段。\n*   **拼接條件**：位置相接為 $C^0$；切線同向且共線為 $G^1$；導數相等才是相對指定參數的 $C^1$。若兩段各自用 $u\\in[0,1]$，局部導數相等的條件是 $m(P_m-P_{m-1})=n(Q_1-Q_0)$。若全域參數區間長度不同，還須按鏈式法則除以各段區間長度，才能保證全域速度向量連續。"
+      },
+      {
+        "chapter": 9,
+        "old": "這一步看似只是索引查找，但若忽略它，直接把 $s$ 當作每段的局部 $u$，整個樣條在接點附近的速度會突然改變，動畫會出現肉眼可見的一頓一頓感。反過來，若兩段的弧長差距很大卻以相同權重播放，短的段會「跑得慢」、長的段會「跑得快」，儘管曲線在數學上仍連續。この差異在魚體擺動動畫中特別明顯：尾段短，卻常是速度最快的地方。",
+        "new": "這一步看似只是索引查找，但若忽略它，直接把 $s$ 當作每段的局部 $u$，整個樣條在接點附近的速度可能突然改變，動畫便可能出現頓挫。反過來，若兩段弧長差距很大卻以相同時間播放，短段會較快通過，長段則較慢，儘管曲線在幾何位置上仍然連續。這個差異在魚體擺動動畫中特別明顯：尾段短，卻可能是速度最快的地方。\n\n還要區分位置連續與速度連續。各段端點相接只保證 $C^0$；切線同向且共線可保證 $G^1$，但不必保證依全域參數移動時速度相同。令 A 段與 B 段的全域參數區間長度分別為 $\\Delta s_A$、$\\Delta s_B$，局部參數皆從 $0$ 走到 $1$。由鏈式法則，局部導數轉成全域導數時須分別除以區間長度，因此全域 $C^1$ 條件為\n\n$$\n\\frac{m(P_m-P_{m-1})}{\\Delta s_A}\n=\n\\frac{n(Q_1-Q_0)}{\\Delta s_B}.\n$$\n\n若只比較兩段各自的局部參數導數，條件是 $m(P_m-P_{m-1})=n(Q_1-Q_0)$。兩段全域區間等長時，局部 $C^1$ 條件才等同於全域速度連續；若區間長度不同，單靠局部條件不足以保證接點速度一致。"
+      },
+      {
+        "chapter": 9,
+        "old": "$$\n\\alpha=\\frac{\\hat{s}-L_k}{L_{k+1}-L_k},\\qquad t=(1-\\alpha)t_k+\\alpha t_{k+1},\n$$\n\n即得 $t(\\hat{s})$。將弧長等分的 $\\hat{s}$ 逐一餵入，就得到等弧長取樣的參數序列。\n\n需要強調的是：等弧長取樣改善的是**間距均勻性**，並不自動保證折線近似誤差足夠小。高曲率區即使在空間上等距取樣，仍可能需要依平坦度或曲率額外細分，才能讓折線與曲線的偏差落在容差內。這兩件事屬於不同的問題，不應混為一談。\n\n弧長累積表的精度取決於取樣數 $M$ 與曲線本身的彎曲程度。$M$ 太小會低估弧長，特別是在折返或高曲率的區段；$M$ 太大則徒增計算。合成場景可先以較密的 $M$ 計算一次作為參考，再依可接受的誤差反推合理的 $M$。",
+        "new": "$$\n\\alpha=\\frac{\\hat{s}-L_k}{L_{k+1}-L_k},\\qquad t=(1-\\alpha)t_k+\\alpha t_{k+1},\n$$\n\n即得近似的 $t(\\hat{s})$。若相鄰累積弧長相等，分母為零，不能直接套用此式；建表與反查時必須處理零長曲線和重複累積值，詳見後面的實作。將總弧長等分的 $\\hat{s}$ 逐一反查，就得到近似等弧長的參數序列。\n\n等弧長取樣改善的是**間距均勻性**，並不自動保證折線近似誤差足夠小。高曲率區即使等距取樣，仍可能需要依平坦度或曲率額外細分，才能把折線與曲線的偏差控制在指定容差內。間距均勻化與幾何近似誤差控制是兩個不同問題。\n\n弧長累積表的精度取決於取樣數 $M$ 與曲線彎曲程度。$M$ 太小可能低估弧長，尤其在折返或高曲率區；$M$ 太大則增加計算量。可比較 $M$ 與 $2M$ 的總長近似值：\n\n$$\n\\frac{|L_{2M}-L_M|}{\\max(L_{2M},\\epsilon_L)}<\\tau.\n$$\n\n其中 $\\epsilon_L$ 是依場景尺度設定的長度容差，$\\tau$ 是無因次相對差容差。這是解析度收斂檢查，不是嚴格的真實弧長誤差上界；若需要誤差保證，須另採有誤差界的積分或細分方法。"
+      },
+      {
+        "chapter": 9,
+        "old": "```python\ndef arc_length_reparameterize(pts, target_s, m=200):\n    \"\"\"回傳在目標弧長 target_s 處對應的參數 t。\"\"\"\n    pts = prepare_points(pts)\n    ts = [k / m for k in range(m + 1)]\n    samples = [de_casteljau(pts, t) for t in ts]\n    arc = [0.0]\n    for k in range(1, m + 1):\n        arc.append(arc[-1] + float(np.linalg.norm(samples[k] - samples[k - 1])))\n    total = arc[-1]\n    if target_s < 0.0 or target_s > total:\n        raise ValueError(\"target_s 超出曲線總弧長範圍\")\n\n    lo, hi = 0, m\n    while lo + 1 < hi:\n        mid = (lo + hi) // 2\n        if arc[mid] <= target_s:\n            lo = mid\n        else:\n            hi = mid\n    alpha = (target_s - arc[lo]) / (arc[hi] - arc[lo])\n    return (1.0 - alpha) * ts[lo] + alpha * ts[hi]\n```\n\n用法是先用 `de_casteljau` 計算曲線總弧長，再把弧長等分的 $\\hat{s}$ 逐一餵入此函式，即可得到等弧長取樣的參數序列。`m` 的選擇由可接受的弧長誤差反推；以公尺級場景、曲率中等的曲線而言，`m=200` 通常足以讓弧長相對誤差落在千分之一以下。",
+        "new": "```python\ndef build_arc_length_table(pts, m=200):\n    \"\"\"建立離散弧長表，回傳參數表、累積弧長表與總長近似值。\"\"\"\n    if not isinstance(m, int) or m < 1:\n        raise ValueError(\"m 必須是正整數\")\n    pts = prepare_points(pts)\n    ts = [k / m for k in range(m + 1)]\n    samples = [de_casteljau(pts, t) for t in ts]\n    arc = [0.0]\n    for k in range(1, m + 1):\n        arc.append(arc[-1] + float(np.linalg.norm(samples[k] - samples[k - 1])))\n    return ts, arc, arc[-1]\n\n\ndef parameter_at_length(ts, arc, target_s, length_tol=1e-12):\n    \"\"\"由弧長表反查近似參數；length_tol 須按場景尺度調整。\"\"\"\n    if len(ts) != len(arc) or len(ts) < 2:\n        raise ValueError(\"ts 與 arc 必須等長且至少有兩項\")\n    total = arc[-1]\n    if target_s < -length_tol or target_s > total + length_tol:\n        raise ValueError(\"target_s 超出曲線總弧長範圍\")\n    target_s = min(max(target_s, 0.0), total)\n\n    if total <= length_tol:\n        if target_s <= length_tol:\n            return ts[0]\n        raise ValueError(\"零長曲線只接受零弧長\")\n    if target_s <= length_tol:\n        return ts[0]\n    if total - target_s <= length_tol:\n        return ts[-1]\n\n    # 取第一個嚴格大於 target_s 的累積值，略過重複值。\n    hi = next(i for i, value in enumerate(arc) if value > target_s)\n    lo = hi - 1\n    denom = arc[hi] - arc[lo]\n    if denom <= length_tol:\n        return ts[lo]\n    alpha = (target_s - arc[lo]) / denom\n    return (1.0 - alpha) * ts[lo] + alpha * ts[hi]\n```\n\n先建一次弧長表，再用回傳的總長與表反查多個目標值，避免重複求值。`m=200` 只是示範初值，不保證特定精度；可比較 $M$ 與 $2M$ 的總長近似值，但此收斂檢查不是嚴格誤差上界。\n\n直線控制點 $(0,0),(2,0)$ 的離散總長為 $2$，`target_s=0.5` 預期反查為 $t=0.25$。所有控制點重合時，總長為零；零弧長回傳起點參數，不會除以零，非零弧長則報錯。"
+      },
+      {
+        "chapter": 9,
+        "old": "*   **局部參數**：每段使用局部參數 $u \\in [0, 1]$。全域時間需映射至對應段。\n*   **局部控制性**：移動某段內部的控制點（非接點），僅影響該段形狀。若移動接點或為維持連續性連動相鄰控制點，則會影響相鄰段。\n*   **拼接條件**：為保持整體流暢，需嚴格管理各接點處的 $C^0$、$G^1$ 或 $C^1$ 連續性。",
+        "new": "*   **局部參數**：每段使用局部參數 $u\\in[0,1]$。全域時間需先映射至所屬曲段，再由該段的局部參數求值。\n*   **局部控制性**：移動某段內部的控制點（非接點），通常只影響該段形狀。若移動接點或為維持連續性連動相鄰控制點，則會影響相鄰段。\n*   **拼接條件**：位置相接為 $C^0$；切線同向且共線為 $G^1$；導數相等才是相對指定參數的 $C^1$。若兩段各以局部 $u\\in[0,1]$ 比較，局部 $C^1$ 條件為 $m(P_m-P_{m-1})=n(Q_1-Q_0)$。若兩段映射到長度不同的全域參數區間，還須按鏈式法則除以各自的區間長度，才能保證全域速度向量連續。"
+      }
+    ],
+    "reason": "修正全域參數下的連續性條件、弧長查表的退化與邊界處理，並移除未有誤差依據的精度宣稱；補充對應測試要求。"
+  }
+}

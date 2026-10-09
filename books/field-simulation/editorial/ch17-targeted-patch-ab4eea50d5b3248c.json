@@ -1,0 +1,20 @@
+{
+  "key": "ab4eea50d5b3248c323beb4f8cc7764071727a7ade41d13cc6211aea8449d0c0",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 319,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "    if not np.isscalar(relative_tol) or not np.isfinite(relative_tol) or relative_tol < 0:\n        raise ValueError(\"relative_tol 必須是有限的非負純量\")",
+        "new": "    if isinstance(relative_tol, (bool, np.bool_)):\n        raise ValueError(\"relative_tol 必須是有限的非負實數純量\")\n    try:\n        tol = np.asarray(relative_tol, dtype=float)\n    except (TypeError, ValueError) as err:\n        raise ValueError(\"relative_tol 必須是有限的非負實數純量\") from err\n    if tol.ndim != 0 or not np.isfinite(tol) or tol < 0:\n        raise ValueError(\"relative_tol 必須是有限的非負實數純量\")\n    relative_tol = float(tol)"
+      }
+    ],
+    "reason": "原驗證會對字串等純量直接呼叫 `np.isfinite`，可能拋出未預期的型別錯誤；改為明確轉換及驗證有限、非負實數純量，並拒絕布林值。審稿所引三處 `\\nu` 是 JSON 換行跳脫 `\\n` 與後續 `u` 或 `u_h` 相接的誤讀；解碼後場變數已正確，故不改公式。未執行程式。"
+  }
+}

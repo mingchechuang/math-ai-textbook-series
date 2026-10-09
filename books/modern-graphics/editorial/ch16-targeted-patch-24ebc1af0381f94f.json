@@ -1,0 +1,20 @@
+{
+  "key": "24ebc1af0381f94f71166d0a97650d34954f83a4dcf1c51de30b86b803b1456c",
+  "person": {
+    "id": "v2_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 269,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "若表面入射輻照度 $E=2\\ \\mathrm{W/m^2}$，出射輻亮度約為 $L_o=f_rE\\approx0.1597\\times2=0.3194\\ \\mathrm{W/(m^2\\,sr)}$。若 $2\\ \\mathrm{W/m^2}$ 指的是光束法向照度 $E_\\perp$，則表面照度為 $E_\\perp(N\\cdot L)$，此時出射輻亮度約為 $0.226\\ \\mathrm{W/(m^2\\,sr)}$。",
+        "new": "若入射光束沿本例方向 $L$，且其垂直於光束的平面所接收的輻照度為 $E_\\perp=2\\ \\mathrm{W/m^2}$，則表面接收此光束的輻照度為 $E_{\\mathrm{surf}}=E_\\perp(N\\cdot L)=2\\times0.7071\\approx1.414\\ \\mathrm{W/m^2}$。對此單一方向的光束，以本例方向組合求得的 BRDF 計算，出射輻亮度約為 $L_o=f_r(L,V)E_{\\mathrm{surf}}\\approx0.1597\\times1.414\\approx0.226\\ \\mathrm{W/(m^2\\,sr)}$。若 $E$ 指多個方向合計的表面輻照度，則不能直接乘單一方向的 $f_r(L,V)$，須依各入射方向積分。"
+      }
+    ],
+    "reason": "僅修正例題16.2將未指定方向的輻照度直接乘單向BRDF之歧義；保留原有BRDF手算及其餘正確內容。未執行程式或另作驗證。"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "key": "f0d1e90e01b7ca2834a182c8d2f34b846ee028a89c62dff298af27d51bd4f1c4",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 422,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "$$\\nu_x=a\\sin(kx)\\cos(ky),\\qquad\n\\nu_y=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "$$u_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$"
+      }
+    ],
+    "reason": "將製造場的速度分量定義接上後文的 u:=u_x、v:=u_y，避免與運動黏度 ν 混淆；程式未執行。"
+  }
+}

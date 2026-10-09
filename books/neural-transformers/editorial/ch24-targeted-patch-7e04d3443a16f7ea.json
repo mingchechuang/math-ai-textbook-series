@@ -1,0 +1,11 @@
+{
+  "key": "7e04d3443a16f7ead4a6e91acaefeab6933e2a2d7f13ee19067a97a751326e3f",
+  "person": {
+    "id": "v5_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 183,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n*   **校準指標**：ECE（Expected Calibration Error）依賴分箱策略，其值受箱數與邊界影響，且有限樣本下存在正偏差。校準良好不代表模型具備事實推理能力。\n<<<NEW>>>\n*   **校準指標**：ECE（Expected Calibration Error）依賴分箱策略，其值受箱數與邊界影響；在下述固定分箱與獨立同分布條件下，經驗 ECE 的期望不低於母體固定分箱 ECE，但不保證嚴格大於。校準良好不代表模型具備事實推理能力。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n**選擇性拒答（Selective Refusal）** 則是利用模型的不確定性（如 $1 - p_{\\max}$）作為閾值，當不確定性過高時，系統主動拒絕回答或轉交人類專家。此機制能有效降低「已回答樣本」中的風險（Risk），但代價是降低了「覆蓋率」（Coverage，即回答的比例）。\n<<<NEW>>>\n**選擇性拒答（Selective Refusal）** 則是利用模型的不確定性（如 $1 - p_{\\max}$）作為閾值，當不確定性過高時，系統主動拒絕回答或轉交人類專家。若信心分數能有效排序錯誤風險，此機制可能降低「已回答樣本」中的風險（Risk），代價是降低「覆蓋率」（Coverage，即回答的比例）；是否真的降低風險，須由驗證集的 Risk–Coverage 曲線檢查。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n當 $n=0$ 時，$X_b$ 未定義，但在 ECE 公式中 $\\frac{N_b}{N} |X_b|$ 項為 0（若定義 $0 \\cdot \\infty = 0$ 或明確跳過）。對於 $n>0$：\n<<<NEW>>>\n當 $n=0$ 時不計算未定義的 $X_b$，而直接將該箱對 ECE 的貢獻定義為 0；當 $n>0$ 時，箱貢獻為 $\\frac{N_b}{N}|X_b|$。因此下式只對 $n=1,\\ldots,N$ 求和：\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n    *   $\\text{LSE} = 10 + \\ln(1) = 10$.\n    *   $\\text{NLL}_2 = 10 - 10 = 0$.\n*   t=3: logits $[-100, -100, 1, -100]$，真實標籤 $y=2$ (C)。\n    *   同理，$\\text{NLL}_3 \\approx 0$.\n*   Total NLL$_1 = 3.4402 + 0 + 0 = 3.4402$.\n<<<NEW>>>\n    *   $\\text{LSE} = 10 + \\ln(1+3e^{-110}) \\approx 10$.\n    *   $\\text{NLL}_2 = \\ln(1+3e^{-110}) > 0$，四位小數下約為 0。\n*   t=3: logits $[-100, -100, 1, -100]$，真實標籤 $y=2$ (C)。\n    *   同理，$\\text{NLL}_3 = \\ln(1+3e^{-101}) > 0$，四位小數下約為 0。\n*   Total NLL$_1 \\approx 3.4402$.\n<<<END>>>\n<<<PATCH 05>>>\n<<<OLD>>>\n**評估指標比較（假設性情境，非執行結果）**：\n| 指標 | ID 集 | OOD 集 |\n|------|-------|--------|\n| Total Tokens | 1000 | 1000 |\n| Mean NLL | 1.0 | 2.5 |\n| PPL | 2.718 | 12.182 |\n| ECE (5 bins) | 0.05 | 0.20 |\n<<<NEW>>>\n**評估指標比較（手設的假設性數值，非程式生成或執行結果）**：\n| 指標 | ID 集 | OOD 集 |\n|------|-------|--------|\n| Total Tokens | 1000 | 1000 |\n| Mean NLL | 1.0 | 2.3 |\n| PPL | 2.718 | 9.974 |\n| ECE (5 bins；分母為單步決策數，非 Total Tokens) | 0.05 | 0.20 |\n<<<END>>>"
+}

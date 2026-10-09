@@ -1,0 +1,11 @@
+{
+  "key": "cfe4a97c1a1708134b5c526c5edda30d862e0aa3962239b53718fed4ef7a89a7",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 555,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n一般情況含偏置共\n<<<NEW>>>\n在上述預設 `dv=dh` 的結構中，含偏置共\n<<<END>>>"
+}

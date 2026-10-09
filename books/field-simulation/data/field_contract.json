@@ -1,0 +1,18 @@
+{
+  "synthetic": true,
+  "array_order": "q[j,i], i:+X, j:+Y",
+  "flatten": "j*Nx+i",
+  "cell_shape": [
+    16,
+    16
+  ],
+  "domain_m": [
+    1,
+    1
+  ],
+  "time_unit": "s",
+  "concentration_unit": "kg/m^3",
+  "seed": 42,
+  "phase_field": "separate nondimensional example, phi convention -1/+1",
+  "note": "不是現場物性、設備參數或安全閾值"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "9a613bf7c322500054a48a4cde077e54207aabfd82216050bf04a80841a61052",
+  "person": {
+    "id": "v5_editor_33",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 149,
+  "result": "## 審稿意見\n\n主程式中的例外測試已改用旗標，不再以 `pass` 收尾；但習題解答仍留有一處違反卷內程式契約的 `pass`。\n\n1. **習題解答仍使用 `pass`。**  \n   原句：\n   ```python\n   except ValueError:\n       pass\n   ```\n   原因：卷規明定程式不得留 `pass`。此處雖是捕捉預期例外，仍與明文要求不符。  \n   最小修法：改用布林旗標記錄是否捕捉到 `ValueError`，並在 `try`／`except` 後斷言旗標；或使用驗證指定例外型別的小型 helper。\n\n本章其餘修訂，包括矩形 logits 測試、cache 錯位故障注入，以及明確說明 masked softmax 不在程式驗收範圍，均已處理。未發現其他阻擋性問題。\n\nVERDICT: REVISE"
+}

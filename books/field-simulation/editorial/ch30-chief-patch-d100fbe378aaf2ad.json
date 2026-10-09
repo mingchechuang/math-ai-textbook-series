@@ -1,0 +1,45 @@
+{
+  "key": "d100fbe378aaf2ad9695cd88a193a7a8110f7b7f821901c5038dbfc91af5b62b",
+  "person": {
+    "id": "v3_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 165,
+  "result": {
+    "patches": [
+      {
+        "chapter": 30,
+        "old": "符合這項限制並不等於物理模型已驗證，也不保證其他格式或額外來源項有相同性質。守恆、穩定、非負、能量下降及物理可信是不同的檢查項目，不可互相替代。",
+        "new": "另外，對均勻網格上的週期擴散，定義離散 $L_2$ 型能量\n\n$$\nE_h(\\mathbf q)\n=\n\\frac12\\sum_{j,i}\\left(q_{j,i}\\right)^2\\Delta x\\Delta y.\n$$\n\n將此能量對離散場求變分可得\n\n$$\n\\frac{\\partial E_h}{\\partial q_{j,i}}\n=\nq_{j,i}\\Delta x\\Delta y,\n$$\n\n而週期離散 Laplacian 在歐氏內積下為對稱負半定，故連續時間半離散週期系統滿足 $dE_h/dt\\le 0$。顯式 Euler 在時間步滿足前述非負充分條件時，各模態的放大因子平方模不大於 1，因此每步的離散能量亦滿足 $E_h^{n+1}\\le E_h^n$。此處「能量下降」屬於這個特定 $L_2$ 診斷量，並不蘊含非負性、物理可信或其他能量泛函的單調性；本卷相場自由能、$H^{-1}$ 梯度流能量等須在各自章節另作分析。\n\n符合這項限制並不等於物理模型已驗證，也不保證其他格式或額外來源項有相同性質。守恆、穩定、非負、能量下降及物理可信是不同的檢查項目，不可互相替代。"
+      },
+      {
+        "chapter": 30,
+        "old": "    initial_total = float(np.sum(q) * cell_volume_per_depth)\n    scale = max(abs(initial_total), 1.0)",
+        "new": "    initial_total = float(np.sum(q) * cell_volume_per_depth)\n    initial_energy = float(0.5 * np.sum(q * q) * cell_volume_per_depth)\n    scale = max(abs(initial_total), 1.0)"
+      },
+      {
+        "chapter": 30,
+        "old": "        total = float(np.sum(q) * cell_volume_per_depth)\n        balance_error = total - initial_total\n        tolerance = atol + rtol * scale\n        finite = bool(np.all(np.isfinite(q)))\n        passed = finite and abs(balance_error) <= tolerance\n\n        history.append({\n            \"step\": n,\n            \"time_s\": n * dt,\n            \"total_per_depth\": total,\n            \"balance_error_per_depth\": balance_error,\n            \"balance_tolerance\": tolerance,\n            \"balance_pass\": bool(passed),\n            \"minimum\": float(np.min(q)),\n            \"maximum\": float(np.max(q)),\n            \"finite\": finite,\n        })",
+        "new": "        total = float(np.sum(q) * cell_volume_per_depth)\n        energy = float(0.5 * np.sum(q * q) * cell_volume_per_depth)\n        balance_error = total - initial_total\n        tolerance = atol + rtol * scale\n        energy_tol = atol + rtol * max(abs(initial_energy), 1.0)\n        finite = bool(np.all(np.isfinite(q)))\n        passed = finite and abs(balance_error) <= tolerance\n        energy_decreased = (n == 0) or (\n            energy <= initial_energy + energy_tol\n        )\n\n        history.append({\n            \"step\": n,\n            \"time_s\": n * dt,\n            \"total_per_depth\": total,\n            \"balance_error_per_depth\": balance_error,\n            \"balance_tolerance\": tolerance,\n            \"balance_pass\": bool(passed),\n            \"energy_per_depth_L2\": energy,\n            \"energy_change_vs_initial\": energy - initial_energy,\n            \"energy_decreased\": bool(energy_decreased),\n            \"minimum\": float(np.min(q)),\n            \"maximum\": float(np.max(q)),\n            \"finite\": finite,\n        })"
+      },
+      {
+        "chapter": 30,
+        "old": "        \"representation\": \"cell_average_per_unit_depth\",\n        \"atol_balance\": atol,\n        \"rtol_balance\": rtol,\n    }",
+        "new": "        \"representation\": \"cell_average_per_unit_depth\",\n        \"atol_balance\": atol,\n        \"rtol_balance\": rtol,\n        \"energy_diagnostic\": \"L2_half_sum_q_squared_per_unit_depth\",\n        \"convergence_status\": \"not_established_fixed_step_count_only\",\n    }"
+      },
+      {
+        "chapter": 30,
+        "old": "    history = manifest.get(\"history\", [])\n    if not history or not all(row.get(\"balance_pass\", False) for row in history):\n        return {\n            \"status\": \"diagnostic_failed\",\n            \"reason\": \"收支診斷未全部通過；拒絕作一般結果回覆\",\n            \"history\": history,\n        }",
+        "new": "    history = manifest.get(\"history\", [])\n    if not history or not all(\n        row.get(\"balance_pass\", False)\n        and row.get(\"energy_decreased\", False)\n        for row in history\n    ):\n        return {\n            \"status\": \"diagnostic_failed\",\n            \"reason\": \"收支或能量診斷未全部通過；拒絕作一般結果回覆\",\n            \"history\": history,\n        }"
+      },
+      {
+        "chapter": 30,
+        "old": "固定步數 `steps` 是本例的停止條件；沒有迭代線性求解器，因此不應虛構線性殘差或求解容差。每步記錄總量相對初值的差值，並依明示的 `atol`、`rtol` 判定收支是否通過。若診斷失敗，紀錄保留失敗狀態；查詢端也必須拒絕把這種紀錄當作一般通過結果。",
+        "new": "固定步數 `steps` 是本例的停止條件；沒有迭代線性求解器，因此不應虛構線性殘差或求解容差。每步記錄總量相對初值的差值、離散 $L_2$ 能量 $E_h=\\frac12\\sum q_{j,i}^2\\Delta x\\Delta y$ 及其相對初值的變化，並依明示的 `atol`、`rtol` 判定收支是否通過、能量是否未上升。若診斷失敗，紀錄保留失敗狀態；查詢端也必須拒絕把這種紀錄當作一般通過結果。\n\n關於收斂：固定步數只作為時間推進的停止條件，不構成時間或空間收斂的證據。本章未在此擴散算例中進行網格或時間步細化所得的誤差比較，故設定欄位中 `convergence_status` 明列為 `not_established_fixed_step_count_only`。若讀者需要收斂階，須另以明定基準解（例如解析半離散解、製造解或高解析度參考解）與明示誤差範數，在不同步長與格距下比較，並依序記錄。守恆與能量下降診斷不能取代此項收斂研究。"
+      }
+    ],
+    "reason": "依審稿結論，lab 契約要求「質量／能量／收斂紀錄」，而原稿只有質量收支與極值。逐項修訂：(1) 在數學與物理推導段落補上離散 $L_2$ 能量 $E_h=\\tfrac12\\sum q^2\\Delta x\\Delta y$ 的定義，說明其連續半離散單調性與顯式 Euler 在非負充分步長條件下的每步單調性，並明確此為該特定診斷量而非普遍能量保證；(2) `run_synthetic_case` 預先計算 `initial_energy` 作為比較基準；(3) 每步 history 新增 `energy_per_depth_L2`、`energy_change_vs_initial`、`energy_decreased` 三個欄位，並以 `energy_tol = atol + rtol*max(|E^0|,1)` 判定；(4) settings 新增 `energy_diagnostic` 欄位說明所用能量定義、新增 `convergence_status` 欄位明示為 `not_established_fixed_step_count_only`；(5) `readonly_query` 除 `balance_pass` 外亦要求所有 history 記錄的 `energy_decreased` 為真，否則回報 `diagnostic_failed`；(6) 在程式描述段落明列收斂檢查在此專題中尚未完成，固定步數不構成收斂證據，若要收斂階須以明定基準解與誤差範數另行細化研究。其餘推導、程式主體、手算例、測試與習題保持不變。"
+  }
+}

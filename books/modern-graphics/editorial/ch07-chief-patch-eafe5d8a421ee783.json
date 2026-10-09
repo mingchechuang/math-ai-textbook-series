@@ -1,0 +1,25 @@
+{
+  "key": "eafe5d8a421ee7837b794435a85477cb82789292fa002860fd0abdc217330df9",
+  "person": {
+    "id": "v2_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 110,
+  "result": {
+    "patches": [
+      {
+        "chapter": 7,
+        "old": "        if not valid or not all(0 <= x < n for x in values):\n            result[\"invalid_faces\"].append(fi)\n            clean_faces.append((0, 0, 0))  # 僅維持面數\n            continue\n\n        i, j, k = values\n        clean_faces.append((i, j, k))",
+        "new": "        if not valid or not all(0 <= x < n for x in values):\n            # 立即記錄非法面，不加入 clean_faces，避免以虛構面\n            # 汙染後續幾何或拓撲分析。迴圈結束後會直接返回。\n            result[\"invalid_faces\"].append(fi)\n            continue\n\n        i, j, k = values\n        clean_faces.append((i, j, k))"
+      },
+      {
+        "chapter": 7,
+        "old": "   程式不會嘗試以索引 99 存取座標。",
+        "new": "   程式不會嘗試以索引 99 存取座標，也不會回傳 `areas`、`normals` 或 `degenerate_faces`：這些鍵在該分支並不存在，呼叫端不應假設它們存在。修正或移除非法索引後，應重新執行完整檢查並要求 `topology_status == \"checked\"`。"
+      }
+    ],
+    "reason": "依審稿修正第 7 章 inspect_mesh：(1) 移除非法索引分支中塞入 clean_faces 的虛構面 (0,0,0)，改為僅記錄面編號並 continue，使非法索引情形不再產生任何替代幾何資料，符合章內「非法索引應在幾何計算前攔截」的聲明；(2) 補強故障注入第 4 項的預期，明示非法索引案例不會提供 areas／normals／degenerate_faces，避免呼叫端誤用不存在的鍵。其餘手算、池體計數、程式與預期輸出依審稿意見保留。"
+  }
+}

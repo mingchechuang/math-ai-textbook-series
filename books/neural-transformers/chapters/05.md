@@ -1,0 +1,628 @@
+# 第05章 仿射層、非線性與表達能力
+
+## 學習目標與先備知識
+
+本章從矩陣運算走到可訓練的神經網路。重點不只是記住 $Y=XW+b$，還要理解這個式子描述了什麼、不能描述什麼，以及加入非線性後為何能改變模型的表達能力。
+
+讀完本章，你應能：
+
+1. 說明模型、參數、目標函數、經驗風險與泛化能力之間的區別。
+2. 依本章軸慣例推導仿射層 shape，並辨識廣播與轉置錯誤。
+3. 手算 tanh 與 ReLU 網路的前向結果和局部導數。
+4. 證明仿射層的組合仍為仿射映射，並用 XOR 說明單一仿射分類器的限制。
+5. 設計資料切分、基線、邊界測試及失敗報告，避免將訓練誤差誤當成泛化證據。
+
+先備概念包括矩陣乘法、導數、梯度與訓練／測試資料的基本區別。本章程式以 NumPy CPU 為基礎，不需要下載模型或語料。程式與測試是教材範例；本稿未執行程式，因此不宣稱測試已通過，也不宣稱模型已訓練成功。
+
+## 問題與直覺
+
+一層仿射變換把輸入向量映射到另一個向量。它可以旋轉、縮放、剪切並平移資料，但無論參數如何調整，映射仍是線性結構加上平移。若網路只堆疊這類變換，層數增加不會自動帶來更豐富的函數形狀。
+
+激活函數提供非線性。兩個線性層中間若沒有非線性，整體仍等價於一個仿射映射；若插入非線性，模型才可能形成彎曲的決策邊界，處理 XOR 這類單一仿射分類器無法分開的資料。
+
+然而，表示能力不是學習成功的保證。資料有限時，模型可能記住訓練例子卻無法處理新例子；標籤錯誤、切分洩漏或評估方式不當，也可能造成看似良好的結果。因此本章把「模型能表示什麼」和「目前證據支持什麼」分開討論。
+
+### 模型、目標與證據
+
+模型是由輸入到輸出的函數族，例如參數化函數 $f_\theta$。參數 $\theta$ 是可調的矩陣、偏置或其他數值。目標函數定義如何衡量預測與標籤之間的差異；訓練演算法則是尋找參數的程序，並不等同於模型本身。
+
+給定 $N$ 筆訓練資料 $(x_i,y_i)$，若每筆損失為 $\ell(f_\theta(x_i),y_i)$，經驗風險可寫成
+
+$$
+\widehat R_{\mathrm{train}}(\theta)
+=
+\frac{1}{N}\sum_{i=1}^{N}\ell(f_\theta(x_i),y_i).
+$$
+
+這個數值只描述目前訓練樣本、目前損失與目前參數上的平均。泛化指標必須由與訓練資料隔離的資料估計；若資料本身有群組或時間結構，切分也必須尊重該結構。低訓練誤差不是泛化能力的證明。
+
+本章的合成實驗契約如下：
+
+- 固定資料生成規則與 seed，再產生資料。
+- 若資料有同源群組或時間順序，先依群組或時間切分，再建立樣本窗口。
+- 訓練集用來更新參數；驗證集用來選擇超參數或停止時機；測試集只在選擇完成後作最終評估。
+- 基線包含由訓練標籤決定的多數類別預測，以及只用訓練集估計的線性模型。
+- 報告資料生成方式、切分方式、評估指標與失敗情形，不只報告訓練誤差。
+- 不得以單一固定 seed 的合成結果推斷真實世界效能。
+
+## 定義、定理與推導
+
+### 批次形狀與仿射層
+
+本章採橫列代表樣本的約定。令批次輸入 $X\in\mathbb R^{B\times D_{\mathrm{in}}}$，權重 $W\in\mathbb R^{D_{\mathrm{in}}\times D_{\mathrm{out}}}$，偏置 $b\in\mathbb R^{D_{\mathrm{out}}}$。仿射層定義為
+
+$$
+Y=XW+b,\qquad Y\in\mathbb R^{B\times D_{\mathrm{out}}}.
+$$
+
+此處加法會把形狀為 $(D_{\mathrm{out}},)$ 的偏置沿批次軸廣播到 $(B,D_{\mathrm{out}})$。$X$ 的第 $i$ 列是第 $i$ 筆樣本；$W$ 的第 $j$ 欄決定輸出第 $j$ 個特徵如何組合所有輸入特徵。
+
+若只有一筆樣本，仍應保留批次軸，即 $X$ 形狀為 $(1,D_{\mathrm{in}})$，而不是任意擠掉軸。NumPy 一維陣列的 `.T` 不會把它變成直向量，也不會改變 shape。需要直向量時，應明確建立 $(D,1)$ 陣列；需要一列時，則明確建立 $(1,D)$ 陣列。
+
+對 $x\in\mathbb R^{D_{\mathrm{in}}}$，單樣本表示式 $xW+b$ 可視為 $B=1$ 的情況。這與微分中以 column vector 表示狀態並不矛盾：表示慣例不同，矩陣因子順序也相應不同，推導時不可混用。
+
+### 仿射層堆疊命題
+
+**命題：** 任意有限個仿射映射的組合仍為仿射映射。特別地，沒有非線性的線性層堆疊不能表示超出單一仿射映射的函數。
+
+**證明：** 令第一層為 $f_1(x)=xA+a$，第二層為 $f_2(u)=uB+c$。逐步代入：
+
+$$
+f_2(f_1(x))
+=(xA+a)B+c
+=x(AB)+(aB+c).
+$$
+
+$AB$ 是矩陣，$aB+c$ 是偏置，因此結果仍符合「輸入乘一個矩陣，再加一個常數向量」的仿射形式。對任意有限層數作歸納：單層成立；假設前 $k$ 層的組合為 $xM+d$，再接一層 $uB+c$，則
+
+$$
+(xM+d)B+c=x(MB)+(dB+c),
+$$
+
+仍為仿射映射。因此命題成立。這個證明不依賴訓練方法，也不表示實際學到的參數一定良好；它只陳述函數族的結構限制。$\square$
+
+### 激活函數與局部導數
+
+逐元素激活函數 $g$ 把仿射輸出變成非線性表示。常見選擇如下：
+
+$$
+\tanh(z)=\frac{e^z-e^{-z}}{e^z+e^{-z}},
+\qquad
+\frac{d}{dz}\tanh(z)=1-\tanh^2(z),
+$$
+
+$$
+\operatorname{ReLU}(z)=\max(0,z).
+$$
+
+tanh 的輸出位於 $(-1,1)$，導數在有限 $z$ 時為 $1-\tanh^2(z)$。當 $|z|$ 很大，tanh 輸出接近正負一，導數接近零；反向傳播時，這會使經該單元傳回的梯度縮小。這是局部性質，不足以單獨預測整個網路是否學得好。
+
+ReLU 對 $z>0$ 的導數為 $1$，對 $z<0$ 的導數為 $0$；在 $z=0$ 不可微。實作通常指定某一個次梯度約定。本章程式明定在零點採導數 $0$。這是計算慣例，不代表零點具有唯一的普通導數。
+
+### 為什麼 XOR 需要非線性
+
+考慮四個輸入 $(0,0),(0,1),(1,0),(1,1)$，標籤依序為 $0,1,1,0$。若分類器先計算單一仿射分數 $s(x)=w_1x_1+w_2x_2+b$，再以 $s(x)>0$ 判為正類，則正確分類要求
+
+$$
+b\leq0,\quad
+w_1+b>0,\quad
+w_2+b>0,\quad
+w_1+w_2+b\leq0.
+$$
+
+令 $S=w_1+w_2$。兩個正類條件相加，得
+
+$$
+S+2b>0.
+$$
+
+兩個負類條件中的 $(1,1)$ 給出 $S+b\leq0$，所以 $S\leq-b$。代入正類條件可得 $S+2b\leq b$；因為 $S+2b>0$，必有 $b>0$。這與負類 $(0,0)$ 要求的 $b\leq0$ 矛盾。因此不存在符合條件的單一仿射門檻分類器。注意這個推導允許負類分數等於零，因為規則 $s(x)>0$ 會把零分數判為負類。
+
+這個反例證明的是特定分類器族的限制，不是所有模型對所有資料都需要神經網路，也不是有限個例子能證明任意網路具有普適逼近能力。普適逼近定理有明確的網路形式、激活函數、函數空間與逼近條件；本章不把有限 XOR 例子冒充該定理的證明。
+
+## 逐步手算例題
+
+### 例題一：仿射層、tanh 與反向局部導數
+
+取一筆輸入 $x=(1,2)$，令
+
+$$
+W=
+\begin{bmatrix}
+1&-1\\
+2&0
+\end{bmatrix},
+\qquad
+b=(0,1).
+$$
+
+輸入 shape 為 $(1,2)$，權重 shape 為 $(2,2)$，偏置 shape 為 $(2,)$。先算乘積：
+
+$$
+xW
+=
+(1,2)
+\begin{bmatrix}
+1&-1\\
+2&0
+\end{bmatrix}
+=
+(1\cdot1+2\cdot2,\;1\cdot(-1)+2\cdot0)
+=(5,-1).
+$$
+
+加入偏置後得到
+
+$$
+z=xW+b=(5,0).
+$$
+
+逐元素套用 tanh：
+
+$$
+h=(\tanh(5),\tanh(0))
+\approx(0.99991,0).
+$$
+
+這裡 $\tanh(5)$ 的小數為近似值；$\tanh(0)=0$ 是精確值。局部導數為
+
+$$
+g'(z)=1-h^2
+\approx(1-0.99991^2,\;1)
+\approx(0.00018,\;1).
+$$
+
+第一個單元在此輸入附近已接近飽和，局部導數顯著小於第二個單元。若上游梯度為 $(3,-2)$，通過 tanh 後的梯度逐元素相乘為
+
+$$
+(3,-2)\odot(0.00018,1)\approx(0.00054,-2).
+$$
+
+這個例子展示激活局部導數如何縮放梯度；不能據此推論每個含 tanh 網路都會飽和，也不能把近似小數當作實驗測量。
+
+### 例題二：ReLU、零點約定與批次偏置廣播
+
+取
+
+$$
+X=
+\begin{bmatrix}
+1&-2\\
+0&1
+\end{bmatrix},
+\qquad
+W=
+\begin{bmatrix}
+1&-1\\
+2&1
+\end{bmatrix},
+\qquad
+b=(0,0).
+$$
+
+這裡 $B=2$，$D_{\mathrm{in}}=D_{\mathrm{out}}=2$。逐列計算：
+
+$$
+(1,-2)W=(-3,-3),
+\qquad
+(0,1)W=(2,1).
+$$
+
+所以
+
+$$
+Z=XW+b=
+\begin{bmatrix}
+-3&-3\\
+2&1
+\end{bmatrix}.
+$$
+
+逐元素套用 ReLU：
+
+$$
+H=\operatorname{ReLU}(Z)=
+\begin{bmatrix}
+0&0\\
+2&1
+\end{bmatrix}.
+$$
+
+假設損失對 $H$ 的梯度為
+
+$$
+G_H=
+\begin{bmatrix}
+4&-1\\
+3&5
+\end{bmatrix}.
+$$
+
+按本章約定，ReLU 在負值處及零點的導數為 $0$，正值處為 $1$。因此
+
+$$
+G_Z=G_H\odot\mathbf 1[Z>0]
+=
+\begin{bmatrix}
+0&0\\
+3&5
+\end{bmatrix}.
+$$
+
+偏置在前向時沿 $B$ 軸廣播；反向時必須對被廣播的批次軸求和，故
+
+$$
+G_b=\sum_{i=1}^{B}(G_Z)_{i,:}=(3,5).
+$$
+
+若只取最後一列或保留錯誤的 $(2,2)$ shape，就沒有對應原偏置 $(2,)$ 的梯度。這是廣播運算與其反向求導的一致性要求。
+
+## 實作與程式
+
+以下是自足的 CPU NumPy 範例，包含固定切分、訓練集標準化、多數類別基線、線性基線與兩層 tanh 分類器。合成資料由兩個高斯群組產生，目標是二元分類。此資料容易被線性模型分開，刻意不用它來證明非線性模型一定優於線性模型。
+
+資料產生後先切索引，再以訓練集統計量標準化。多數類別基線只從訓練標籤決定預測類別；若兩類數量相同，本程式固定選類別 $0$。驗證集只用於觀察；測試集不參與參數更新、基線選擇或標準化。以下訓練迴圈是展示前向、損失和更新的最小範例，不宣稱已收斂，也不宣稱任何測試指標已達成。
+
+```python
+import numpy as np
+
+
+def split_indices(n, seed=11):
+    if n < 3:
+        raise ValueError("至少需要三筆資料才能建立三個非空切分")
+    rng = np.random.default_rng(seed)
+    idx = rng.permutation(n)
+    n_train = int(0.6 * n)
+    n_valid = int(0.2 * n)
+    if n_train == 0 or n_valid == 0 or n_train + n_valid >= n:
+        raise ValueError("資料量不足以建立非空 train/valid/test")
+    return idx[:n_train], idx[n_train:n_train+n_valid], idx[n_train+n_valid:]
+
+
+def make_data(n_per_class=100, seed=7):
+    if n_per_class < 1:
+        raise ValueError("n_per_class 必須為正整數")
+    rng = np.random.default_rng(seed)
+    x0 = rng.normal(loc=(-1.0, -1.0), scale=0.6,
+                    size=(n_per_class, 2))
+    x1 = rng.normal(loc=(1.0, 1.0), scale=0.6,
+                    size=(n_per_class, 2))
+    X = np.concatenate([x0, x1], axis=0).astype(np.float64)
+    y = np.concatenate([
+        np.zeros(n_per_class, dtype=np.int64),
+        np.ones(n_per_class, dtype=np.int64)
+    ])
+    order = rng.permutation(len(y))
+    return X[order], y[order]
+
+
+def standardize_from_train(X, train_idx):
+    mean = X[train_idx].mean(axis=0)
+    std = X[train_idx].std(axis=0)
+    std = np.where(std == 0.0, 1.0, std)
+    return (X - mean) / std, mean, std
+
+
+def majority_class(train_labels):
+    if train_labels.ndim != 1 or len(train_labels) == 0:
+        raise ValueError("train_labels 必須是非空的一維陣列")
+    counts = np.bincount(train_labels)
+    # argmax 在平手時回傳最小索引；本例類別索引從 0 開始。
+    return int(np.argmax(counts))
+
+
+def constant_accuracy(y, label):
+    if y.ndim != 1 or len(y) == 0:
+        raise ValueError("評估標籤必須是非空的一維陣列")
+    return float(np.mean(y == label))
+
+
+def softmax_cross_entropy(logits, labels):
+    if logits.ndim != 2:
+        raise ValueError("logits 必須為 (B, C)")
+    B, C = logits.shape
+    if B == 0 or C == 0:
+        raise ValueError("logits 的批次軸與類別軸都必須非空")
+
+    labels = np.asarray(labels)
+    if labels.shape != (B,):
+        raise ValueError("labels 必須為 (B,)")
+    if not np.issubdtype(labels.dtype, np.integer):
+        raise ValueError("labels 必須是整數類別索引")
+    if np.any(labels < 0) or np.any(labels >= C):
+        raise ValueError("標籤索引超出類別範圍")
+    if not np.isfinite(logits).all():
+        raise ValueError("logits 必須全為有限值")
+
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        shifted = logits - logits.max(axis=1, keepdims=True)
+        exp_shifted = np.exp(shifted)
+        sums = exp_shifted.sum(axis=1, keepdims=True)
+        logsumexp = np.log(sums)
+        log_probs = shifted - logsumexp
+        per_example = -log_probs[np.arange(B), labels]
+        loss = per_example.mean()
+
+    if not np.isfinite(shifted).all():
+        raise ValueError("減去每列最大值後出現非有限中間值")
+    if not np.isfinite(loss):
+        raise ValueError("交叉熵損失不是有限值")
+
+    probs = exp_shifted / sums
+    grad = probs
+    grad[np.arange(B), labels] -= 1.0
+    grad /= B
+    if not np.isfinite(grad).all():
+        raise ValueError("交叉熵梯度不是有限值")
+    return loss, grad
+
+
+def relu_with_grad(z):
+    if not np.isfinite(z).all():
+        raise ValueError("ReLU 輸入必須全為有限值")
+    out = np.maximum(0.0, z)
+    # 明確採用零點次梯度 0。
+    grad = (z > 0.0).astype(z.dtype)
+    return out, grad
+
+
+def init_mlp(rng, din=2, hidden=8, classes=2):
+    scale1 = np.sqrt(1.0 / din)
+    scale2 = np.sqrt(1.0 / hidden)
+    return {
+        "W1": rng.normal(0.0, scale1, size=(din, hidden)),
+        "b1": np.zeros(hidden),
+        "W2": rng.normal(0.0, scale2, size=(hidden, classes)),
+        "b2": np.zeros(classes),
+    }
+
+
+def forward(X, p):
+    if X.ndim != 2 or X.shape[1] != p["W1"].shape[0]:
+        raise ValueError("X 必須為 (B, Din)，且 Din 必須符合 W1")
+    z1 = X @ p["W1"] + p["b1"]
+    h1 = np.tanh(z1)
+    logits = h1 @ p["W2"] + p["b2"]
+    cache = (X, z1, h1)
+    return logits, cache
+
+
+def loss_and_grads(X, y, p):
+    logits, (Xc, z1, h1) = forward(X, p)
+    loss, dlogits = softmax_cross_entropy(logits, y)
+
+    grads = {}
+    grads["W2"] = h1.T @ dlogits
+    grads["b2"] = dlogits.sum(axis=0)
+
+    dh1 = dlogits @ p["W2"].T
+    dz1 = dh1 * (1.0 - h1 * h1)
+    grads["W1"] = Xc.T @ dz1
+    grads["b1"] = dz1.sum(axis=0)
+    return loss, grads
+
+
+def accuracy(X, y, p):
+    logits, _ = forward(X, p)
+    return float(np.mean(logits.argmax(axis=1) == y))
+
+
+def fit_linear_baseline(X, y, reg=1e-6):
+    # 二元最小平方法基線；只在呼叫者指定的訓練資料上擬合。
+    X1 = np.concatenate([X, np.ones((len(X), 1))], axis=1)
+    target = 2.0 * y.astype(np.float64) - 1.0
+    penalty = np.eye(X1.shape[1]) * reg
+    penalty[-1, -1] = 0.0
+    return np.linalg.solve(X1.T @ X1 + penalty, X1.T @ target)
+
+
+def linear_accuracy(X, y, coef):
+    X1 = np.concatenate([X, np.ones((len(X), 1))], axis=1)
+    pred = (X1 @ coef > 0.0).astype(np.int64)
+    return float(np.mean(pred == y))
+
+
+def run_example():
+    X, y = make_data()
+    train_idx, valid_idx, test_idx = split_indices(len(y), seed=13)
+    Xs, mean, std = standardize_from_train(X, train_idx)
+
+    majority = majority_class(y[train_idx])
+    majority_valid = constant_accuracy(y[valid_idx], majority)
+    majority_test = constant_accuracy(y[test_idx], majority)
+
+    coef = fit_linear_baseline(Xs[train_idx], y[train_idx])
+    linear_valid = linear_accuracy(Xs[valid_idx], y[valid_idx], coef)
+    linear_test = linear_accuracy(Xs[test_idx], y[test_idx], coef)
+
+    rng = np.random.default_rng(23)
+    p = init_mlp(rng)
+    learning_rate = 0.05
+    epochs = 120
+
+    for _ in range(epochs):
+        _, grads = loss_and_grads(Xs[train_idx], y[train_idx], p)
+        for name in p:
+            p[name] -= learning_rate * grads[name]
+
+    train_loss, _ = loss_and_grads(Xs[train_idx], y[train_idx], p)
+    valid_acc = accuracy(Xs[valid_idx], y[valid_idx], p)
+    test_acc = accuracy(Xs[test_idx], y[test_idx], p)
+
+    return {
+        "train_loss": train_loss,
+        "valid_accuracy": valid_acc,
+        "test_accuracy": test_acc,
+        "majority_label_from_train": majority,
+        "majority_valid_accuracy": majority_valid,
+        "majority_test_accuracy": majority_test,
+        "linear_valid_accuracy": linear_valid,
+        "linear_test_accuracy": linear_test,
+        "train_mean": mean,
+        "train_std": std,
+    }
+
+
+if __name__ == "__main__":
+    print(run_example())
+```
+
+形狀核對：若 $N$ 筆資料、每筆 $D_{\mathrm{in}}$ 維，則 `X` 為 $(N,D_{\mathrm{in}})$；第一層權重為 $(D_{\mathrm{in}},H)$，隱藏表示為 $(N,H)$；第二層權重為 $(H,C)$，logits 為 $(N,C)$。交叉熵先對類別軸計算每筆損失，再對批次軸取 mean；梯度也除以 $B$ 一次。偏置梯度沿批次軸 sum，不再額外除一次。
+
+程式的數值策略有明確範圍：有限 logits 並不保證中間運算必定有限。例如同一列含 $10^{308}$ 與 $-10^{308}$ 時，減去最大值可能溢位。本實作在減最大值後檢查中間值，若損失或梯度非有限便拒絕，而不回傳看似有效的結果。這是拒絕非法數值的策略，不代表它能保留所有有限輸入所含的精確資訊。
+
+這段訓練程式以全訓練集作一次批次更新，沒有小批次抽樣、早停、正規化調參或模型選擇。正式實驗可逐 epoch 記錄訓練與驗證損失，事先規定停止規則，並保存切分索引與 seed；測試集仍只在規則確定後評估。若資料依賴文件、個體、時間或養殖池，隨機逐列切分可能讓同源訊號同時進入訓練與測試，必須先做群組或時間切分再建窗口。
+
+## 測試與預期結果
+
+以下是設計測試及預期行為，不是本稿執行紀錄。
+
+| 類別 | 輸入或操作 | 預期行為 |
+|---|---|---|
+| 正常：批次前向 | `X.shape == (4, 2)`，`W1.shape == (2, 8)` | 隱藏表示 shape 為 `(4, 8)`；logits 為 `(4, 2)`。 |
+| 正常：單筆批次 | `X.shape == (1, 2)` | 保留批次軸，logits 為 `(1, 2)`，不變成 `(2,)`。 |
+| 正常：交叉熵 | 非空、有限且中間運算可表示的 `(B,C)` logits，合法標籤 shape `(B,)` | 回傳有限損失及 shape `(B,C)` 梯度；批次平均只除以 $B$ 一次。 |
+| 正常：ReLU 導數檢查 | `z = np.array([-1.0, 0.0, 2.0])` | 預期輸出為 `(0, 0, 2)`，導數為 `(0, 0, 1)`；零點依本章次梯度約定取 `0`。 |
+| 邊界：tanh 大輸入 | 有限但絕對值較大的預激活 | tanh 接近正負一、導數接近零；「接近」不等於精確飽和。 |
+| 邊界：訓練特徵零方差 | 訓練集某欄所有值相同 | 標準化把該欄除數設為 `1`，避免除以零；其他資料在該欄的偏移仍依訓練平均表示。 |
+| 邊界：極端有限 logits | 同列含 `1e308` 與 `-1e308`，且後者為正確類別 | 若減最大值後出現非有限中間值，預期拋出 `ValueError`；不聲稱所有有限輸入都能產生有限 loss。 |
+| 故障：空批次 | logits shape `(0, 2)`、labels shape `(0,)` | 拋出 `ValueError`，不得對空集合取 mean。 |
+| 故障：零類別 | logits shape `(B, 0)` | 拋出 `ValueError`。 |
+| 故障：不合法標籤 | 標籤小於零或大於等於類別數 | 拋出 `ValueError`。 |
+| 故障：非有限 logits | logits 含 `NaN` 或無限值 | 拋出 `ValueError`。 |
+| 故障：錯誤特徵軸 | `X.shape[1] != W1.shape[0]` | `forward` 拋出 `ValueError`，不以轉置或廣播掩蓋錯誤。 |
+| 故障：切分太小 | 總樣本數不足三筆，或切分無法形成三個非空集合 | `split_indices` 拋出 `ValueError`。 |
+| 故障：空基線訓練標籤 | 傳入空的一維陣列 | `majority_class` 拋出 `ValueError`。 |
+
+對完整梯度的獨立驗證可取一個很小的固定批次，對每個參數元素做中央有限差分：
+
+$$
+\frac{\partial L}{\partial\theta_j}
+\approx
+\frac{L(\theta_j+\varepsilon)-L(\theta_j-\varepsilon)}{2\varepsilon}.
+$$
+
+再逐元素比較解析梯度。比較前先確認損失函數、批次平均與參數 shape 完全相同；有限差分是數值核對工具，不是梯度正確性的普遍證明。若測試 ReLU 網路，應選用使預激活遠離零點的輸入，避免把不可微點的次梯度慣例和有限差分混在一起。本章實際分類器使用 tanh；ReLU 零點測試則由 `relu_with_grad` 明確提供。
+
+訓練檢查宜同時列出每個切分的樣本數、正負類比例、訓練損失、驗證指標與兩種基線結果。若一類在小資料切分中缺失，準確率可能具有誤導性，需改報混淆矩陣或逐類指標。合成資料的有限 seed 只描述那一份樣本，不能推論跨 seed 的穩定性或真實資料的顯著差異。
+
+## 反例與常見陷阱
+
+1. **沒有激活函數卻把深度當作非線性。** 仿射層堆疊仍是仿射映射；增加層數可能改變參數化與最佳化條件，但不改變其函數族的基本形式。
+2. **把激活函數輸出當作機率。** tanh 輸出可為負，ReLU 可大於一；除非另有明確機率模型與正規化，這些都不是類別機率。
+3. **混淆仿射與線性。** 線性映射需保留零點；帶偏置的 $xW+b$ 一般是仿射映射。當 $b=0$ 時才是線性映射。
+4. **偏置廣播正確，梯度卻忘了求和。** 前向把同一偏置加到每一筆樣本；反向必須累加每一筆對該偏置的貢獻。廣播不代表各筆樣本有各自獨立的偏置。
+5. **把列向量慣例與批次列儲存混為一談。** 本章批次資料以樣本為列，故為 $XW$；改用每個樣本為 column vector 時公式通常會變成 $W^\top x+b$ 或採另一種權重儲存方式，不能只轉其中一個矩陣。
+6. **忽略 reduction 軸。** 對類別做 sum、對樣本做 mean，與對所有元素一次取 mean 並非同一損失。改變 batch size 時，若平均方式不一致，梯度尺度也會改變。
+7. **把有限輸入當作有限輸出保證。** 浮點減法、指數與加總有可表示範圍；有限 logits 仍可能在中間運算溢位。必須檢查中間值及最終 loss，並定義拒絕策略。
+8. **用訓練準確率宣稱泛化。** 模型在訓練集預測正確，不代表不同群組、不同時間或分布改變下仍正確。必須保留符合使用情境的獨立資料。
+9. **先切窗口，後切訓練與測試。** 同一文件或時間序列的重疊窗口可能跨越集合，形成洩漏。應先切來源群組或時間，再於各集合內建立窗口。
+10. **預處理看見測試資料。** 若用全資料平均值、標準差、詞表或選特徵，測試資料已間接參與模型選擇。標準化統計量必須只由訓練集估計。
+11. **把有限例子當普適逼近定理。** XOR 展示一個明確的表達限制與非線性解法；一般逼近結論需符合所引用定理的前提，不可由幾個手算點代替。
+12. **把初始化尺度當成收斂保證。** 程式使用的尺度是簡單示例，不是任意深度、任意資料分布都穩定的保證；實際梯度尺度受寬度、深度、輸入分布、非線性和目標共同影響。
+13. **測試標籤決定多數類別。** 多數類別基線的預測類別只能由訓練標籤決定；若用驗證或測試標籤選類別，基線本身也發生資料洩漏。
+
+## AI、幾何與養殖案例
+
+### 幾何觀點
+
+一個線性分數 $xw+b$ 的等值集合在二維是直線，在高維是超平面；多類仿射分類器比較多個分數，形成由線性邊界切分的區域。加入隱藏非線性後，模型可先把輸入映成另一種表示，再在該表示空間套用簡單的線性分類器。可把它想成「先改座標，再畫直線」，但座標映射能否學得適當，仍取決於資料、訓練與正則化。
+
+### AI 系統觀點
+
+深度網路可以透過多個表示層組合特徵，但多一層不必然改善結果。參數數量、標籤品質、資料分布與訓練程序都會影響模型行為。模型結構只描述可能函數的範圍；訓練結果還需獨立驗證，使用者也需要知道哪些輸入屬於分布外情況。
+
+本章的小型 MLP 以多類別交叉熵處理 logits。softmax 機率由同一列所有 logits 正規化；logits 本身不受 $[0,1]$ 限制，也不要求和為一。程式先逐列減最大值，再計算指數及 log-sum-exp 形式的損失。極端值可能使中間運算溢位，因此程式檢查並拒絕非有限中間結果，而不以任意 epsilon 假裝精確。
+
+### 合成養殖日誌例子
+
+設想一批完全合成的感測摘要，每列包含兩個數值特徵，標籤只代表生成器指定的兩種合成狀態。可用仿射分類器作基線，再比較帶 tanh 的小型 MLP，並按照池別或日期切分，以免同一來源的重複模式分散在訓練與測試兩邊。基線的多數類別只由訓練標籤決定。
+
+這個教學資料不是真實養殖資料，也沒有現場操作閾值。即使合成測試表現良好，也不支持對投餌、加藥、曝氣或設備控制作任何決策。模型輸出不具權限；現場判斷需依安全規範、資料驗證與專業人員決策。
+
+## 習題
+
+### A. 手算題
+
+1. 設 $x=(2,-1)$、$W=\begin{bmatrix}1&3\\-2&1\end{bmatrix}$、$b=(1,0)$。計算 $xW+b$，並給出 $\operatorname{ReLU}(xW+b)$。說明 shape。
+2. 對 $z=(-2,0,3)$ 計算 tanh 與 ReLU 的導數；在 ReLU 零點採本章約定。只需保留可精確寫出的形式，無須假裝算出超高精度小數。
+
+### B. 程式題
+
+3. 對本章程式的 `forward` 寫 shape 測試：正常批次、$B=1$、錯誤輸入特徵數。描述每種情況的預期結果。
+4. 寫一個小型中央有限差分程序，檢查 `loss_and_grads` 中單一權重元素的解析梯度。說明如何避免把 ReLU 不可微點混入測試。
+5. 為 `softmax_cross_entropy` 設計空批次、零類別、極端有限 logits 和非有限 logits 測試。說明程式各自應回傳或拒絕什麼。
+
+### C. 反例題
+
+6. 有人說：「只要把線性層堆得足夠深，任何二元分類都能用線性層分開。」利用仿射層堆疊命題和 XOR 反例，指出這段話至少有哪兩處錯誤。
+7. 訓練準確率為 $100\%$，但資料是同一條長序列切成重疊窗口，再隨機分到訓練與測試集。說明為何該準確率不足以支持泛化結論，並寫出較合理的切分順序。
+
+### D. 整合題
+
+8. 設計一個合成二元分類實驗，要求比較線性基線與兩層非線性模型。列出生成規則、seed、資料切分、標準化統計量的估計範圍、訓練停止規則、驗證與測試的角色，以及至少兩種失敗報告。不得把測試集用於調參。
+9. 構造一個帶批次偏置廣播的反向例子：偏置 shape 為 $(D_{\mathrm{out}},)$，上游梯度 shape 為 $(B,D_{\mathrm{out}})$。寫出偏置梯度的 reduction 軸，解釋為什麼不能保留批次軸。
+10. 設兩個類別的訓練筆數相同。依本章多數類別基線規則，預測類別為何？為什麼平手規則仍須事先固定？
+
+## 習題解答
+
+### A. 手算題
+
+1. Shape 為 $x:(1,2)$、$W:(2,2)$、$b:(2,)$。先算
+
+   $$
+   xW=(2,-1)
+   \begin{bmatrix}
+   1&3\\
+   -2&1
+   \end{bmatrix}
+   =(2+2,\;6-1)=(4,5).
+   $$
+
+   所以 $xW+b=(5,5)$，ReLU 結果為 $(5,5)$。以批次形式表示，兩者 shape 都是 $(1,2)$。
+
+2. 對 tanh，導數為 $1-\tanh^2(z)$，所以在 $-2,0,3$ 處分別為 $1-\tanh^2(-2)$、$1$、$1-\tanh^2(3)$。由於 tanh 是奇函數，第一項也可寫成 $1-\tanh^2(2)$。對 ReLU，按本章約定，三點導數為 $(0,0,1)$。
+
+### B. 程式題
+
+3. 正常批次 `X.shape == (4, 2)` 應得到 logits shape `(4, 2)`。單筆但保留批次軸的輸入 shape `(1, 2)` 應得到 `(1, 2)`。若輸入 shape 為 `(4, 3)` 而第一層權重期望輸入寬度為 $2$，`forward` 應拋出 `ValueError`，不可嘗試默默轉置。
+
+4. 在固定小批次上保存原參數，選取例如 `W1[0, 0]`，分別將該元素加減 $\varepsilon$，計算兩個損失後求中央差分；之後恢復原值，與 `loss_and_grads` 對應元素比較。測試輸入應使 `W1` 的預激活遠離零點；本章分類器使用 tanh，也可避免 ReLU 零點不可微的問題。有限差分是數值核對工具，不能取代解析推導。
+
+5. 空批次與零類別應在 reduction 前被拒絕並拋出 `ValueError`。極端有限 logits 若造成減最大值後的中間值非有限，應拋出 `ValueError`，不宣稱所有有限輸入都能產生有限損失。含 `NaN` 或無限值的 logits 在輸入檢查階段即應被拒絕。對 shape 合法、有限且中間運算可表示的 logits，才預期回傳有限損失及正確 shape 的梯度。
+
+### C. 反例題
+
+6. 第一個錯誤是把「層數足夠深」當成足以加入非線性；若每層都只有仿射變換，命題已證明整體仍是單一仿射映射。第二個錯誤是把「任何二元分類都能線性分開」當作真；XOR 四點要求的仿射分數不等式互相矛盾。加入非線性可擴大函數族，但不因此保證任何有限樣本、訓練程序或泛化目標都會成功。
+
+7. 同一長序列的重疊窗口共享大量輸入內容，測試窗口可能近乎複製訓練窗口。模型因而可能利用來源記憶，而非學到可轉移的規律。較合理的順序是先按序列來源或時間切分，再各自建立窗口，最後只用訓練集估計標準化、詞表或其他可學預處理；測試集留到模型選擇完成後評估。
+
+### D. 整合題
+
+8. 一種合格設計是固定 seed 產生兩個已知分布的類別，例如兩個高斯群組；再依固定索引或群組規則切為訓練、驗證、測試三份。若資料有同源群組，先按群組切分。只用訓練集估計每欄平均與標準差，並將同一統計量套用到驗證和測試集。線性基線與兩層 tanh 模型只在訓練資料上擬合；事先規定以固定 epoch 上限或驗證損失停止，不因測試表現延長訓練。驗證集可選模型設定；測試集只在選擇完成後報告。至少應報告未收斂、數值非有限、某一類在切分中缺失，或模型只在訓練集表現良好等失敗情形。不得捏造準確率。
+
+9. 若 $G_Z$ 為 shape $(B,D_{\mathrm{out}})$，偏置在前向沿批次軸廣播，因此偏置梯度為
+
+   $$
+   G_b=\sum_{i=1}^{B}(G_Z)_{i,:},
+   $$
+
+   shape 是 $(D_{\mathrm{out}},)$。保留批次軸會得到每筆樣本各自的偏置梯度，不再對應原先共享的同一個 $b$。梯度需累加所有使用同一偏置的樣本貢獻，不能挑一列取代整個批次。
+
+10. 依本章規則，平手時選索引較小的類別；若類別索引為 $0$ 和 $1$，便預測類別 $0$。預先固定規則可避免以驗證或測試標籤決定預測類別，也讓不同實驗之間的基線定義一致。
+
+## 本章小結
+
+仿射層以 $XW+b$ 將 $(B,D_{\mathrm{in}})$ 映射到 $(B,D_{\mathrm{out}})$；共享偏置的反向梯度必須對批次軸求和。tanh 與 ReLU 提供非線性，也各有局部導數與邊界約定。沒有非線性的仿射層堆疊仍為仿射映射，因此不能表示 XOR 的單一仿射分類邊界。
+
+更大的表示能力不等於更好的泛化。可重現實驗需要固定資料生成與 seed、先分群組或時間再切窗、只由訓練資料擬合預處理，並保留驗證與測試的不同角色。訓練誤差只是證據的一部分；形狀、損失 reduction、基線、數值邊界、失敗報告與資料洩漏檢查同樣重要。
+
+## 參考來源
+
+本章的仿射層、激活函數、XOR 推導與程式為教材內的自足推導及示例；以下僅列延伸閱讀入口及其查證狀態：
+
+- NumPy broadcasting 使用指南：<https://numpy.org/doc/stable/user/basics.broadcasting.html>。延伸入口，尚未逐條核對。
+- *Dive into Deep Learning*：<https://d2l.ai/>。延伸入口，尚未逐章核對。
+- PyTorch reproducibility：<https://docs.pytorch.org/docs/stable/notes/randomness.html>。延伸入口，尚未逐條核對。
+
+本章未宣稱上述未核對來源支持特定段落，也未執行程式、安裝套件、下載模型或語料。

@@ -1,0 +1,20 @@
+{
+  "key": "c0e476a3ea9bf618329703c1cf02979bcf047155a47d65b563980d27b201e092",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 411,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "$$\\nu_x=a\\sin(kx)\\cos(ky),\\qquad\n\\nu_y=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$"
+      }
+    ],
+    "reason": "製造場應定義速度分量 u_x、u_y，與後文 u:=u_x、v:=u_y 接合；ν 僅保留作運動黏度符號。未執行程式。"
+  }
+}

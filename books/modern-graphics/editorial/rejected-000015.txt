@@ -1,0 +1,210 @@
+# 4. 相機、座標系與視圖矩陣
+
+## 學習目標與先備知識
+本章建立從世界座標系到相機座標系的映射能力。讀者需具備第3章的齊次座標與4×4變換矩陣基礎，並熟悉外積的右手定則判定。本節定義全書通用符號：
+- **位置**：$p_h = (x, y, z, 1)^T$。
+- **方向**：$v_h = (x, y, z, 0)^T$。
+- **世界系**：右手系，$+X$向右，$+Y$向上，$+Z$由畫面向觀者。
+- **相機系**：右手系，視點在遠點，視線方向為$-Z_c$，上方為$+Y_c$，右方為$+X_c$。
+
+我們區分「主動變換」（移動物體）與「被動變換」（改變座標系）。視圖矩陣$V$是被動變換：將世界中的點轉到相機座標系，使相機位於原點且看向$-Z$。此操作稱為「Look-at」或「外參矩陣」計算。
+
+## 問題與直覺
+養場監控相機固定在水池上方。若相機旋轉拍攝，物體位置不變，但其在相機座標中的數值改變。我們需要一個函式`look_at(eye, center, up)`，輸入相機位置`eye`、目標點`center`與建議上方向`up`，輸出視圖矩陣$V$。
+
+直覺上，$V$由三個基向量定義：
+1. **視線方向**：從`eye`指向`center`，對應相機$-Z_c$軸。
+2. **右方向**：垂直於視線與上方向，對應相機$+X_c$軸。
+3. **真正上方向**：垂直於視線與右方向，對應相機$+Y_c$軸。
+
+注意：NumPy矩陣乘法是右乘向量（column vector），即$p' = M p$。視圖矩陣將世界點$p$轉為相機點$p_c$，滿足$p_c = V p$。
+
+## 數學與幾何推導
+設相機位置$e$，目標點$c$，上方向$u$（不要求單位向量）。
+
+1. **視線方向**：$f = \frac{c - e}{\|c - e\|}$。這是相機看的方向，即$-Z_c$。因此相機的$Z$軸為$z_c = -f$。
+2. **右方向**：$x_c = \frac{u \times f}{\|u \times f\|}$。利用右手定則，$x_c$垂直於$f$且符合右手系。
+3. **真正上方向**：$y_c = f \times x_c$。確保正交且符合右手系。
+
+相機基向量矩陣$R$（旋轉部分）由這三個單位向量組成。由於是column vector約定，$R$的**橫列**（row）分別為$x_c, y_c, z_c$：
+$$
+R = \begin{bmatrix} x_c^T \\ y_c^T \\ z_c^T \\ 0 \end{bmatrix} = \begin{bmatrix} x_{cx} & x_{cy} & x_{cz} & 0 \\ y_{cx} & y_{cy} & y_{cz} & 0 \\ z_{cx} & z_{cy} & z_{cz} & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}
+$$
+視圖矩陣$V$先旋轉後平移（將$e$移至原點）：
+$$
+V = R \cdot T(-e)
+$$
+其中$T(-e)$是平移$-e$的齊次矩陣。
+驗證：$V p_h = R T(-e) p_h = R (p_h - e) = R (p - e)$（取前三維）。這表示以$e$為原點，以$x_c, y_c, z_c$為軸的座標。
+
+**被動轉換性質**：$V$是正交矩陣加平移，其逆$V^{-1}$是將相機座標轉回世界座標的「視點矩陣」（Camera-to-World）。
+
+## 逐步手算例題
+**案例1：簡易相機**
+世界系：$e=(0,0,5)$, $c=(0,0,0)$, $u=(0,1,0)$。
+1. $f = \frac{(0,0,0)-(0,0,5)}{5} = (0,0,-1)$。
+2. $z_c = -f = (0,0,1)$。
+3. $x_c = \frac{u \times f}{\|u \times f\|}$。
+   $u \times f = (0,1,0) \times (0,0,-1) = (-1, 0, 0)$。
+   $\|u \times f\| = 1$。
+   $x_c = (-1, 0, 0)$。
+4. $y_c = f \times x_c = (0,0,-1) \times (-1,0,0) = (0,1,0)$。
+   *檢查*：$x_c, y_c, z_c$兩兩正交且為單位向量。
+
+$R = \begin{bmatrix} -1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}$。
+$T(-e) = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & -5 \\ 0 & 0 & 0 & 1 \end{bmatrix}$。
+$V = R T(-e) = \begin{bmatrix} -1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & -5 \\ 0 & 0 & 0 & 1 \end{bmatrix}$。
+
+測試點：世界原點$p=(0,0,0)$。
+$V p = (-0, 0, -5, 1)^T = (0,0,-5)$。
+在相機座標中，原點在$z=-5$，即相機前方5公尺。正確。
+
+**案例2：平行up向量陷阱**
+若$u$平行於$f$（例如相機垂直往下看，且$u$也是垂直），$u \times f = 0$。
+*解法*：檢測$\|u \times f\| < \epsilon$。若發生，需換一個預設上向量（如$(0,0,1)$或$(1,0,0)$）重新計算，或定義相機roll為0。在養場中，相機通常朝下，$u$ rarely parallel to $f$ unless camera is pointing straight up.
+
+## 實作與程式
+Python 3.10+，使用NumPy。
+
+```python
+import numpy as np
+
+def look_at(eye, center, up, eps=1e-6):
+    """
+    建立視圖矩陣 V。
+    eye, center, up: (3,) ndarray
+    Returns: (4, 4) ndarray
+    """
+    eye = np.asarray(eye, dtype=np.float64)
+    center = np.asarray(center, dtype=np.float64)
+    up = np.asarray(up, dtype=np.float64)
+    
+    # 1. 視線方向 (normalized)
+    f = center - eye
+    f_len = np.linalg.norm(f)
+    if f_len < eps:
+        raise ValueError("Eye and center are too close.")
+    f = f / f_len
+    
+    # 2. z_c = -f
+    z_c = -f
+    
+    # 3. x_c = normalize(cross(up, f))
+    x_c_raw = np.cross(up, f)
+    x_c_len = np.linalg.norm(x_c_raw)
+    if x_c_len < eps:
+        # Fallback for parallel vectors
+        # Try a different up vector, e.g., (0, 0, 1)
+        alt_up = np.array([0.0, 0.0, 1.0])
+        x_c_raw = np.cross(alt_up, f)
+        x_c_len = np.linalg.norm(x_c_raw)
+        if x_c_len < eps:
+            alt_up = np.array([1.0, 0.0, 0.0])
+            x_c_raw = np.cross(alt_up, f)
+            x_c_len = np.linalg.norm(x_c_raw)
+        if x_c_len < eps:
+            raise ValueError("Cannot determine up direction.")
+    x_c = x_c_raw / x_c_len
+        
+    # 4. y_c = cross(f, x_c)
+    y_c = np.cross(f, x_c)
+    
+    # 5. Construct Rotation Matrix R
+    # Rows are x_c, y_c, z_c
+    R = np.eye(4)
+    R[0, :3] = x_c
+    R[1, :3] = y_c
+    R[2, :3] = z_c
+    
+    # 6. Construct Translation T(-eye)
+    T = np.eye(4)
+    T[:3, 3] = -eye
+    
+    # 7. V = R @ T
+    V = R @ T
+    
+    return V
+```
+
+## 測試與預期結果
+1. **基本測試**：
+   ```python
+   V = look_at([0,0,5], [0,0,0], [0,1,0])
+   # Expected V (approx):
+   # [[-1,  0,  0,  0],
+   #  [ 0,  1,  0,  0],
+   #  [ 0,  0,  1, -5],
+   #  [ 0,  0,  0,  1]]
+   assert np.allclose(V[2, 3], -5.0)
+   # Transform origin
+   p_cam = V @ np.array([0, 0, 0, 1])
+   assert np.allclose(p_cam[:3], [0, 0, -5])
+   ```
+2. **平行up測試**：
+   ```python
+   # Camera looking straight up? No, looking at center from eye.
+   # Eye (0,0,0), Center (0,1,0), Up (0,1,0) -> Parallel
+   V = look_at([0,0,0], [0,1,0], [0,1,0])
+   # Should not crash. x_c should be non-zero.
+   ```
+3. **右手系檢查**：
+   驗證$V$的前3x3部分是正交矩陣（$R R^T = I$）。
+
+## 除錯與常見陷阱
+1. **up向量平行**：必須處理cross product為零的情況。
+2. **左乘右乘混淆**：本採用$p' = M p$。若使用行向量，需轉置。
+3. **$z_c$方向**：確保$z_c = -f$，使得視點看向$-Z$。若誤用$z_c = f$，相機會看向$+Z$，導致所有物體在$+Z$軸，與後續投影矩陣不符。
+4. **非單位向量**：輸入的`up`不一定要單位長度，`x_c`計算會正規化，但`f`必須正規化以確保$z_c$是單位向量。
+
+## 養殖數位分身案例
+水池頂點$P_{pool} = (10, 0, 5)$。相機$e=(0, 10, 10)$, $c=(0,0,0)$, $u=(0,1,0)$。
+計算$V$後，將$P_{pool}$轉到相機座標。
+$f = (0,0,0)-(0,10,10) = (0,-10,-10)$。Norm $\sqrt{200}=10\sqrt{2}$。
+$f_{norm} = (0, -1/\sqrt{2}, -1/\sqrt{2})$。
+$z_c = (0, 1/\sqrt{2}, 1/\sqrt{2})$。
+$x_c = \text{norm}((0,1,0) \times (0, -1/\sqrt{2}, -1/\sqrt{2})) = \text{norm}(-1/\sqrt{2}, 0, 0) = (-1, 0, 0)$。
+$y_c = f \times x_c = (0, -1/\sqrt{2}, -1/\sqrt{2}) \times (-1, 0, 0) = (0, 0, -1/\sqrt{2}) \dots$ 
+Wait, $y_c = f \times x_c$.
+$f=(0, -a, -a), x_c=(-1, 0, 0)$ where $a=1/\sqrt{2}$.
+$y_c = ( (-a)(0)-(-a)(0), (-a)(-1)-(0)(0), (0)(0)-(-a)(-1) ) = (0, a, -a)$.
+$y_c = (0, 1/\sqrt{2}, -1/\sqrt{2})$.
+Check orthonormal: $x_c \cdot y_c = 0$. $|y_c|=1$.
+$V$ built.
+$P_{pool}^{cam} = V P_{pool}$.
+This coordinates are used for culling (near plane). If $z_{cam} < -near$, it is visible (depending on projection setup, usually $z_{clip} < 0$ for visible in OpenGL right-hand).
+
+## 習題
+1. 手算：給定$e=(1,1,1)$, $c=(0,0,0)$, $u=(0,1,0)$，計算$x_c, y_c, z_c$並構建$V$的前三行。
+2. 程式測試：修改`look_at`使其接受未正規化的`up`，並驗證結果與正規化輸入一致。
+3. 反例/除錯：若`up`平行於`f`，目前的fallback策略是否可能導致$y_c$與預期上方向相反？如何修正roll角？
+4. 整合應用：寫一個函式，輸入一個三角網格（頂點列表）和相機參數，輸出在相機座標中$z > -near$（即相機背後或太近）的頂點索引列表，用於簡單剔除。
+
+## 習題解答
+1. $f = \frac{(-1,-1,-1)}{\sqrt{3}}$。$z_c = \frac{(1,1,1)}{\sqrt{3}}$。
+   $x_c = \frac{(0,1,0) \times (-1,-1,-1)}{\sqrt{3}\cdot\sqrt{2}} = \frac{( -1, 0, 1 )}{\sqrt{6}}$? 
+   Cross: $(0,1,0) \times (-1,-1,-1) = (1, 0, 1)$? 
+   Let's re-calculate carefully.
+   $u=(0,1,0), f=\frac{(-1,-1,-1)}{\sqrt{3}}$.
+   $u \times f = \begin{vmatrix} i & j & k \\ 0 & 1 & 0 \\ -1/\sqrt{3} & -1/\sqrt{3} & -1/\sqrt{3} \end{vmatrix} = i(1 \cdot -1/\sqrt{3} - 0) - j(0 - 0) + k(0 - 1 \cdot -1/\sqrt{3}) = (-1/\sqrt{3}, 0, 1/\sqrt{3})$.
+   Norm is $\sqrt{1/3 + 1/3} = \sqrt{2/3}$.
+   $x_c = \frac{(-1/\sqrt{3}, 0, 1/\sqrt{3})}{\sqrt{2/3}} = \frac{1}{\sqrt{2}} (-1, 0, 1)$.
+   $y_c = f \times x_c$.
+   $f = \frac{1}{\sqrt{3}}(-1, -1, -1)$.
+   $x_c = \frac{1}{\sqrt{2}}(-1, 0, 1)$.
+   $f \times x_c = \frac{1}{\sqrt{6}} (-1, -1, -1) \times (-1, 0, 1) = \frac{1}{\sqrt{6}} ( -1, 2, -1 )$.
+   So $y_c = \frac{1}{\sqrt{6}}(-1, 2, -1)$.
+   $V$ rows: $x_c^T, y_c^T, z_c^T$.
+
+2. 驗證：`np.allclose(look_at(e, c, u), look_at(e, c, u/np.linalg.norm(u)))`.
+
+3. Fallback可能導致roll角任意。修正：在fallback中，選擇一個與$f$不平行且與原$u$夾角最小的向量，或固定一個標準軸。
+
+4. 程式碼略，邏輯為：計算$V$，對每個頂點$p_h$計算$p_{cam} = V p_h$，若$p_{cam}[2] > -near$（注意OpenGL中近平面在$z=-near$，遠方為$-z$，所以背後是$z>0$，太近是$-near < z < 0$？不，visible range is $-far < z < -near$. So cull if $z > -near$ OR $z < -far$? Actually, behind camera is $z > 0$. Too close is $z > -near$. So cull if $z > -near$ covers both "too close" and "behind" if we assume standard projection. Strictly, cull if $p_{cam}[2] >= -near$ (including boundary) or $p_{cam}[2] < -far$ (beyond far). The question asks $z > -near$ (behind or too close).
+
+## 本章小結
+本章介紹了視圖矩陣的構造，強調了被動變換的概念和右手系的一致性。`look_at`函式是3D圖學的核心，必須嚴格處理邊界情況（如up平行於f）。正確建立相機座標是後續投影和剔除的基礎。
+
+## 參考來源
+- G1: PBRT 4 Transformations
+- G4: Ray Tracing in One Weekend (Camera setup)
+- G5: LearnOpenGL Transformations

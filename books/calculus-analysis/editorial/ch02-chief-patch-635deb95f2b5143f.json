@@ -1,0 +1,11 @@
+{
+  "key": "635deb95f2b5143f7588e2d6b77209fd27f9d00ce6e035c4317923dfa2c6c6e1",
+  "person": {
+    "id": "v4_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 156,
+  "result": "<<<PATCH 02>>>\n<<<OLD>>>\n也可構造發散延伸\n\n$$\na_{N+k}=(-1)^k,\\qquad k\\ge1.\n$$\n\n兩者有完全相同的已觀察前綴，卻有不同的收斂行為。因此，有限資料本身不能決定任意未知無窮延伸是否收斂。\n<<<NEW>>>\n也可構造發散延伸\n\n$$\na_{N+k}=(-1)^k,\\qquad k\\ge1.\n$$\n\n第二種延伸在 $N+1$ 項之後輪流取 $-1$ 與 $1$，因此含兩個分別趨向 $-1$ 與 $1$ 的常數子列，整列不收斂；有限前綴（包含 $N=0$ 的無前綴情形）不影響這個尾端振盪。兩者有完全相同的已觀察前綴，卻有不同的收斂行為。因此，有限資料本身不能決定任意未知無窮延伸是否收斂。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n由標準結果 $H_n-\\log n\\to\\gamma$，\n\n$$\nT_N\\to\n\\log(4N)-\\frac12\\log(2N)-\\frac12\\log N\n=\\frac32\\log2.\n$$\n<<<NEW>>>\n由標準結果 $H_n=\\log n+\\gamma+o(1)$，故\n\n$$\n\\begin{aligned}\nT_N\n&=H_{4N}-\\frac12H_{2N}-\\frac12H_N\\\\\n&=\\left(\\log(4N)+\\gamma+o(1)\\right)\n-\\frac12\\left(\\log(2N)+\\gamma+o(1)\\right)\n-\\frac12\\left(\\log N+\\gamma+o(1)\\right)\\\\\n&=\\frac32\\log2+o(1).\n\\end{aligned}\n$$\n\n因此 $T_N\\to\\frac32\\log2$。\n<<<END>>>"
+}

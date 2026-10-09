@@ -1,0 +1,11 @@
+{
+  "key": "1098f029751664aea768770fd224539135471ddbc81098d0ef1df72b88241614",
+  "person": {
+    "id": "v5_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 387,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n    mean_nll = total_nll / num_valid\n    # 明確拒絕不可表示的 PPL；mean_nll 仍可供呼叫端另行記錄。\n    if not np.isfinite(mean_nll) or mean_nll > np.log(np.finfo(float).max):\n        raise OverflowError(\"PPL not representable; record mean NLL instead.\")\n<<<NEW>>>\n    mean_nll = total_nll / num_valid\n    # 拋出 OverflowError 時不會回傳 mean_nll；呼叫端若需記錄，須另設回傳介面。\n    if not np.isfinite(mean_nll) or mean_nll > np.log(np.finfo(float).max):\n        raise OverflowError(\"PPL not representable.\")\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    assert select_threshold(np.array([.8, .6]), np.array([1, 0]),\n                            [0, .8, 1], .5) == .8\n<<<NEW>>>\n    assert select_threshold(np.array([.8, .6]), np.array([1, 0]),\n                            [0, .8, 1], .5) == .8\n    assert result[\"selection\"][\"selected_tau\"] == .8\n    validation_point = result[\"selection\"][\"validation_point\"]\n    assert validation_point[1] == 1 and validation_point[2] == 0\n    id_point = result[\"id\", \"all\"][\"selected_point\"]\n    ood_point = result[\"ood\", \"all\"][\"selected_point\"]\n    assert id_point[1] == 2 and id_point[2] == 0\n    assert np.isclose(id_point[3], 2 / 3) and id_point[4] == 0\n    assert ood_point[1] == 1 and ood_point[2] == 1\n    assert np.isclose(ood_point[3], 1 / 3) and ood_point[4] == 1\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n    assert np.isfinite(compute_global_ppl(z, np.array([[0]]),\n                                           np.array([[True]]))[0])\n<<<NEW>>>\n    assert np.isfinite(compute_global_ppl(z, np.array([[0]]),\n                                           np.array([[True]]))[0])\n    # 極端有限 logits 下真標籤機率極小，PPL 應不可表示。\n    expect_error(OverflowError, compute_global_ppl,\n                 np.array([[[1000., 0.]]]), np.array([[1]]),\n                 np.array([[True]]))\n<<<END>>>"
+}

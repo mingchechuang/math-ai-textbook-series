@@ -1,0 +1,30 @@
+{
+  "key": "24dfa19c9e32e7d3779a5ccb8eae7d0a00377c50c632d0e4fbcc7b6034b83130",
+  "person": {
+    "id": "v2_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 261,
+  "result": {
+    "patches": [
+      {
+        "chapter": 20,
+        "old": "    e1, e2 = sub(b, a), sub(c, a)\n    p = cross(d, e2)\n    det = dot(e1, p)\n    if abs(det) < 1e-12:\n        return None\n    inv_det = 1.0 / det",
+        "new": "    e1, e2 = sub(b, a), sub(c, a)\n    d_len = dot(d, d) ** 0.5\n    e1_len = dot(e1, e1) ** 0.5\n    e2_len = dot(e2, e2) ** 0.5\n    if d_len == 0.0 or e1_len == 0.0 or e2_len == 0.0:\n        return None\n    p = cross(d, e2)\n    det = dot(e1, p)\n    # 無因次角度容差；門檻隨方向及兩條邊的長度縮放。\n    if abs(det) < 1e-8 * d_len * e1_len * e2_len:\n        return None\n    inv_det = 1.0 / det"
+      },
+      {
+        "chapter": 20,
+        "old": "    root = build(tris, list(range(len(tris))))\n    for ray in rays:",
+        "new": "    # 同一幾何射線：正比例縮放方向不應改變命中索引。\n    base, _ = brute_force(tris, ((0., 0., 0.), (0., 0., 1.)))\n    scaled, _ = brute_force(tris, ((0., 0., 0.), (0., 0., 1e-8)))\n    assert base is not None and scaled is not None\n    assert base[1] == scaled[1] == 0\n    assert abs(base[0] - 3.0) < 1e-12\n    assert abs(scaled[0] * 1e-8 - 3.0) < 1e-12\n\n    root = build(tris, list(range(len(tris))))\n    for ray in rays:"
+      },
+      {
+        "chapter": 20,
+        "old": "`1e-12` 是此範例用來避免除以接近零的三角形行列式，不是適用所有模型的通用容差。真實專案須依模型尺度、座標精度與求交方法設定。`tmin=1e-6` 同樣只是範例參數；它不是通用自相交解法，也不是物理安全距離。",
+        "new": "三角形行列式測試使用無因次係數 `1e-8` 乘以方向及兩條邊的長度，避免單純縮放射線方向或網格尺寸就改變近平行判定；零長方向與零長邊回傳無交點。這仍只是範例容差，真實專案須依座標精度及求交方法檢查。方向未正規化時，同一幾何交點的參數 $t$ 會反比於方向長度改變，距離仍為 $t\\|\\mathbf d\\|$。`tmin=1e-6` 是**參數**下界：改變方向長度而不相應調整它，可能使極近交點的接受結果不同；它不是通用自相交解法或物理安全距離。"
+      }
+    ],
+    "reason": "第20章原固定行列式門檻會隨射線方向與三角形尺寸縮放而改變相交判定；改用無因次相對門檻，並加入同一射線方向縮放的命中與距離換算測試。未執行程式。"
+  }
+}

@@ -1,0 +1,313 @@
+# 第九章 Bézier曲線與樣條
+
+## 學習目標與先備知識
+本章建立 Bézier 曲線的數學基礎，涵蓋 Bernstein 基底、de Casteljau 演算法、導數計算及樣條拼接的連續性條件。
+*   **先備知識**：假設讀者已掌握第一卷的向量內積、外積、正規化及 NumPy 基礎操作。
+*   **微積分橋接**：理解多項式函數的導數性質，特別是 $\frac{d}{dt} t^k = k t^{k-1}$ 及鏈式法則。
+*   **幾何直覺**：了解控制點（Control Points）如何影響曲線形狀，以及「凸包性質」（Convex Hull Property）的含義。
+*   **符號定義**：
+    *   $P_i \in \mathbb{R}^d$：第 $i$ 個控制點向量。
+    *   $n$：曲線次數（Degree），控制點數量為 $n+1$。
+    *   $t \in [0, 1]$：參數。
+    *   $\mathbf{B}(t)$：參數 $t$ 處的曲線點。
+
+## 問題與直覺
+在養殖場數位分身中，魚體輪廓需要平滑變化以模擬游動形態。使用多邊形網格直接連接頂點會產生明顯的折線，而 Bézier 曲線提供了一種用少量控制點定義平滑路徑的方法。
+*   **端點約束**：曲線起點必為 $P_0$，終點必為 $P_n$。
+*   **凸包性質**：曲線完全位於控制點形成的凸包內。這意味著如果所有控制點都在某個範圍內，曲線不會超出該範圍，這對確保魚體模型不異常膨脹非常重要。
+*   **局部影響**：移動某個中間控制點會影響整條曲線，影響程度由 Bernstein 基底決定。
+
+## 數學與幾何推導
+### 1. Bernstein 基底
+$n$ 次 Bézier 曲線由 $n+1$ 個控制點 $P_0, \dots, P_n$ 定義。其解析式為：
+$$ \mathbf{B}(t) = \sum_{i=0}^{n} P_i \, B_{i,n}(t) $$
+其中 $B_{i,n}(t)$ 為 Bernstein 基底函數：
+$$ B_{i,n}(t) = \binom{n}{i} t^i (1-t)^{n-i} $$
+$\binom{n}{i} = \frac{n!}{i!(n-i)!}$ 為二項式係數。
+**性質**：$\sum_{i=0}^{n} B_{i,n}(t) = 1$，確保了仿射組合的歸一性。
+
+### 2. de Casteljau 演算法
+直接計算高次多項式在數值上不穩定且計算量大。de Casteljau 演算法透過遞迴線性插值計算曲線點，具有幾何直覺且數值穩定。
+**演算法步驟**：
+1.  定義點序列 $P_0^0, P_1^0, \dots, P_n^0$ 為原始控制點。
+2.  對於層級 $k$ 從 $0$ 到 $n-1$，計算新點：
+    $$ P_i^k = (1-t) P_i^{k+1} + t P_{i+1}^{k+1} $$
+    *(註：這裡指數表示層級，通常記號為 $P_i^{(k)}$ 或 $Q_i^k$，此处依演算法邏輯描述，實作時需注意索引方向)*
+    更準確的遞迴定義：設 $Q_i^{(0)} = P_i$。
+    對於 $j = 1, \dots, n$：
+    $$ Q_i^{(j)} = (1-t) Q_i^{(j-1)} + t Q_{i+1}^{(j-1)} $$
+3.  最終點 $Q_0^{(n)}$ 即為 $\mathbf{B}(t)$。
+
+### 3. 導數與切線
+曲線的切線方向由導數 $\mathbf{B}'(t)$ 決定。
+$$ \mathbf{B}'(t) = \sum_{i=0}^{n-1} (P_{i+1} - P_i) \, \binom{n-1}{i} (1-t)^{n-1-i} t^i \cdot n $$
+簡化後，$\mathbf{B}'(t)$ 本身是一個 $n-1$ 次 Bézier 曲線，其控制點為 $\Delta P_i = P_{i+1} - P_i$。
+*   **起點切線**：$\mathbf{B}'(0) = n(P_1 - P_0)$。
+*   **終點切線**：$\mathbf{B}'(1) = n(P_n - P_{n-1})$。
+
+### 4. 連續性
+拼接兩段 Bézier 曲線時，需考慮連續性級別：
+*   **$C^0$ (位置連續)**：前段終點等於後段起點，$P_{end,1} = P_{start,2}$。
+*   **$G^1$ (幾何連續/切線連續)**：接點處切線方向共線。對於 Bézier，需滿足 $P_{n-1}, P_n, Q_0, Q_1$ 共線（其中 $P$ 為前段，$Q$ 為後段）。
+*   **$C^1$ (參數連續)**：接點處一階導數向量相等，$P_{end}' = P_{start}'$。這要求 $P_{n-1}, P_n, Q_0, Q_1$ 共線，且 $P_n - P_{n-1} = Q_1 - Q_0$（向量相等，不僅方向相同）。
+
+## 逐步手算例題
+### 例題 1：二次 Bézier 曲線求值與切線
+**控制點**：$P_0(0,0), P_1(2,2), P_2(4,0)$。
+**求**：$t=0.5$ 時的點及切線向量。
+
+1.  **計算點**：
+    $n=2$。
+    $B_{0,2}(0.5) = \binom{2}{0}(0.5)^0(0.5)^2 = 0.25$
+    $B_{1,2}(0.5) = \binom{2}{1}(0.5)^1(0.5)^1 = 0.5$
+    $B_{2,2}(0.5) = \binom{2}{2}(0.5)^2(0.5)^0 = 0.25$
+    $\mathbf{B}(0.5) = 0.25 P_0 + 0.5 P_1 + 0.25 P_2$
+    $x = 0.25(0) + 0.5(2) + 0.25(4) = 0 + 1 + 1 = 2$
+    $y = 0.25(0) + 0.5(2) + 0.25(0) = 0 + 1 + 0 = 1$
+    點為 $(2, 1)$。
+
+2.  **計算切線**：
+    $\mathbf{B}'(t) = 2(1-t)(P_1-P_0) + 2t(P_2-P_1)$
+    $P_1 - P_0 = (2, 2)$
+    $P_2 - P_1 = (2, -2)$
+    $\mathbf{B}'(0.5) = 2(0.5)(2, 2) + 2(0.5)(2, -2) = (2, 2) + (2, -2) = (4, 0)$
+    切線向量為 $(4, 0)$，即水平向右。
+
+### 例題 2：檢查 $G^1$ 連續性
+**前段**終點 $P_2(4,0)$，前一控制點 $P_1(2,2)$。
+**後段**起點 $Q_0(4,0)$，下一控制點 $Q_1(6,2)$。
+**檢查**：$P_1, P_2, Q_0, Q_1$ 是否共線？
+向量 $\vec{v_1} = P_2 - P_1 = (4,0) - (2,2) = (2, -2)$。
+向量 $\vec{v_2} = Q_1 - Q_0 = (6,2) - (4,0) = (2, 2)$。
+2D 外積（行列式）：$2(2) - (-2)(2) = 4 + 4 = 8 \neq 0$。
+不共線，因此不滿足 $G^1$ 連續，接點處會有明顯折角。
+
+## 實作與程式
+以下程式使用 NumPy 實現 de Casteljau 演算法及切線計算，並進行基本驗證。
+
+```python
+import numpy as np
+
+def bernstein_basis(n, i, t):
+    """計算第 i 個 Bernstein 基底值"""
+    coeff = np.math.factorial(n) / (np.math.factorial(i) * np.math.factorial(n - i))
+    return coeff * (t ** i) * ((1 - t) ** (n - i))
+
+def bezier_point(points, t):
+    """使用基底函數計算 Bézier 曲線點"""
+    points = np.array(points)
+    n = len(points) - 1
+    p = np.zeros(points.shape[1])
+    for i in range(n + 1):
+        p += points[i] * bernstein_basis(n, i, t)
+    return p
+
+def de_casteljau(points, t):
+    """使用 de Casteljau 演算法計算 Bézier 曲線點"""
+    pts = [np.array(p) for p in points]
+    for _ in range(len(pts) - 1):
+        new_pts = []
+        for i in range(len(pts) - 1):
+            # 線性插值
+            interp = (1 - t) * pts[i] + t * pts[i + 1]
+            new_pts.append(interp)
+        pts = new_pts
+    return pts[0]
+
+def bezier_tangent(points, t):
+    """計算切線向量（未正規化）"""
+    # 導數控制點為差分
+    diffs = [points[i+1] - points[i] for i in range(len(points)-1)]
+    n = len(points) - 1
+    # 導數曲線次數為 n-1
+    return bezier_point(diffs, t) * n
+
+def test_curve():
+    # 魚體上半部輪廓模擬 (2D)
+    # P0: 頭頂, P1: 背鰭前, P2: 背鰭後, P3: 尾柄
+    ctrl_pts = [
+        np.array([0.0, 0.0]),   # P0
+        np.array([1.0, 1.0]),   # P1
+        np.array([2.0, 1.5]),   # P2
+        np.array([3.0, 0.0])    # P3
+    ]
+    
+    # 1. 端點測試
+    p_start = bezier_point(ctrl_pts, 0.0)
+    p_end = bezier_point(ctrl_pts, 1.0)
+    assert np.allclose(p_start, ctrl_pts[0]), "Start point mismatch"
+    assert np.allclose(p_end, ctrl_pts[-1]), "End point mismatch"
+    print(f"Start: {p_start}, End: {p_end}")
+
+    # 2. de Casteljau vs Direct Comparison
+    t_test = 0.5
+    p_direct = bezier_point(ctrl_pts, t_test)
+    p_dc = de_casteljau(ctrl_pts, t_test)
+    assert np.allclose(p_direct, p_dc, atol=1e-6), "Methods differ"
+    print(f"t=0.5 Direct: {p_direct}, de Casteljau: {p_dc}")
+
+    # 3. 凸包測試 (簡單 bounding box 檢查)
+    min_coord = np.min(ctrl_pts, axis=0)
+    max_coord = np.max(ctrl_pts, axis=0)
+    is_inside = True
+    for t in np.linspace(0, 1, 100):
+        p = de_casteljau(ctrl_pts, t)
+        if not (np.all(p >= min_coord - 1e-6) and np.all(p <= max_coord + 1e-6)):
+            is_inside = False
+            break
+    assert is_inside, "Curve outside convex hull bounding box"
+    print("Convex Hull BBox Check: Passed")
+
+    # 4. 切線測試
+    tan_start = bezier_tangent(ctrl_pts, 0.0)
+    tan_end = bezier_tangent(ctrl_pts, 1.0)
+    # 驗證方向
+    # Start tangent should be parallel to P1-P0
+    v1 = ctrl_pts[1] - ctrl_pts[0]
+    # Cross product magnitude (2D)
+    cross_start = tan_start[0]*v1[1] - tan_start[1]*v1[0]
+    assert np.isclose(cross_start, 0), "Start tangent not parallel to first segment"
+    
+    # End tangent should be parallel to Pn-Pn-1
+    v2 = ctrl_pts[-1] - ctrl_pts[-2]
+    cross_end = tan_end[0]*v2[1] - tan_end[1]*v2[0]
+    assert np.isclose(cross_end, 0), "End tangent not parallel to last segment"
+    
+    print(f"Start Tangent: {tan_start}, End Tangent: {tan_end}")
+    print("All tests passed.")
+
+if __name__ == "__main__":
+    test_curve()
+```
+
+## 測試與預期結果
+運行上述程式，預期輸出：
+1.  **端點**：`Start: [0. 0.]`, `End: [3. 0.]`。確認端點插值正確。
+2.  **中點**：`t=0.5 Direct: [1.5 0.75], de Casteljau: [1.5 0.75]`。兩法結果一致。
+    *手算驗證*：
+    $P_0(0,0), P_1(1,1), P_2(2,1.5), P_3(3,0)$。
+    $B_{0,3}(0.5)=1/8, B_{1,3}(0.5)=3/8, B_{2,3}(0.5)=3/8, B_{3,3}(0.5)=1/8$.
+    $x = 0/8 + 3/8 + 6/8 + 3/8 = 12/8 = 1.5$.
+    $y = 0/8 + 3/8 + 4.5/8 + 0/8 = 7.5/8 = 0.9375$.
+    *注意*：上述手算 $y$ 為 0.9375，但程式輸出 0.75？
+    重新檢查手算：
+    $y = 0.125(0) + 0.375(1) + 0.375(1.5) + 0.125(0) = 0.375 + 0.5625 = 0.9375$.
+    程式中 `bernstein_basis` 計算：
+    $i=1, n=3$: $\binom{3}{1} = 3$. $3 * 0.5 * 0.25 = 0.375$.
+    $i=2, n=3$: $\binom{3}{2} = 3$. $3 * 0.25 * 0.5 = 0.375$.
+    計算無誤。為何預期輸出寫 0.75？
+    是我之前腦內手算錯誤或預期輸出佔位符錯誤。
+    **修正預期輸出**：
+    $y = 0.9375$。
+    因此，預期輸出應為 `t=0.5 Direct: [1.5 0.9375]`。
+    
+3.  **凸包**：`Convex Hull BBox Check: Passed`。
+4.  **切線**：
+    `Start Tangent: [3. 3.]` ($3 * (1,1)$).
+    `End Tangent: [3. -4.5]` ($3 * (1, -1.5)$).
+    驗證平行性：
+    Start: $(3,3)$ 與 $(1,1)$ 平行。
+    End: $(3, -4.5)$ 與 $(1, -1.5)$ 平行 ($3*1=3, 3*(-1.5)=-4.5$).
+
+## 除錯與常見陷阱
+1.  **數值溢出/下溢**：
+    *   **問題**：計算 $t^i (1-t)^{n-i}$ 時，若 $n$ 較大且 $t$ 接近 0 或 1，直接計算可能導致精度丟失。
+    *   **解決**：使用 de Casteljau 演算法，它僅涉及線性插值，數值穩定性高。
+2.  **索引錯誤**：
+    *   **問題**：在 de Casteljau 遞迴中，層級減少時，點數量也減少。需確保迴圈邊界正確。
+    *   **解決**：使用列表生成式或明確追蹤長度。
+3.  **連續性誤判**：
+    *   **問題**：僅檢查位置連續 ($C^0$) 而忽略切線方向，導致拼接處出現尖角。
+    *   **解決**：在建模工具中，需確保控制點共線以實現 $G^1$ 或 $C^1$ 連續。
+4.  **單位不一致**：
+    *   **問題**：控制點座標單位（米 vs 厘米）與下游網格生成不一致。
+    *   **解決**：全書採用公尺為單位，確保輸入控制點前進行統一縮放。
+
+## 養殖數位分身案例
+在建立魚體模型時，我們使用三次 Bézier 曲線定義魚背輪廓。
+1.  **控制點佈置**：
+    *   $P_0$: 魚額頭頂端 $(0, 0, 0)$。
+    *   $P_1$: 背鰭前方隆起 $(0.2, 0.05, 0)$。
+    *   $P_2$: 背鰭後方凹陷 $(0.5, 0.02, 0)$。
+    *   $P_3$: 尾柄處 $(0.8, 0.0, 0)$。
+    *   *(註：此處為 2D XY 平面示意，實際 3D 需考慮 Z 軸深度，但原理相同)*
+2.  **生成網格**：
+    將曲線離散化為 20 個點，作為魚體上半部橫截面的樣條線。下半部對稱生成。
+3.  **動畫驅動**：
+    在遊動動畫中，$P_1$ 和 $P_2$ 隨時間 $t$ 波動：
+    $P_1(t) = P_1_{base} + A \sin(\omega t) \vec{n}$。
+    由於 Bézier 曲線對控制點的仿射組合性質，這種局部擾動能平滑地傳遞到整個曲線，避免網格撕裂。
+4.  **驗證**：
+    使用凸包性質檢查：確保波動幅度 $A$ 不過大，導致曲線超出魚體預設的包圍盒（Bounding Box），防止碰撞偵測誤判。
+
+## 習題
+1.  **手算**：給定三次 Bézier 控制點 $P_0(0,0), P_1(1,1), P_2(2,1), P_3(3,0)$，計算 $t=0.5$ 時的點座標及 $t=0$ 處的切線向量。
+2.  **程式測試**：修改 `test_curve` 函式，增加一個測試，驗證當所有控制點共線時，曲線應退化為直線段。即 $t=0.5$ 時，點應落在控制點連線的中點。
+3.  **反例／除錯**：如果用戶提供的控制點序列包含重複點（例如 $P_1 = P_2$），Bézier 曲線會發生什麼變化？de Casteljau 演算法是否會出錯？請簡述。
+4.  **整合應用**：設計一段程式，輸入兩段三次 Bézier 曲線的控制點，自動檢查它們在接點處是否滿足 $G^1$ 連續（共線檢查）。若不滿足，輸出警告並計算切線夾角。
+
+## 習題解答
+1.  **手算解答**：
+    *   $n=3$。
+    *   $t=0.5$ 基底權重：$1/8, 3/8, 3/8, 1/8$。
+    *   $x = 0(1/8) + 1(3/8) + 2(3/8) + 3(1/8) = (0+3+6+3)/8 = 12/8 = 1.5$。
+    *   $y = 0(1/8) + 1(3/8) + 1(3/8) + 0(1/8) = 6/8 = 0.75$。
+    *   點：$(1.5, 0.75)$。
+    *   $t=0$ 切線：$\mathbf{B}'(0) = 3(P_1 - P_0) = 3((1,1)-(0,0)) = (3, 3)$。
+
+2.  **程式測試解答**：
+    ```python
+    def test_degenerate_line():
+        # 共線控制點
+        pts = [np.array([0.0]), np.array([1.0]), np.array([2.0]), np.array([3.0])]
+        p_mid = de_casteljau(pts, 0.5)
+        # 期望值為 1.5
+        assert np.isclose(p_mid[0], 1.5), f"Expected 1.5, got {p_mid[0]}"
+        print("Degenerate line test passed.")
+    ```
+    這驗證了仿射組合在共線情形下的正確性。
+
+3.  **反例解答**：
+    *   **變化**：如果 $P_1 = P_2$，曲線在該區域的「停留時間」增加，形狀會更靠近該點，類似於該控制點權重加倍的效果。
+    *   **演算法**：de Casteljau 演算法**不會出錯**。線性插值 $(1-t)P_i + t P_{i+1}$ 在 $P_i=P_{i+1}$ 時仍成立，結果為該點本身。這在實際建模中常用於創建尖角或強調某點。
+
+4.  **整合應用解答**：
+    ```python
+    def check_g1_continuity(pts1, pts2):
+        """
+        pts1: list of np.array, last point is junction
+        pts2: list of np.array, first point is junction
+        """
+        # 檢查 C0
+        if not np.allclose(pts1[-1], pts2[0]):
+            print("Not C0 continuous.")
+            return
+        
+        # 計算切線向量
+        t1 = pts1[-1] - pts1[-2]
+        t2 = pts2[1] - pts2[0]
+        
+        # 正規化
+        t1_norm = t1 / np.linalg.norm(t1)
+        t2_norm = t2 / np.linalg.norm(t2)
+        
+        # 計算夾角
+        dot = np.dot(t1_norm, t2_norm)
+        # 限制 dot 在 [-1, 1]
+        dot = np.clip(dot, -1.0, 1.0)
+        angle = np.arccos(dot)
+        
+        if np.isclose(angle, 0.0, atol=1e-3) or np.isclose(angle, np.pi, atol=1e-3):
+            print("G1 Continuous (Collinear).")
+        else:
+            print(f"Warning: Not G1. Angle difference: {np.degrees(angle)} degrees.")
+    ```
+
+## 本章小結
+本章建立了 Bézier 曲線的核心數學工具。透過 Bernstein 基底定義了曲線的仿射組合性質，de Casteljau 演算法提供了穩健的計算方法，導數公式揭示了切線方向的控制機制。理解 $C^0, G^1, C^1$ 連續性對於構建平滑樣條至關重要。在養殖數位分身應用中，這些知識可用於生成平滑魚體輪廓並進行動畫驅動，同時利用凸包性質進行幾何驗證。
+
+## 參考來源
+1.  **G1** PBRT 4: Transformations. (參考仿射變換性質)
+2.  **G4** Ray Tracing in One Weekend. (參考 Bézier 曲面基礎)
+3.  **G7** NumPy 線性代數參考. (參考向量運算實作)
+4.  *The NURBS Book* (Piegl & Tiller). (Bézier 與樣條理論標準參考，雖未直接引用 URL，但為該領域權威來源)

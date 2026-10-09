@@ -1,0 +1,201 @@
+## 學習目標與先備知識
+
+本章以**常密度牛頓流體**建立不可壓動量模型，重點是讀懂方程、檢查量綱，並用可逐項求導的製造流場核對數值算子。完成後，讀者應能：
+
+1. 分辨局部加速度、對流加速度、壓力梯度、黏性及單位質量外力，逐項核對其 SI 單位。
+2. 從質量守恆說明常密度條件下的無散度約束，並理解壓力在不可壓模型中如何協助滿足該約束。
+3. 明示參考尺度，推得 Reynolds 數及無因次外力；不把單一 Reynolds 數當作普遍的層流判據。
+4. 手算週期網格的壓力投影，正確處理右端相容性、壓力常數零模態及速度校正符號。
+5. 對二維、雙速度分量的製造場核對解析散度與動量來源，為後續空間離散殘差測試建立基準。
+
+先備知識包括偏導數、散度定理、向量場及有限差分。本章沿用右手座標系：$X$ 向右、$Y$ 向上、$Z$ 朝觀者。二維物理網格若寫成 `q[j,i]`，則 $i$ 沿 $+X$，$j$ 沿 $+Y$。後述四格投影是**一維面速度與格心壓力的手算代數例**；本章的二維製造場殘差則可在**週期格心取樣**，兩者不能混用索引。完整的二維交錯網格時間積分與壓力投影留待下一章，本章不宣稱提供工業級 CFD。
+
+## 問題與直覺
+
+一小塊流體在運動時，速度可以因時間經過而改變，也可以因流體移到速度不同的位置而改變。即使一個定常速度場在每個固定位置都不隨時間變，沿流線移動的流體仍可能加速；這是動量方程中必須保留對流項的原因。黏性使相鄰位置的速度差受到剪應力作用；外力則可以是重力等單位質量所受的力。
+
+「不可壓」在本章的具體假設是密度 $\rho$ 為常數。由質量守恆
+
+$$
+\partial_t\rho+\nabla\cdot(\rho\boldsymbol u)=0
+$$
+
+可得 $\nabla\cdot\boldsymbol u=0$。它要求局部體積收支平衡，**不**要求各處速度相同，也不排斥旋渦。若區域有流入及流出，兩者的總體積通量須依邊界法向及條件核對；不能把「無散度」解讀為每個邊界面的通量都為零。
+
+不可壓模型中的壓力不宜描述成「抵抗局部高密度堆積」：本章已把密度視為常數。壓力梯度是動量平衡的一部分，也在數學上充當維持無散度約束的反應。壓力通常沒有可單獨逐點演化的方程；其空間分布須與速度、邊界條件及動量方程共同決定。在週期域，給壓力加上一個空間常數不改變壓力梯度，因此還須指定參考均值。
+
+Reynolds 數比較所選尺度上的慣性與黏性作用，但它不能單憑大小替代幾何、邊界擾動及時間尺度分析。同一流動若選不同特徵長度，所報 Reynolds 數也會不同。本章以製造解檢查「程式是否按指定方程計算」，不以製造場的外觀或殘差宣稱某個真實池域已獲物理驗證。
+
+## 數學與物理推導
+
+### 動量方程、量綱與限制
+
+對密度及運動黏滯係數為常數的不可壓牛頓流體，採單位質量外力 $\boldsymbol f$ 時，動量方程寫為
+
+$$
+\partial_t\boldsymbol u+(\boldsymbol u\cdot\nabla)\boldsymbol u
+=-\frac{1}{\rho}\nabla p+\nu\Delta\boldsymbol u+\boldsymbol f,
+\qquad
+\nabla\cdot\boldsymbol u=0.
+$$
+
+這裡 $\boldsymbol u$ 的單位是 $\mathrm{m/s}$，$\rho$ 為 $\mathrm{kg/m^3}$，壓力 $p$ 為 $\mathrm{Pa}=\mathrm{kg/(m\,s^2)}$，運動黏滯係數 $\nu$ 為 $\mathrm{m^2/s}$，$\boldsymbol f$ 為 $\mathrm{m/s^2}$。故局部加速度與對流加速度均為 $\mathrm{m/s^2}$；壓力梯度除以密度為 $(\mathrm{Pa/m})/(\mathrm{kg/m^3})=\mathrm{m/s^2}$；$\nu\Delta\boldsymbol u$ 亦為 $\mathrm{m/s^2}$。若給的是單位體積力，必須先除以 $\rho$，不能直接代入 $\boldsymbol f$。
+
+在上述假設下，$\nu\Delta\boldsymbol u$ 是黏性作用的簡化形式。變密度、變黏度、自由液面、非牛頓物性及湍流閉合各需額外模型或不同形式的應力散度；不可僅改一個係數便宣稱原式仍適用。二維的動能若要積分，須同時計入 $u_x^2$ 與 $u_y^2$；本卷的二維積分按**每單位厚度**解釋。速度場的數值穩定、離散散度、動能變化及物理可信度也應分開診斷。
+
+### Reynolds 數與無因次方程
+
+取正參考長度 $L$、速度 $U$，令時間尺度 $T=L/U$，並設
+
+$$
+\boldsymbol x=L\boldsymbol x^\ast,\quad
+t=\frac{L}{U}t^\ast,\quad
+\boldsymbol u=U\boldsymbol u^\ast,\quad
+p=\rho U^2p^\ast,\quad
+\boldsymbol f=\frac{U^2}{L}\boldsymbol f^\ast.
+$$
+
+代入動量方程並除以 $U^2/L$，得到
+
+$$
+\partial_{t^\ast}\boldsymbol u^\ast+
+(\boldsymbol u^\ast\cdot\nabla^\ast)\boldsymbol u^\ast
+=-\nabla^\ast p^\ast+
+\frac{1}{Re}\Delta^\ast\boldsymbol u^\ast+
+\boldsymbol f^\ast,
+\qquad
+Re=\frac{UL}{\nu}.
+$$
+
+因此無因次外力明確為 $\boldsymbol f^\ast=L\boldsymbol f/U^2$。若另有重力、壁面速度或不同幾何比例，這些資料的無因次形式仍須列出；不能說解「只」取決於 $Re$。本章不給通用的層流 Reynolds 數閾值，也不把小 $Re$ 等同任何數值格式必定穩定。
+
+### 壓力投影的符號與適用範圍
+
+為說明約束如何進入計算，暫設某一離散預測步已得到面速度 $\boldsymbol u^\star$。以相容的離散散度 $D_h$、格心到面的梯度 $G_h$ 校正：
+
+$$
+\boldsymbol u^{n+1}
+=\boldsymbol u^\star-\frac{\Delta t}{\rho}G_hp,
+\qquad D_h\boldsymbol u^{n+1}=0.
+$$
+
+令 $L_h=D_hG_h$ 近似 Laplacian，$A_h=-L_h$，則
+
+$$
+L_hp=\frac{\rho}{\Delta t}D_h\boldsymbol u^\star,
+\qquad
+A_hp=-\frac{\rho}{\Delta t}D_h\boldsymbol u^\star.
+$$
+
+將此式代回，離散校正後的散度才會消去。若用 $A_h=-L_h$ 卻把右端寫成正的預測散度，並仍從速度減去壓力梯度，兩個符號便不相容。這段是投影代數的橋接，**不是**本章二維製造殘差程式的時間更新宣稱。
+
+週期域中 $A_h$ 有常數零模態；右端必須滿足零均值相容性，壓力則可指定零均值。$A_h$ 在全空間並非正定，只在去除常數模態的適當子空間上正定。求得數值壓力後，若採迭代法，須檢查真殘差 $r=b-A_hp$，明示絕對及相對容差；小殘差也不能不經條件分析就等同小解誤差。固壁的壓力邊界不能直接照搬週期條件，須與速度邊界及投影格式一致推導。
+
+### 二維製造場及其動量來源
+
+取週期正方域 $[0,L)^2$、$k=2\pi/L$、$a(t)=Ue^{-\alpha t}$，其中 $U>0$ 為 $\mathrm{m/s}$、$\alpha\geq0$ 為 $\mathrm{s^{-1}}$。定義
+
+$$
+u=a\sin(kx)\cos(ky),\qquad
+v=-a\cos(kx)\sin(ky),
+$$
+
+$$
+p=\frac{\rho a^2}{4}
+\left[\cos(2kx)+\cos(2ky)\right].
+$$
+
+由 $\partial_xu=ak\cos(kx)\cos(ky)$ 及 $\partial_yv=-ak\cos(kx)\cos(ky)$，可知散度逐點為零。對流加速度為
+
+$$
+(\boldsymbol u\cdot\nabla)\boldsymbol u
+=a^2k
+\begin{pmatrix}
+\sin(kx)\cos(kx)\\
+\sin(ky)\cos(ky)
+\end{pmatrix},
+$$
+
+而壓力梯度滿足
+
+$$
+\frac{1}{\rho}\nabla p
+=-a^2k
+\begin{pmatrix}
+\sin(kx)\cos(kx)\\
+\sin(ky)\cos(ky)
+\end{pmatrix}.
+$$
+
+兩者在動量方程移至同側時互相平衡。此外，$\partial_t\boldsymbol u=-\alpha\boldsymbol u$，$\Delta\boldsymbol u=-2k^2\boldsymbol u$，所以完整不可壓動量方程所需的**單位質量製造外力**是
+
+$$
+\boldsymbol f=(2\nu k^2-\alpha)\boldsymbol u.
+$$
+
+括號的單位為 $\mathrm{s^{-1}}$，乘速度後確為 $\mathrm{m/s^2}$。選 $\alpha=2\nu k^2$ 時，$\boldsymbol f=0$，得到此設定下無外力的完整 Navier–Stokes Taylor–Green 解。若改為省略對流項的 Stokes 方程，就不可一面保留上述非恆定壓力、一面仍宣稱外力為零：所比較的方程已改變。後續離散檢查必須分別核對 $u$、$v$ 兩個動量分量，而非只看散度。
+
+## 逐步手算例題
+
+### 例一：四格週期面速度的投影
+
+取一維週期區間 $[0,1)$，四個格子各寬 $\Delta x=0.25\,\mathrm m$。格心壓力為 $p_i$，獨立面速度 $u_i^\star$ 位於 $x=i\Delta x$，$i=0,1,2,3$；若另儲存右端面，須令 $u_4^\star=u_0^\star$。取 $\rho=1\,\mathrm{kg/m^3}$、$\Delta t=0.1\,\mathrm s$，並將速度數值視為 $\mathrm{m/s}$：
+
+$$
+\boldsymbol u^\star=(1,3,1,1)^{\mathsf T}.
+$$
+
+第一步，計算各格散度 $d_i=(u_{i+1}^\star-u_i^\star)/\Delta x$，週期索引下得
+
+$$
+\boldsymbol d=(8,-8,0,0)^{\mathsf T}\ \mathrm{s^{-1}}.
+$$
+
+其和為零，符合週期面通量抵消。第二步，採 $A_h=-L_h$，右端為 $b_i=-(\rho/\Delta t)d_i$：
+
+$$
+A_h=16
+\begin{pmatrix}
+2&-1&0&-1\\
+-1&2&-1&0\\
+0&-1&2&-1\\
+-1&0&-1&2
+\end{pmatrix},
+\qquad
+\boldsymbol b=(-80,80,0,0)^{\mathsf T}.
+$$
+
+矩陣各橫列係數和為零，壓力加常數不影響方程。採零均值條件求得
+
+$$
+\boldsymbol p=(-1.875,\ 1.875,\ 0.625,\ -0.625)^{\mathsf T}\ \mathrm{Pa}.
+$$
+
+可逐格核對：首格的 $32p_0-16p_1-16p_3=-80$，其餘三格依序得到 $80,0,0$；壓力和亦為零。第三步，在面 $i$ 使用兩旁格心壓力差 $(p_i-p_{i-1})/\Delta x$，校正
+
+$$
+u_i^{n+1}=u_i^\star-\frac{\Delta t}{\rho}
+\frac{p_i-p_{i-1}}{\Delta x}.
+$$
+
+由 $\Delta t/(\rho\Delta x)=0.4$，四面依序為 $1.5,1.5,1.5,1.5\,\mathrm{m/s}$；故每格校正後散度為零。平均面速度原已為 $1.5\,\mathrm{m/s}$，投影保留這個週期平均。這是**給定預測速度後的代數投影**，不是黏性把速度「平滑」到均流，也不是初始資料本身已符合不可壓約束。若要談實際時間演化，還須交代預測步、時間格式及動量邊界。
+
+### 例二：製造流場的一點雙分量核對
+
+採前節的二維製造場，取 $x=y=L/8$，則 $kx=ky=\pi/4$。令當時的 $a=a(t)$；由正弦、餘弦皆為 $\sqrt2/2$，
+
+$$
+(u,v)=(a/2,-a/2).
+$$
+
+先算散度的兩個貢獻：$\partial_xu=ak/2$，$\partial_yv=-ak/2$，合為零。再看動量的**兩個**分量。該點的對流加速度各為 $a^2k/2$；壓力加速度 $-\nabla p/\rho$ 的兩分量亦各為 $a^2k/2$。因此在寫成 $\partial_t\boldsymbol u+(\boldsymbol u\cdot\nabla)\boldsymbol u=-\nabla p/\rho+\nu\Delta\boldsymbol u+\boldsymbol f$ 時，左右兩側的這兩項逐分量相等，不可把對流項單獨刪掉。
+
+最後，$\partial_t(u,v)=(-\alpha a/2,\alpha a/2)$，$\nu\Delta(u,v)=(-\nu k^2a,\nu k^2a)$；製造外力為
+
+$$
+(f_x,f_y)=
+\left((2\nu k^2-\alpha)a/2,\,
+-(2\nu k^2-\alpha)a/2\right).
+$$
+
+將黏性與外力相加，即得時間導數的兩個分量。這項逐點核對同時檢查符號及量綱。數值網格上用中心差分取代空間導數後，預期會有離散截斷誤差；不能要求有限網格的動量殘差恰為解析零，也不能在未細化網格前宣稱觀測收斂階。

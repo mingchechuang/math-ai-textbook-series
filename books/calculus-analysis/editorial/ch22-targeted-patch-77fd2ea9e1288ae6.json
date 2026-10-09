@@ -1,0 +1,11 @@
+{
+  "key": "77fd2ea9e1288ae6fd00110fd60a4b407c78132af4e88d0e00234aed70c98c84",
+  "person": {
+    "id": "v4_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 208,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n設 $U$ 路徑連通。若對任意 $A,B\\in U$，以及任意兩條由 $A$ 到 $B$ 的域內分段 $C^1$ 曲線 $\\gamma_1,\\gamma_2$，皆有\n<<<NEW>>>\n設 $U$ 為開且路徑連通的集合。在歐氏空間中，開且路徑連通也保證任意兩點可由域內有限段折線連接。若對任意 $A,B\\in U$，以及任意兩條由 $A$ 到 $B$ 的域內分段 $C^1$ 曲線 $\\gamma_1,\\gamma_2$，皆有\n<<<END>>>\n\n<<<PATCH 02>>>\n<<<OLD>>>\n    # 故障測試：非法半徑及分割數。\n    assert_raises(\n        ValueError,\n        lambda: circle(radius=0.0),\n        \"zero radius\"\n    )\n    assert_raises(\n        ValueError,\n        lambda: line_integral(\n            vortex_field,\n            curve,\n            dcurve,\n            0.0,\n            2.0 * np.pi,\n            n=1\n        ),\n        \"too few panels\"\n    )\n\n    # 故障測試：曲線在 t=pi 通過原點。\n<<<NEW>>>\n    # 故障測試：非法半徑、分割數及場值 shape。\n    assert_raises(\n        ValueError,\n        lambda: circle(radius=0.0),\n        \"zero radius\"\n    )\n    assert_raises(\n        ValueError,\n        lambda: line_integral(\n            vortex_field,\n            curve,\n            dcurve,\n            0.0,\n            2.0 * np.pi,\n            n=1\n        ),\n        \"too few panels\"\n    )\n    assert_raises(\n        ValueError,\n        lambda: line_integral(\n            lambda points: points[:, 0],\n            curve,\n            dcurve,\n            0.0,\n            2.0 * np.pi\n        ),\n        \"wrong field shape\"\n    )\n\n    # 故障測試：曲線在 t=pi 通過原點。\n<<<END>>>\n\n<<<PATCH 03>>>\n<<<OLD>>>\n它沿任何閉路的精確積分均為零，因此第一個 assertion 預期通過，計算結果至多留下浮點捨入誤差。\n<<<NEW>>>\n它沿任何閉路的精確積分均為零。對程式所用的單位圓，將曲線與切向量代入後，積分函數是頻率不超過三的三角多項式；在等距的 $4096$ 個節點上，週期梯形和於精確算術中也等於零。因此第一個 assertion 預期通過。實際浮點結果仍受三角函數求值及累加誤差影響；未執行程式，不能把 $10^{-10}$ 宣稱為已驗證的通用誤差上界。\n<<<END>>>\n\n<<<PATCH 04>>>\n<<<OLD>>>\n其中 $\\operatorname{wind}(\\Gamma,0)$ 是曲線對原點的繞數。因此嚴格說法是：\n<<<NEW>>>\n其中 $\\operatorname{wind}(\\Gamma,0)$ 是曲線對原點的繞數：沿不通過原點的連續閉曲線追蹤連續變化的角度，走完一圈後的角度淨變化除以 $2\\pi$，所得為整數；分段 $C^1$ 曲線符合這些條件。角度只需沿參數區間連續選取，不必在整個穿孔平面上定義單值角度函數。因此嚴格說法是：\n<<<END>>>"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "58458a5ad91c4c0f8f3a53f6ebec658ef447b4b467d08eec485f840211cfe38e",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 181,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。\n<<<NEW>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。此命題使用精確實數運算；程式以浮點數計算 `logits / temperature`，有限 logits 除以極小正溫度仍可能溢位。縮放結果若非有限，後續 `stable_softmax` 會拋出 `ValueError`，不能將命題理解成此 API 對所有正溫度均能成功產生機率。\n<<<END>>>"
+}

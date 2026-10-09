@@ -1,0 +1,70 @@
+{
+  "key": "164b94d34add85cf7c1c1934017f038cdbf318b9580c241b6386bff9c0fe131c",
+  "person": {
+    "id": "v3_editor_28",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 200,
+  "result": {
+    "patches": [
+      {
+        "chapter": 29,
+        "old": "在 1D 有限體積法中，設域長 $L_x$，分為 $N$ 個 cell-centered 節點，$\\Delta x = L_x/N$。\n第 $i$ 個 cell 中心位於 $x_i = (i+0.5)\\Delta x$，體積 $V_i = A \\Delta x$。本章自本節起統一採**每單位截面積**計量：令 $A=1$ m²，焓密度 $H$ 乘以 $\\Delta x$ 得到每單位截面積能量（J/m²）；面通量率 $q$ 乘以 $\\Delta t$ 得到每單位截面積熱量（J/m²）。以下出現的「能量」、「熱輸入」與「熱收支殘差」均以此每單位截面積解讀。若讀者需要實際總能量，把結果乘以實際截面積 $A$ 即可，但不可在推導中途把 $A$ 只乘到某一邊而漏乘另一邊。\n對時間採用後向 Euler 隱式離散：\n$$ \\frac{C_{eff,i}^n (T_i^{n+1} - T_i^n)}{\\Delta t} V_i = F_{i-1/2}^{n+1} - F_{i+1/2}^{n+1} $$\n其中 $F_{i+1/2}$ 定義為沿 $+x$ 方向通過面 $x_{i+1/2}$ 的有號熱流率（W）；cell $i$ 的淨輸入是 $F_{i-1/2}-F_{i+1/2}$。",
+        "new": "在 1D 有限體積法中，域長為 $L_x$，分為 $N$ 個 cell-centered 網格，$\\Delta x=L_x/N$，第 $i$ 個 cell 中心位於 $x_i=(i+0.5)\\Delta x$。本章採每單位截面積計量，不在控制體方程中引入截面積 $A$：焓密度 $H$ 乘以 $\\Delta x$ 得每單位面積焓 $\\mathcal E_i=H_i\\Delta x$，單位為 $\\mathrm{J/m^2}$；面熱流密度 $q$ 的單位為 $\\mathrm{W/m^2}$。若需實際總能量，最後才將每單位面積結果乘以實際截面積，所得單位為 J。\n後向 Euler 離散為\n$$C_{eff,i}^n\\Delta x\\frac{T_i^{n+1}-T_i^n}{\\Delta t}=q_{i-1/2}^{n+1}-q_{i+1/2}^{n+1}.$$\n面通量密度 $q=-k\\,\\partial T/\\partial x$ 沿 $+x$ 方向取正。西面正通量進入 cell，東面正通量離開 cell；兩者差值為每單位面積淨熱輸入率，單位為 $\\mathrm{W/m^2}$。"
+      },
+      {
+        "chapter": 29,
+        "old": "**步驟 5：熱收支檢查**\n左邊界通量（使用 $T_0^1$）：\n$Q_{in} = \\frac{2kA}{\\Delta x} (T_{left} - T_0^1) \\Delta t = \\frac{2(1)(1)}{0.5} (10 - 7.439) (1) = 4 \\times 2.561 = 10.244$ J/m²。\n\n初始焓 $E^0$：\n$H_0^0 = \\rho c_p (5-4) + \\rho L (0.5) = 1 + 5 = 6$ J/m³。\n$H_1^0 = 6$ J/m³。\n$E^0 = (6 + 6) \\Delta x = 12 \\times 0.5 = 6$ J/m²。\n\n最終焓 $E^1$：\n$H_0^1 = \\rho c_p (7.439-4) + \\rho L (1) = 3.439 + 10 = 13.439$ J/m³。\n$H_1^1 = \\rho c_p (5.9756-4) + \\rho L (0.9878) = 1.9756 + 9.878 = 11.8536$ J/m³。\n$E^1 = (13.439 + 11.8536) \\times 0.5 = 25.2926 \\times 0.5 = 12.6463$ J/m²。\n\n收支誤差 $R = E^1 - E^0 - Q_{in} = 12.6463 - 6 - 10.244 = -3.5977$ J/m²。\n*註：由於使用顯式 $C_{eff}^n$，當溫度跨越相變區端點時，$C_{eff}^n \\Delta T \\neq \\Delta H$，導致能量不守恆。在固定空間網格、固定終止時間，且時間步足以解析所有跨越相變事件的前提下，預期此熱收支誤差隨 $\\Delta t$ 細化而下降；這是必須以多個步長數值測試確認的預期，而非已證明的普遍定理。*",
+        "new": "**步驟 5：熱收支檢查**\n左邊界向域內的熱流密度為 $q_{in}=2k(T_{left}-T_0^1)/\\Delta x$。一個時間步的每單位面積熱輸入為\n$$\\mathcal Q_{in}=q_{in}\\Delta t=\\frac{2k}{\\Delta x}(T_{left}-T_0^1)\\Delta t=10.244\\ \\mathrm{J/m^2}.$$\n\n初始焓密度為 $H_0^0=H_1^0=6\\ \\mathrm{J/m^3}$，故每單位面積初始焓 $\\mathcal E^0=(H_0^0+H_1^0)\\Delta x=6\\ \\mathrm{J/m^2}$。終態焓密度約為 $H_0^1=13.439\\ \\mathrm{J/m^3}$、$H_1^1=11.8536\\ \\mathrm{J/m^3}$，故 $\\mathcal E^1\\approx12.6463\\ \\mathrm{J/m^2}$。熱收支殘差 $R_E=\\mathcal E^1-\\mathcal E^0-\\mathcal Q_{in}\\approx-3.5977\\ \\mathrm{J/m^2}$。\n\n線性系統平衡的是每單位面積蓄熱增量 $\\sum_i C_{eff,i}^0(T_i^1-T_i^0)\\Delta x$ 與邊界輸入；它不必等於分段焓函數給出的 $\\sum_i[H(T_i^1)-H(T_i^0)]\\Delta x$。跨越熱容折點時，$C_{eff}^0\\Delta T$ 不等於有限焓差。固定空間網格與終止時間，且時間步能解析相變跨越時，預期收支殘差隨 $\\Delta t$ 細化而下降；須以多個時間步測試確認，不能當作普遍定理。"
+      },
+      {
+        "chapter": 29,
+        "old": "*   **網格**：$N$ 個 cell，$\\Delta x = L_x/N$。\n*   **變量**：$T[i]$ 對應 cell $i$ 的中心溫度。\n*   **邊界**：左側 Dirichlet $T_L$，右側零通量（Neumann 0）。\n*   **方法**：後向 Euler 擴散，顯式有效熱容 $C_{eff}^n$。\n\n```python",
+        "new": "*   **網格與量綱**：$N$ 個 cell，$\\Delta x=L_x/N$。本程式計算每單位截面積焓，單位為 $\\mathrm{J/m^2}$；邊界熱流密度為 $\\mathrm{W/m^2}$。\n*   **變量與邊界**：`T[i]` 是 cell 中心溫度；左側為 Dirichlet $T_L$，右側為零通量 Neumann 邊界。\n*   **方法與診斷**：後向 Euler 擴散、顯式 $C_{eff}^n$。線性真殘差檢查代數求解精度；熱收支殘差檢查焓增量與熱輸入，兩者不能互相取代。\n\n```python"
+      },
+      {
+        "chapter": 29,
+        "old": "        # Flux at left boundary: q_left = (2k/dx) * (T_left - T_new[0]) * Area\n        q_left = (2.0 * k / dx) * (T_left - T_new[0]) * 1.0 # Area = 1\n        heat_in_step = q_left * dt",
+        "new": "        # 左邊界每單位面積熱流密度，單位 W/m²；乘 dt 得 J/m²。\n        q_left = (2.0 * k / dx) * (T_left - T_new[0])\n        heat_in_step = q_left * dt"
+      },
+      {
+        "chapter": 29,
+        "old": "        r_vec = b - A @ T_new\n        abs_res = float(np.linalg.norm(r_vec))",
+        "new": "        if not np.all(np.isfinite(T_new)):\n            raise RuntimeError(f\"步驟 {step} 的線性解含非有限值\")\n        r_vec = b - A @ T_new\n        abs_res = float(np.linalg.norm(r_vec))"
+      },
+      {
+        "chapter": 29,
+        "old": "*   **恆定溫度邊界**：若 $T_{left} > T_{melt}$，界面應向 $x>0$ 方向移動。$\\phi$ 的積分（總液相體積）應隨時間增加。",
+        "new": "*   **恆定溫度邊界**：若初始域含固相且 $T_{left}>T_{melt}$，界面在模擬期間存在時，預期其向 $x>0$ 移動，液相分率積分隨時間增加。若初始全液相或全固相，或相界面尚未形成／已消失，應依 $\\phi=0.5$ 的交叉位置判定界面是否存在，不可任意報一個位置。"
+      },
+      {
+        "chapter": 29,
+        "old": "*   **過冷（Undercooling）**：若 $T_{left} < T_{melt} - \\Delta T_m/2$，物體不應融化，$\\phi$ 保持 0。",
+        "new": "*   **過冷（Undercooling）**：只有在初始全域及左邊界溫度都低於 $T_{melt}-\\Delta T_m/2$、$Q=0$ 且沒有其他加熱邊界時，才預期 $\\phi$ 保持 0。單獨限制邊界溫度不足以推出此結論。"
+      },
+      {
+        "chapter": 29,
+        "old": "    由第二式 $T_0^1 = 7 T_1^1 - 30$。\n    代入第一式：$9(7 T_1^1 - 30) - T_1^1 = 50$\n    $63 T_1^1 - 270 - T_1^1 = 50$\n    $62 T_1^1 = 320 \\implies T_1^1 = 320/62 \\approx 5.161$ K。\n    $T_0^1 = 7(5.161) - 30 = 36.127 - 30 = 6.127$ K。",
+        "new": "    由第二式 $T_0^1=7T_1^1-30$。代入第一式得 $62T_1^1=320$，故 $T_1^1=160/31\\approx5.16129\\ \\mathrm K$。代回並保留分數：$T_0^1=7(160/31)-30=190/31\\approx6.12903\\ \\mathrm K$。"
+      },
+      {
+        "chapter": 29,
+        "old": "    設定 $L=0$，驗證程式退化為標準熱擴散。\n    比較解析解 $T(x,t) = T_{init} + (T_{left}-T_{init}) \\operatorname{erfc}\\left(\\frac{x}{2\\sqrt{\\alpha t}}\\right)$（半無限域近似）。",
+        "new": "    設定 $L=0$，驗證溫度方程退化為標準熱擴散；程式仍可能計算診斷用的 $\\phi(T)$，但它不再影響焓或溫度方程。比較半無限域解析解 $T(x,t)=T_{init}+(T_{left}-T_{init})\\operatorname{erfc}(x/(2\\sqrt{\\alpha t}))$，其中 $\\alpha=k/(\\rho c_p)$，單位為 $\\mathrm{m^2/s}$。比較時間須短到有限域右端零通量邊界尚未顯著影響解；否則應採用相符的有限域基準。"
+      },
+      {
+        "chapter": 29,
+        "old": "    在迴圈外累積 `heat_in`，在迴圈內計算 `E_curr`。\n    `error = abs(heat_in - (E_curr - E_init))`。\n    預期 `error` 應隨 $\\Delta t$ 細化而下降，但不一定接近機器精度（由於顯式熱容近似）。",
+        "new": "    在迴圈外累積每單位面積熱輸入，在迴圈內計算每單位面積焓 $E_{curr}$；使用 `error = abs(heat_in - (E_curr - E_init))`。固定網格與終止時間，以多個 $\\Delta t$ 比較誤差。跨越相變折點時，$C_{eff}^n\\Delta T$ 與分段焓差不一致，誤差可能非單調；預期細化後趨小須由測試確認，不能宣稱必然達到機器精度或普遍具有 $O(\\Delta t)$ 階。"
+      },
+      {
+        "chapter": 29,
+        "old": "本章介紹了固液相變的焓法數值實現。重點在於通過引入有效體積熱容 $C_{eff}$ 來處理潛熱項，從而將非連續的 Stefan 問題轉化為連續的熱擴散問題。通過 1D cell-centered 有限體積實作，我們展示了如何進行熱收支檢查，並強調了與溶氧傳輸及 Cahn–Hilliard 相分離的區別。讀者應理解 $\\Delta T_m$ 參數對數值穩定性的影響，並能根據物理需求選擇合適的相變溫度區間。",
+        "new": "本章以焓與液相分率描述固液相變，推導 Stefan 界面條件及 1D cell-centered 有限體積離散，並以真殘差和每單位面積熱收支分別檢查代數解與能量平衡。顯式有效熱容可能使跨越相變區的單步焓差不匹配；需透過時間步細化檢查，而非宣稱任意步長守恆。$\\Delta T_m$ 影響正則化誤差、空間糊狀區解析與時間解析要求；本章格式採後向 Euler，不能將這些精度考量混稱為已證明的 CFL 穩定性限制。溶氧管理閾值、相分離與固液潛熱相變具有不同物理意義。"
+      }
+    ],
+    "reason": "修補每單位面積與總量的量綱混用；改正L=0、過冷、手算數值與半無限域基準等問題；補明界面測試前提、線性解有限性檢查，並避免對能量誤差階與穩定性作未證實的普遍宣稱。"
+  }
+}

@@ -1,0 +1,396 @@
+# 14 UV參數化與貼圖座標
+
+## 學習目標與先備知識
+
+本章旨在建立三角形網格上的二維參數化（UV）體系，使讀者能將材質貼圖準確映射至三維表面。讀者需具備以下先備知識：
+
+1.  **三角網格拓撲**：理解頂點索引（Index Buffer）、面片（Triangle）與頂點（Vertex）的關聯（第7章）。
+2.  **重心座標（Barycentric Coordinates）**：能計算點在三角形內的 $(\lambda_0, \lambda_1, \lambda_2)$ 座標，並理解其線性插值性質（第6章）。
+3.  **透視投影與齊次座標**：理解裁剪空間（Clip Space）的 $w$ 分量如何影響屏幕空間（Screen Space）與世界空間（World Space）的線性關係，特別是需要「透視正確插值（Perspective-Correct Interpolation）」的原因（第5、6章）。
+4.  **色彩空間**：明確區分線性RGB（Linear RGB）與sRGB。貼圖若是顏色貼圖（Albedo/Diffuse），需進行 $\text{sRGB} \to \text{Linear}$ 轉換；若是法線貼圖（Normal Map）或遮罩（Mask），則為線性資料，不可轉換（第13章）。
+
+本章核心任務：
+*   定義三角形UV座標系與接縫（Seam）處理。
+*   推導貼圖取樣座標的計算方式，包含 Wrap（重複）與 Clamp（限制）模式。
+*   實作一個將 Checkerboard（格紋）貼圖映射至簡化魚體模型的流程，並處理接縫與透視插值誤差。
+
+## 問題與直覺
+
+在二維像素世界，我們以 $(x, y)$ 索引像素。當模型進入三維，表面不再是平坦的網格，而是彎曲的三角形集合。若直接將三維座標 $(x, y, z)$ 映射到貼圖，會導致：
+1.  **重疊與撕裂**：不同空間位置的點可能對應到同一個貼圖像素，造成外觀混亂。
+2.  **比例失真**：貼圖的「單位長度」隨模型縮放而改變，缺乏一致的紋理密度。
+
+因此，我們需要一個**獨立的二維參數化座標系**，稱為 UV 座標。
+*   **U 軸**：通常對應貼圖的水平方向（向右為正）。
+*   **V 軸**：通常對應貼圖的垂直方向（向上為正）。
+
+**關鍵直覺**：
+UV 座標是定義在**頂點**上的屬性。當三角形被光柵化（Rasterization）時，我們需要計算三角形內部任意像素的 UV 值。由於 UV 與深度（Z）一樣，在透視投影下並非線性變化於屏幕空間（NDC），因此必須使用**透視正確插值**來計算 UV。若直接使用 NDC 座標進行線性插值，貼圖會看起來「浮動」或錯位，特別是在模型旋轉或近大遠小時。
+
+## 數學與幾何推導
+
+### 1. UV 座標定義與單位
+
+設三角形頂點為 $V_0, V_1, V_2$，其對應的 UV 座標為 $(u_i, v_i)$，其中 $i \in \{0, 1, 2\}$。
+UV 座標的單位為**貼圖週期（Texture Period）**。通常，$1.0$ 單位代表貼圖圖檔的整個寬度或高度。
+*   若 $u=0.0, v=0.0$，對應貼圖原點。
+*   若 $u=1.0, v=1.0$，對應貼圖右上角（假設原點在左上且 V 向下，但本卷約定 V 向上，故需注意翻轉，詳見後述）。
+
+**座標系約定**：
+本卷遵循 OpenGL 風格：貼圖原點 $(0,0)$ 位於**左下角**，V 軸**向上**為正。然而，多數影像檔（如 PNG, PPM）的像素原點 $(0,0)$ 位於**左上角**，Y 軸**向下**為正。
+因此，讀取影像像素 $I[x, y]$ 時，若對應 UV 為 $(u, v)$，則像素索引需經過翻轉：
+$$
+\begin{aligned}
+x_{\text{pix}} &= \lfloor u \cdot W \rfloor \\
+y_{\text{pix}} &= \lfloor (1 - v) \cdot H \rfloor
+\end{aligned}
+$$
+其中 $W, H$ 為貼圖寬高。精確取樣時，應使用像素中心 $(x+0.5, y+0.5)$，即 $x_{\text{real}} = u \cdot W - 0.5$。
+
+### 2. 三角形內插值與透視修正
+
+在光柵化過程中，我們已知三角形三個頂點在**裁剪空間（Clip Space）**的座標 $C_i = (x_i, y_i, z_i, w_i)$，以及其對應的 UV 值 $(u_i, v_i)$。
+在 **NDC（Normalized Device Coordinates）** 中，頂點座標為 $\hat{C}_i = (x_i/w_i, y_i/w_i, z_i/w_i)$。
+對於 NDC 空間中由重心座標 $\lambda_i$ 定義的像素點（$\sum \lambda_i = 1, \lambda_i \ge 0$），屬性值 $A$（如 UV 的 $u$ 或 $v$）在 NDC 空間中並非線性插值，而需考慮 $w$ 權重。
+
+若直接計算 $A = \sum_{i=0}^2 \lambda_i A_i$，在透視投影下是錯誤的。正確的透視插值公式為：
+$$
+A_p = \frac{ \sum_{i=0}^2 \lambda_i \frac{A_i}{w_i} }{ \sum_{i=0}^2 \lambda_i \frac{1}{w_i} }
+$$
+其中 $\lambda_i$ 是像素在 **NDC 空間**中相對於三角形的重心座標。
+
+**推導邏輯**：
+考慮屬性 $A$ 在齊次空間中的表示。在裁剪空間中，頂點屬性可視為 $(A_i w_i, w_i)$。
+在 NDC 空間中，我們對 $A/w$ 和 $1/w$ 進行線性插值，最後進行除法還原。
+設 $S_A = \sum \lambda_i \frac{A_i}{w_i}$，$S_W = \sum \lambda_i \frac{1}{w_i}$。
+則 $A_p = S_A / S_W$。
+此公式保證了在世界空間中，屬性沿著三角形邊線性變化。
+
+### 3. 接縫與 Wrap 模式
+
+當 UV 座標超出 $[0, 1]$ 範圍時，需定義取樣行為：
+1.  **Wrap (Repeat)**：
+    $$
+    u_{\text{sample}} = u \pmod{1.0}
+    $$
+    若 $u < 0$，則 $u_{\text{sample}} = u \pmod{1.0}$（Python 的 `%` 運算子對負數處理正確，確保結果在 $[0, 1)$）。此模式適用於格紋、磚牆等重複紋理。
+2.  **Clamp**：
+    $$
+    u_{\text{sample}} = \max(0, \min(1, u))
+    $$
+    此模式用於貼圖不應重複的場合，超出範圍時取邊緣像素。
+
+**接縫（Seam）**：
+若一個模型被「展開」成 UV 座標，某些頂點在 3D 空間相同，但在 UV 空間不同（例如立方體的頂點，在 3D 是同一點，但在 UV 展開圖上是四個不同的點）。
+*   **數據層面**：頂點索引必須重複。即一個 3D 頂點可能對應多個 UV 頂點。
+*   **渲染層面**：光柵化時，若三角形跨越 UV 的 $0$ 或 $1$ 邊界（例如 $u$ 從 $0.9$ 到 $1.1$），在無 Wrap 模式下會產生黑色條紋或取樣錯誤。因此，若使用 Wrap，插值計算需先對 $u, v$ 執行分數部分處理，或確保取樣函數處理溢出。
+
+### 4. 微分足跡（Differential Footprint）
+
+當三角形在屏幕上覆蓋較小區域時，UV 變化緩慢。當三角形很大或遠離相機時，一個像素可能對應貼圖中很大的區域。
+定義 UV 對 NDC 座標 $(x_s, y_s)$ 的偏導數：
+$$
+\frac{\partial u}{\partial x_s}, \quad \frac{\partial u}{\partial y_s}, \quad \frac{\partial v}{\partial x_s}, \quad \frac{\partial v}{\partial y_s}
+$$
+這些導數構成一個 $2 \times 2$ 矩陣，決定了貼圖在屏幕上的「足跡」。若足跡大於 1 像素/UV單位，需使用 Mipmap 取樣以避免混疊（Aliasing）。本實驗使用雙線性取樣（Bilinear Sampling），並簡化處理混疊。
+
+## 逐步手算例題
+
+### 例題 1：透視正確 UV 插值
+
+設三角形頂點在裁剪空間（Clip Space）的 $w$ 分量分別為 $w_0=1.0, w_1=2.0, w_2=3.0$。
+對應的 UV 座標為：
+$V_0: (0.0, 0.0)$
+$V_1: (1.0, 0.0)$
+$V_2: (0.0, 1.0)$
+
+假設我們在 NDC 空間中，某個像素 P 的重心座標為 $\lambda_0=0.5, \lambda_1=0.3, \lambda_2=0.2$。
+請計算像素 P 的 $u$ 值。
+
+**解**：
+使用透視插值公式：
+$$
+u_p = \frac{ \lambda_0 \frac{u_0}{w_0} + \lambda_1 \frac{u_1}{w_1} + \lambda_2 \frac{u_2}{w_2} }{ \lambda_0 \frac{1}{w_0} + \lambda_1 \frac{1}{w_1} + \lambda_2 \frac{1}{w_2} }
+$$
+代入數值：
+分子：
+$$
+0.5 \cdot \frac{0.0}{1.0} + 0.3 \cdot \frac{1.0}{2.0} + 0.2 \cdot \frac{0.0}{3.0} = 0 + 0.15 + 0 = 0.15
+$$
+分母：
+$$
+0.5 \cdot \frac{1}{1.0} + 0.3 \cdot \frac{1}{2.0} + 0.2 \cdot \frac{1}{3.0} = 0.5 + 0.15 + 0.0667 \approx 0.7167
+$$
+$$
+u_p = \frac{0.15}{0.7167} \approx 0.2093
+$$
+
+若錯誤地直接線性插值 $u_{\text{linear}} = 0.5(0) + 0.3(1) + 0.2(0) = 0.3$。
+可見透視插值結果 $0.2093$ 與線性 $0.3$ 差異顯著，尤其在 $w$ 差異大時。
+
+### 例題 2：Wrap 模式下的負 UV
+
+設 $u = -0.2, v = 1.5$。
+使用 Wrap 模式：
+$$
+u_{\text{sample}} = -0.2 \pmod{1.0}
+$$
+在 Python 中，`-0.2 % 1.0` 結果為 `0.8`（因為 $-0.2 = -1 \times 1.0 + 0.8$）。
+$$
+v_{\text{sample}} = 1.5 \pmod{1.0} = 0.5
+$$
+因此取樣座標為 $(0.8, 0.5)$。
+
+若使用 Clamp 模式：
+$$
+u_{\text{sample}} = \max(0, \min(1, -0.2)) = 0.0
+$$
+$$
+v_{\text{sample}} = \max(0, \min(1, 1.5)) = 1.0
+$$
+取樣座標為 $(0.0, 1.0)$。
+
+## 實作與程式
+
+以下 Python 程式碼示範如何：
+1.  生成一個簡單的 3D 三角形（模擬魚體的一部分）。
+2.  定義頂點的 UV 座標與裁剪空間 $w$ 值。
+3.  計算一個虛擬像素的透視正確 UV。
+4.  從 Checkerboard 貼圖中取樣顏色（假設貼圖為 $8 \times 8$ 的格紋，使用線性 RGB）。
+
+```python
+import numpy as np
+
+# 貼圖模擬：8x8 Checkerboard
+# 顏色在 [0, 1] 之間，黑白交替
+def generate_checkerboard_texture(width=8, height=8):
+    tex = np.zeros((height, width, 3), dtype=np.float32)
+    for y in range(height):
+        for x in range(width):
+            if (x + y) % 2 == 0:
+                tex[y, x] = [1.0, 1.0, 1.0]  # 白
+            else:
+                tex[y, x] = [0.0, 0.0, 0.0]  # 黑
+    return tex
+
+# 雙線性取樣
+# uv: (u, v), u, v in [0, 1]
+# 注意：v=1.0 對應貼圖頂部 (y=0), v=0.0 對應底部 (y=H-1)
+def sample_texture_bilinear(tex, u, v):
+    H, W = tex.shape[0], tex.shape[1]
+    # 將 UV 轉換為像素座標 (浮點)
+    # u=0 -> x=0, u=1 -> x=W
+    x = u * W
+    # v=1 -> y=0, v=0 -> y=H (翻轉)
+    y = (1.0 - v) * H
+    
+    # 取樣點應位於像素中心，因此減去 0.5
+    x_center = x - 0.5
+    y_center = y - 0.5
+    
+    # 確定鄰接像素
+    x0 = int(np.floor(x_center))
+    y0 = int(np.floor(y_center))
+    x1 = x0 + 1
+    y1 = y0 + 1
+    
+    # 確保索引在範圍內 (Clamp to edge for simplicity in bilinear)
+    x0_c = np.clip(x0, 0, W - 1)
+    y0_c = np.clip(y0, 0, H - 1)
+    x1_c = np.clip(x1, 0, W - 1)
+    y1_c = np.clip(y1, 0, H - 1)
+    
+    fx = x_center - x0
+    fy = y_center - y0
+    
+    # 取出四個鄰接像素顏色
+    c00 = tex[y0_c, x0_c]
+    c01 = tex[y0_c, x1_c]
+    c10 = tex[y1_c, x0_c]
+    c11 = tex[y1_c, x1_c]
+    
+    # 雙線性插值
+    c = c00 * (1-fx)*(1-fy) + c01 * fx*(1-fy) + c10 * (1-fx)*fy + c11 * fx*fy
+    return c
+
+# 透視正確插值 UV
+# inputs: 
+#   uv0, uv1, uv2: vertex UVs (2D arrays)
+#   w0, w1, w2: vertex w components (scalars)
+#   lam0, lam1, lam2: barycentric coordinates in NDC (scalars, sum to 1)
+def perspective_correct_uv(uv0, uv1, uv2, w0, w1, w2, lam0, lam1, lam2):
+    # 計算分子與分母
+    num_u = lam0 * (uv0[0] / w0) + lam1 * (uv1[0] / w1) + lam2 * (uv2[0] / w2)
+    num_v = lam0 * (uv0[1] / w0) + lam1 * (uv1[1] / w1) + lam2 * (uv2[1] / w2)
+    denom = lam0 * (1.0 / w0) + lam1 * (1.0 / w1) + lam2 * (1.0 / w2)
+    
+    # 避免除零
+    if denom < 1e-8:
+        return 0.0, 0.0
+        
+    u_sample = num_u / denom
+    v_sample = num_v / denom
+    
+    # Wrap mode: 映射到 [0, 1)
+    u_sample = u_sample % 1.0
+    v_sample = v_sample % 1.0
+    
+    return u_sample, v_sample
+
+def main():
+    # 1. 生成貼圖
+    tex = generate_checkerboard_texture(8, 8)
+    
+    # 2. 定義三角形頂點屬性
+    # 模擬一個在 Clip Space 的三角形
+    # V0: Front, V1: Left-Back, V2: Right-Back
+    # w components
+    w0, w1, w2 = 1.0, 2.0, 3.0
+    
+    # UVs
+    # 假設 UV 覆蓋整個貼圖
+    uv0 = np.array([0.0, 0.0])
+    uv1 = np.array([1.0, 0.0])
+    uv2 = np.array([0.0, 1.0])
+    
+    # 3. 假設一個像素的 NDC Barycentrics
+    # 中心附近，偏向 V0
+    lam0, lam1, lam2 = 0.5, 0.3, 0.2
+    
+    # 4. 計算透視 UV
+    u_pc, v_pc = perspective_correct_uv(uv0, uv1, uv2, w0, w1, w2, lam0, lam1, lam2)
+    print(f"Perspective Correct UV: ({u_pc:.4f}, {v_pc:.4f})")
+    
+    # 5. 取樣顏色
+    color = sample_texture_bilinear(tex, u_pc, v_pc)
+    print(f"Sampled Color (Linear RGB): {color}")
+    
+    # 6. 對比線性插值 (錯誤示範)
+    u_lin = lam0 * uv0[0] + lam1 * uv1[0] + lam2 * uv2[0]
+    v_lin = lam0 * uv0[1] + lam1 * uv1[1] + lam2 * uv2[1]
+    u_lin_wrapped = u_lin % 1.0
+    v_lin_wrapped = v_lin % 1.0
+    color_lin = sample_texture_bilinear(tex, u_lin_wrapped, v_lin_wrapped)
+    print(f"Linear Interp UV (Incorrect): ({u_lin_wrapped:.4f}, {v_lin_wrapped:.4f})")
+    print(f"Sampled Color (Linear): {color_lin}")
+    
+    # 驗證手算例 1
+    print("\n--- Verification of Hand Calculation ---")
+    u_pc_verify, v_pc_verify = perspective_correct_uv(uv0, uv1, uv2, w0, w1, w2, lam0, lam1, lam2)
+    expected_u = 0.15 / 0.7167 # approx
+    print(f"Computed u: {u_pc_verify:.4f}, Expected approx: {expected_u:.4f}")
+    assert np.isclose(u_pc_verify, expected_u, atol=1e-3), "Mismatch with hand calculation"
+    print("Test Passed.")
+
+if __name__ == "__main__":
+    main()
+```
+
+## 測試與預期結果
+
+1.  **透視插值驗證**：
+    *   程式應輸出 `Perspective Correct UV: (0.2093, 0.2093)`（近似值，取決於浮點精度）。
+    *   `Computed u` 應與 `Expected approx` 一致（誤差 < 0.001）。
+2.  **顏色取樣**：
+    *   對於 $8 \times 8$ Checkerboard，$u=0.2093$ 對應 $x \approx 1.67$，$v=0.2093$ 對應 $y \approx 6.32$（因 V 向上，Y 向下翻轉）。
+    *   $x=1$ (奇數), $y=6$ (偶數) $\rightarrow$ 格紋狀態 $(1+6)\%2 = 1 \rightarrow$ 黑色 (0,0,0)。
+    *   $x=2$ (偶數), $y=6$ (偶數) $\rightarrow$ 格紋狀態 $(2+6)\%2 = 0 \rightarrow$ 白色 (1,1,1)。
+    *   由於 $x=1.67$ 接近 2，$y=6.32$ 接近 6，顏色應偏向白色，但 $x$ 跨越 1 和 2 的邊界（1.5 處），會產生混合。
+    *   具體地，$x_0=1, x_1=2, f_x=0.67$。$y_0=6, y_1=7, f_y=0.32$（注意 Y 向下，$y=6.32$ 在像素 6 和 7 之間）。
+    *   像素 $(6,1)$ 黑，$(6,2)$ 白，$(7,1)$ 白，$(7,2)$ 黑。
+    *   插值結果將是黑白的混合，預期值在 $[0.3, 0.7]$ 之間。
+3.  **Wrap 測試**：
+    *   若將 $uv_1$ 改為 $(2.0, 0.0)$，則 $u$ 範圍 $[0, 2]$。取樣時需確保模運算正確。
+
+## 除錯與常見陷阱
+
+1.  **V 軸翻轉錯誤**：
+    *   **陷阱**：忘記翻轉 V 軸，導致貼圖上下顛倒。
+    *   **對策**：明確檢查 $y_{\text{pix}} = (1-v) \cdot H$。若結果顛倒，確認 UV 定義（V 向上）與影像存儲（Y 向下）的轉換。
+2.  **透視插值未應用**：
+    *   **陷阱**：在光柵化階段直接對 UV 做線性插值，導致貼圖在旋轉時看起來「滑動」。
+    *   **對策**：必須使用 $w$ 權重的透視插值公式。
+3.  **接縫裂開（Seam Splitting）**：
+    *   **陷阱**：在 UV $0$ 或 $1$ 的邊界，若兩個相鄰三角形共享 3D 頂點但 UV 不同（一個 $u=0.0$，另一個 $u=1.0$），在無 Wrap 或 Clamp 處理不當時，會顯示為黑色或白色線條。
+    *   **對策**：確保取樣函數使用 Wrap 模式時，$0.0$ 和 $1.0$ 取樣到相同的像素（即 $u=1.0$ 應取樣到 $x=W-1$ 或根據定義取 $x=0$，通常 Wrap 意味著 $1.0 \equiv 0.0$）。在離散取樣中，$u=1.0$ 若取樣到 $x=W$，會越界，應取模後為 $0$。
+4.  **色彩空間混淆**：
+    *   **陷阱**：對法線貼圖（Normal Map）進行 sRGB 轉線性轉換，導致法線方向錯誤。
+    *   **對策**：Albedo/Diffuse 貼圖需 $\text{sRGB} \to \text{Linear}$。Normal/Depth/Roughness 貼圖為線性，直接讀取。
+
+## 養殖數位分身案例
+
+在養殖數位分身中，魚體模型通常使用高頻的紋理來模擬魚鱗、色素斑塊。
+*   **UV 展開**：3D 建模師需將魚體展開為 UV 座標。魚身是封閉曲面，需在腹部或背脊設一條接縫（Seam）。
+*   **貼圖內容**：Albedo 貼圖包含魚的基礎顏色。若使用程序化紋理，則可動態生成。
+*   **驗證**：在數位分身中，若 UV 插值錯誤，魚在游動（模型旋轉）時，魚鱗紋路會看起來在水下「遊移」，影響視覺真實感與標註準確性（如魚病斑塊的位置）。
+*   **接縫管理**：魚鰭是薄曲率，UV 展開易產生拉伸。需確保 UV 在接縫處連續，避免渲染時出現裂縫。
+
+## 習題
+
+1.  **手算**：給定三角形頂點 $w$ 值為 $w_0=1, w_1=1, w_2=1$（正交投影情形），UV 為 $(0,0), (1,0), (0,1)$。計算 NDC 重心座標 $(0.5, 0.5, 0.0)$ 處的 UV 值。並說明此情形下透視插值與線性插值的關係。
+2.  **程式測試**：修改 `sample_texture_bilinear` 函式，使其支援 `Clamp` 模式（即 $u, v$ 超出 $[0,1]$ 時，取樣邊緣像素，而不繞回）。測試 $u=-0.1, v=1.1$ 時的取樣座標與顏色（假設 4x4 Checkerboard）。
+3.  **反例/除錯**：若某三角形的三個頂點 $w$ 值極小（如 $10^{-6}$），導致分母接近零，會發生什麼數值問題？如何避免？
+4.  **整合應用**：假設有一個球體，其 UV 採用球面投影 $u = \phi / 2\pi, v = \theta / \pi$，其中 $\phi \in [0, 2\pi)$ 為經度，$\theta \in [0, \pi]$ 為緯度（從北極到南極）。請推導當球體繞 Y 軸旋轉 $90^\circ$ 後，原本在 $(\phi=0, \theta=\pi/2)$ 的點的 UV 座標為何？並討論此 UV 映射在球體極點 $(\theta=0, \pi)$ 的拓撲問題。
+
+## 習題解答
+
+1.  **解答**：
+    當 $w_0=w_1=w_2=1$ 時，透視插值公式的分母 $\sum \lambda_i / w_i = \sum \lambda_i = 1$。
+    分子 $\sum \lambda_i A_i / w_i = \sum \lambda_i A_i$。
+    因此 $A = \sum \lambda_i A_i$，即透視插值退化為線性插值。
+    $u = 0.5(0) + 0.5(1) + 0(0) = 0.5$。
+    $v = 0.5(0) + 0.5(0) + 0(1) = 0$。
+    結果：$(0.5, 0)$。
+
+2.  **解答**：
+    修改取樣函式：
+    ```python
+    def sample_texture_clamp(tex, u, v):
+        H, W = tex.shape[0], tex.shape[1]
+        # Clamp UV to [0, 1]
+        u = np.clip(u, 0.0, 1.0)
+        v = np.clip(v, 0.0, 1.0)
+        
+        x = u * (W - 1) # Map to pixel centers [0, W-1]
+        y = (1.0 - v) * (H - 1)
+        
+        # For simple clamp test, just nearest neighbor or bilinear within bounds
+        # Here we just return the pixel at clamped coords for simplicity
+        xi = int(np.round(x))
+        yi = int(np.round(y))
+        return tex[yi, xi]
+    ```
+    對於 $u=-0.1, v=1.1$，Clamp 後 $u=0, v=1$。
+    $x = 0 \cdot 3 = 0$, $y = (1-1) \cdot 3 = 0$。
+    取樣點對應像素 $(0, 0)$。
+    在 4x4 Checkerboard 中，$(0,0)$ 為白色 $(1,1,1)$。
+
+3.  **解答**：
+    若 $w$ 值極小，分母 $\sum \lambda_i / w_i$ 會極大，導致數值不穩定或溢出。
+    **避免方法**：在計算前，對 $w$ 進行正規化（Normalization），即除以 $\min(w_i)$ 或 $\max(w_i)$，確保 $w$ 在合理範圍（如 $[1, 100]$）。或者，在光柵化前進行裁剪（Clipping），確保三角形頂點在視錐內，$w$ 不會過小。
+
+4.  **解答**：
+    球面參數化：$P(\phi, \theta) = (\sin\theta\cos\phi, \cos\theta, \sin\theta\sin\phi)$（假設 Y 向上，Z 向前，需調整座標系，此處僅推導 UV 變化）。
+    原點 $\phi=0, \theta=\pi/2$ 位於球體正前方（假設 $\phi$ 從 +X 軸開始）。
+    繞 Y 軸旋轉 $90^\circ$（主動變換，右手系）：
+    $R_y(90^\circ)$ 將 +X 軸旋轉到 -Z 軸（或 +Z 到 +X，取決於定義）。
+    若旋轉後，該點移動到新位置，其新的 $\phi'$ 值需重新計算。
+    若原點在 +X 軸，旋轉後可能在 +Z 或 -Z 軸，對應 $\phi' = \pi/2$ 或 $3\pi/2$。
+    **拓撲問題**：在 $\theta=0$ 和 $\theta=\pi$（極點），所有 $\phi$ 值收斂到同一點，導致 UV 座標在極點處無定義（奇異點），產生紋理拉伸與採樣錯誤。通常需在極點進行 UV 特殊處理或使用立方體貼圖（Cube Map）來避免。
+
+## 本章小結
+
+本章建立了三角形 UV 參數化的數學基礎與實作方法。重點包括：
+1.  UV 座標是頂點屬性，需用透視正確插值計算三角形內部的值。
+2.  需處理 Wrap 與 Clamp 模式以應對 UV 溢出。
+3.  V 軸翻轉是常見錯誤源，需嚴格遵循約定。
+4.  接縫處理需確保 3D 與 UV 頂點的一致性。
+後續章節將結合色彩空間與法線貼圖，進一步處理材質著色。
+
+## 參考來源
+
+*   [G1] PBRT 4: Transformations - https://pbr-book.org/4ed/Geometry_and_Transformations/Transformations
+*   [G2] PBRT 4: Reflection Models - https://pbr-book.org/4ed/Reflection_Models
+*   [G3] PBRT 4: The Light Transport Equation - https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/The_Light_Transport_Equation
+*   [G5] LearnOpenGL: Transformations - https://learnopengl.com/Getting-started/Transformations
+*   [G8] Khronos glTF 2.0 Specification - https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html

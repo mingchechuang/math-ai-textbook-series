@@ -1,0 +1,820 @@
+# 第07章 有限差分算子與邊界閉合
+
+## 學習目標與先備知識
+
+本章將連續微分算子轉成可組裝、可檢查的有限差分算子。完成後，讀者應能：
+
+1. 由 Taylor 漸近展開推導中心與單邊差分。
+2. 分辨節點中心與單元中心網格。
+3. 理解本卷的符號慣例：$L\approx\Delta$，故週期 Laplacian 通常負半定，而 Poisson 矩陣常取 $A=-L$。
+4. 使用 Dirichlet、Neumann、週期條件與 ghost cell 閉合邊界。
+5. 組裝小型矩陣，檢查常數場、線性場、二次場與邊界橫列。
+6. 分開判斷一致性、穩定性、守恆、能量下降、非負性與物理可信度。
+
+先備知識包括偏導數、Taylor 展開、矩陣乘法與基本初邊值問題。程式使用 Python 3.10 以上與 NumPy，在 CPU 小格網上運作。本文僅列出依推導所得的預期結果，不宣稱已實際執行。
+
+---
+
+## 問題與直覺
+
+考慮一維擴散方程
+
+$$
+\frac{\partial c}{\partial t}
+=
+D\frac{\partial^2c}{\partial x^2}+s,
+$$
+
+其中濃度 $c$ 的單位為 $\mathrm{kg/m^3}$，擴散係數 $D$ 為 $\mathrm{m^2/s}$，來源 $s$ 為 $\mathrm{kg/(m^3\,s)}$。電腦儲存離散數值，不能直接儲存二階導數，因此必須以鄰點組合近似。
+
+內部格點左右都有資料，通常可以使用中心差分。邊界缺少域外資料，必須利用下列方法閉合：
+
+- 將邊界值直接寫成代數方程；
+- 使用單邊差分；
+- 引入 ghost cell；
+- 以週期條件連接另一側。
+
+邊界閉合會改變矩陣的第一個與最後一個橫列，也可能改變對稱性、精度、守恆與零空間。內點格式正確並不足以保證整體離散正確。
+
+本章主要使用一維節點中心網格：
+
+$$
+x_i=ih,\qquad i=0,\ldots,N,\qquad h=\frac{L_x}{N}.
+$$
+
+此時 $x_0$ 與 $x_N$ 位於物理邊界。單元中心網格則為
+
+$$
+x_i=\left(i+\frac12\right)h.
+$$
+
+兩者的 ghost cell 公式不可混用。
+
+---
+
+## 數學與物理推導
+
+### 1. Taylor 漸近展開
+
+若 $u$ 在 $x_i$ 附近足夠光滑，當 $h\to0$ 時有漸近展開
+
+$$
+u_{i+1}
+\sim
+u_i+h u_i'
++\frac{h^2}{2}u_i''
++\frac{h^3}{6}u_i'''
++\frac{h^4}{24}u_i^{(4)}+\cdots,
+$$
+
+$$
+u_{i-1}
+\sim
+u_i-h u_i'
++\frac{h^2}{2}u_i''
+-\frac{h^3}{6}u_i'''
++\frac{h^4}{24}u_i^{(4)}+\cdots.
+$$
+
+這些不是有限項精確等式。若截斷到三階，可寫成「已列項加 $O(h^4)$」，其中大 $O$ 項代表有界餘項。
+
+兩式相減可得
+
+$$
+\frac{u_{i+1}-u_{i-1}}{2h}
+=
+u_i'+\frac{h^2}{6}u_i'''+O(h^4).
+$$
+
+因此中心一階差分
+
+$$
+(D_0u)_i=\frac{u_{i+1}-u_{i-1}}{2h}
+$$
+
+具有二階截斷誤差。前向差分則為
+
+$$
+\frac{u_{i+1}-u_i}{h}
+=
+u_i'+\frac{h}{2}u_i''+O(h^2),
+$$
+
+故通常只有一階精度。
+
+設二階單邊公式為
+
+$$
+u_i'\approx\frac{a u_i+b u_{i+1}+c u_{i+2}}{h}.
+$$
+
+匹配常數、一階與二階項：
+
+$$
+a+b+c=0,\qquad b+2c=1,\qquad \frac{b}{2}+2c=0.
+$$
+
+解得
+
+$$
+u_i'
+=
+\frac{-3u_i+4u_{i+1}-u_{i+2}}{2h}
++O(h^2).
+$$
+
+右邊界鏡射公式為
+
+$$
+u_N'
+=
+\frac{3u_N-4u_{N-1}+u_{N-2}}{2h}
++O(h^2).
+$$
+
+### 2. 二階導數與 Laplacian 符號
+
+相加兩側 Taylor 展開可得
+
+$$
+u_{i+1}-2u_i+u_{i-1}
+=
+h^2u_i''+\frac{h^4}{12}u_i^{(4)}+O(h^6),
+$$
+
+因此
+
+$$
+(Lu)_i
+=
+\frac{u_{i-1}-2u_i+u_{i+1}}{h^2}
+=
+u_i''+O(h^2).
+$$
+
+本卷令 $L$ 近似 $\Delta$。對週期網格，
+
+$$
+\boldsymbol{u}^{T}L\boldsymbol{u}
+=
+-\frac{1}{h^2}\sum_i(u_{i+1}-u_i)^2
+\leq0,
+$$
+
+所以 $L$ 對稱負半定。Poisson 方程常寫成
+
+$$
+A\boldsymbol{u}=\boldsymbol{b},
+\qquad A=-L.
+$$
+
+消去 Dirichlet 邊界自由度後，$A$ 通常對稱正定。
+
+### 3. Dirichlet 邊界
+
+考慮
+
+$$
+u''=f,\qquad u(0)=a,\qquad u(L_x)=b.
+$$
+
+若未知量只包含 $u_1,\ldots,u_{N-1}$，第一個內點方程是
+
+$$
+\frac{a-2u_1+u_2}{h^2}=f_1.
+$$
+
+令 $\boldsymbol{v}=(u_1,\ldots,u_{N-1})^T$，則
+
+$$
+L_D=\frac{1}{h^2}
+\begin{bmatrix}
+-2&1&&\\
+1&-2&1&\\
+&\ddots&\ddots&\ddots\\
+&&1&-2
+\end{bmatrix},
+$$
+
+且
+
+$$
+L_D\boldsymbol{v}
+=
+\boldsymbol{f}
+-\frac{1}{h^2}
+\begin{bmatrix}
+a\\0\\ \vdots\\0\\b
+\end{bmatrix}.
+$$
+
+也可保留全部節點，將首尾橫列換成 $u_0=a$ 與 $u_N=b$。但這通常破壞完整矩陣的對稱性；要使用要求對稱正定的演算法時，宜先消去 Dirichlet 自由度。
+
+### 4. Neumann ghost cell 與加權內積
+
+若左端給定座標導數
+
+$$
+u_x(0)=g_L,
+$$
+
+引入 $x_{-1}=-h$，則
+
+$$
+\frac{u_1-u_{-1}}{2h}=g_L,
+\qquad
+u_{-1}=u_1-2hg_L.
+$$
+
+代入邊界 Laplacian：
+
+$$
+(Lu)_0
+=
+\frac{2(u_1-u_0)}{h^2}-\frac{2g_L}{h}.
+$$
+
+此邊界 Laplacian 對一般函數只有一階點態精度：
+
+$$
+\frac{2(u_1-u_0)}{h^2}-\frac{2u_x(0)}{h}
+=
+u_{xx}(0)+\frac{h}{3}u_{xxx}(0)+O(h^2).
+$$
+
+齊次 Neumann ghost 矩陣的端點係數為 $(-2,2)/h^2$，內點則為 $(1,-2,1)/h^2$，所以它在一般歐氏內積下**不對稱**。不能直接用「對稱矩陣的二次型」判斷它。
+
+令節點積分權重矩陣為
+
+$$
+H=h\,\operatorname{diag}\left(\frac12,1,\ldots,1,\frac12\right).
+$$
+
+對齊次 Neumann 閉合可得
+
+$$
+\boldsymbol{u}^{T}HL\boldsymbol{u}
+=
+-\frac{1}{h}\sum_{i=0}^{N-1}(u_{i+1}-u_i)^2
+\leq0.
+$$
+
+因此非正能量性質是在 $H$ 加權內積下成立，而不是宣稱程式中的 $L$ 本身在歐氏內積下對稱。
+
+左端外法向量為 $n=-1$，右端為 $n=+1$，故
+
+$$
+\partial_nu=
+\begin{cases}
+-u_x,&x=0,\\
+u_x,&x=L_x.
+\end{cases}
+$$
+
+輸入外法向導數前必須先轉成座標導數。
+
+### 5. 週期與單元中心閉合
+
+對不重複儲存端點的週期節點，
+
+$$
+u_{-1}=u_{N-1},\qquad u_N=u_0.
+$$
+
+週期 Laplacian 每個橫列元素和為零，因此
+
+$$
+L\boldsymbol{1}=\boldsymbol{0}.
+$$
+
+常數場是零模態。週期 Poisson 問題至少要求
+
+$$
+\sum_i f_i=0,
+$$
+
+並需另設均值條件。
+
+若未知量位於單元中心 $x_0=h/2$，左側 ghost 值滿足
+
+$$
+\frac{u_{-1}+u_0}{2}=a,
+\qquad u_{-1}=2a-u_0.
+$$
+
+因此
+
+$$
+(Lu)_0=\frac{u_1-3u_0+2a}{h^2}.
+$$
+
+這與節點中心的 $u_0=a$ 不同。
+
+### 6. 二維索引
+
+二維物理陣列 `q[j,i]` 的形狀為 `(Ny,Nx)`，$i$ 沿 $+X$，$j$ 沿 $+Y$。五點 Laplacian 為
+
+$$
+(Lq)_{j,i}
+=
+\frac{q_{j,i-1}-2q_{j,i}+q_{j,i+1}}{\Delta x^2}
++
+\frac{q_{j-1,i}-2q_{j,i}+q_{j+1,i}}{\Delta y^2}.
+$$
+
+展平索引固定為
+
+$$
+k=jN_x+i.
+$$
+
+不可在網格橫列末端無條件使用 $k+1$，否則會錯接下一列。繪圖應使用 `origin="lower"` 或明示翻轉。
+
+---
+
+## 逐步手算例題
+
+### 例題一：中心與單邊導數
+
+令 $u(x)=x^3$、$x=1$、$h=0.1$，解析導數為 $3$。
+
+中心差分：
+
+$$
+\frac{1.1^3-0.9^3}{0.2}
+=
+\frac{1.331-0.729}{0.2}=3.01.
+$$
+
+一階前向差分：
+
+$$
+\frac{1.1^3-1}{0.1}=3.31.
+$$
+
+二階前向差分：
+
+$$
+\frac{-3(1)+4(1.331)-1.728}{0.2}=2.98.
+$$
+
+三者誤差依序為 $0.01$、$0.31$、$-0.02$。單一步長比較不能證明觀測階，仍需多層網格細化。
+
+### 例題二：Dirichlet 小矩陣
+
+考慮
+
+$$
+u''=-2,\qquad u(0)=u(1)=0,
+$$
+
+解析解為 $u=x(1-x)$。取 $h=1/4$，內點直向量為
+
+$$
+\boldsymbol{u}
+=
+\begin{bmatrix}
+3/16\\1/4\\3/16
+\end{bmatrix},
+$$
+
+且
+
+$$
+L_D
+=
+16
+\begin{bmatrix}
+-2&1&0\\
+1&-2&1\\
+0&1&-2
+\end{bmatrix}.
+$$
+
+直接相乘得到
+
+$$
+L_D\boldsymbol{u}
+=
+\begin{bmatrix}
+-2\\-2\\-2
+\end{bmatrix}.
+$$
+
+二次函數的四階導數為零，因此此差分在本例恰好精確。
+
+### 例題三：週期高頻模態
+
+取 $h=1$ 與四個週期點：
+
+$$
+L=
+\begin{bmatrix}
+-2&1&0&1\\
+1&-2&1&0\\
+0&1&-2&1\\
+1&0&1&-2
+\end{bmatrix}.
+$$
+
+常數直向量被映成零。對 $\boldsymbol{v}=(1,-1,1,-1)^T$，
+
+$$
+L\boldsymbol{v}=-4\boldsymbol{v}.
+$$
+
+所以擴散半離散式 $\dot{\boldsymbol{u}}=DL\boldsymbol{u}$ 會衰減此高頻模態。
+
+---
+
+## 實作與程式
+
+```python
+import numpy as np
+
+
+def require_integer(name, value, minimum):
+    if isinstance(value, (bool, np.bool_)):
+        raise TypeError(f"{name} 不可為布林值")
+    if not isinstance(value, (int, np.integer)):
+        raise TypeError(f"{name} 必須是整數")
+    value = int(value)
+    if value < minimum:
+        raise ValueError(f"{name} 必須至少為 {minimum}")
+    return value
+
+
+def positive_finite(name, value):
+    value = float(value)
+    if not np.isfinite(value) or value <= 0.0:
+        raise ValueError(f"{name} 必須正且有限")
+    return value
+
+
+def periodic_laplacian_1d(n, h):
+    n = require_integer("n", n, 3)
+    h = positive_finite("h", h)
+    L = np.zeros((n, n))
+    for i in range(n):
+        L[i, i] = -2.0 / h**2
+        L[i, (i - 1) % n] += 1.0 / h**2
+        L[i, (i + 1) % n] += 1.0 / h**2
+    return L
+
+
+def dirichlet_operator(n_intervals, length):
+    n_intervals = require_integer("n_intervals", n_intervals, 2)
+    length = positive_finite("length", length)
+    h = length / n_intervals
+    m = n_intervals - 1
+    L = np.zeros((m, m))
+    for i in range(m):
+        L[i, i] = -2.0 / h**2
+        if i > 0:
+            L[i, i - 1] = 1.0 / h**2
+        if i + 1 < m:
+            L[i, i + 1] = 1.0 / h**2
+    return L, h
+
+
+def dirichlet_rhs(f, h, left, right):
+    f = np.asarray(f, dtype=float)
+    if f.ndim != 1 or f.size == 0 or not np.all(np.isfinite(f)):
+        raise ValueError("f 必須是一維有限非空陣列")
+    h = positive_finite("h", h)
+    left, right = float(left), float(right)
+    if not np.isfinite(left) or not np.isfinite(right):
+        raise ValueError("邊界值必須有限")
+    b = f.copy()
+    b[0] -= left / h**2
+    b[-1] -= right / h**2
+    return b
+
+
+def neumann_ghost_operator(n_intervals, length, gx_left, gx_right):
+    """gx_left、gx_right 均為座標導數 u_x，不是外法向導數。"""
+    n_intervals = require_integer("n_intervals", n_intervals, 2)
+    length = positive_finite("length", length)
+    gx_left, gx_right = float(gx_left), float(gx_right)
+    if not np.isfinite(gx_left) or not np.isfinite(gx_right):
+        raise ValueError("Neumann 資料必須有限")
+
+    h = length / n_intervals
+    n = n_intervals + 1
+    L = np.zeros((n, n))
+    c = np.zeros(n)
+
+    for i in range(1, n - 1):
+        L[i, i - 1:i + 2] = [1.0, -2.0, 1.0]
+    L /= h**2
+
+    L[0, 0:2] = [-2.0, 2.0]
+    L[-1, -2:] = [2.0, -2.0]
+    L[[0, -1], :] /= h**2
+
+    c[0] = -2.0 * gx_left / h
+    c[-1] = 2.0 * gx_right / h
+    return L, c, h
+
+
+def periodic_laplacian_2d(nx, ny, dx, dy):
+    nx = require_integer("nx", nx, 3)
+    ny = require_integer("ny", ny, 2)
+    dx = positive_finite("dx", dx)
+    dy = positive_finite("dy", dy)
+    L = np.zeros((nx * ny, nx * ny))
+
+    for j in range(ny):
+        for i in range(nx):
+            k = j * nx + i
+            neighbors = [
+                (j * nx + (i - 1) % nx, 1.0 / dx**2),
+                (j * nx + (i + 1) % nx, 1.0 / dx**2),
+                (((j - 1) % ny) * nx + i, 1.0 / dy**2),
+                (((j + 1) % ny) * nx + i, 1.0 / dy**2),
+            ]
+            L[k, k] -= 2.0 / dx**2 + 2.0 / dy**2
+            for neighbor, coefficient in neighbors:
+                L[k, neighbor] += coefficient
+    return L
+
+
+def diagnostics():
+    Lp = periodic_laplacian_1d(4, 1.0)
+    assert np.allclose(Lp @ np.ones(4), 0.0)
+    assert np.allclose(Lp, Lp.T)
+
+    Ld, h = dirichlet_operator(4, 1.0)
+    x = np.arange(1, 4) * h
+    u = x * (1.0 - x)
+    b = dirichlet_rhs(-2.0 * np.ones(3), h, 0.0, 0.0)
+    assert np.allclose(Ld @ u, b)
+
+    Ln, c, h = neumann_ghost_operator(4, 1.0, 2.0, 2.0)
+    x = np.arange(5) * h
+    assert np.allclose(Ln @ (2.0 * x + 3.0) + c, 0.0)
+    assert not np.allclose(Ln, Ln.T)
+
+    H = h * np.diag([0.5, 1.0, 1.0, 1.0, 0.5])
+    test_u = np.array([0.0, 1.0, -1.0, 2.0, 1.0])
+    assert test_u @ H @ Ln @ test_u <= 1.0e-12
+
+    L2 = periodic_laplacian_2d(np.int64(3), np.int64(2), 1.0, 1.0)
+    assert np.allclose(L2 @ np.ones(6), 0.0)
+    assert np.allclose(L2, L2.T)
+
+    for bad_call in [
+        lambda: periodic_laplacian_1d(True, 1.0),
+        lambda: periodic_laplacian_1d(4, np.nan),
+        lambda: periodic_laplacian_2d(3, False, 1.0, 1.0),
+    ]:
+        try:
+            bad_call()
+        except (TypeError, ValueError):
+            pass
+        else:
+            raise AssertionError("非法輸入未被拒絕")
+
+
+if __name__ == "__main__":
+    diagnostics()
+```
+
+此程式不會把 ghost 值當成物理未知量。`neumann_ghost_operator` 明確接受 $u_x$；若資料是外法向導數，呼叫端必須先依左右邊界轉換符號。
+
+---
+
+## 測試與預期結果
+
+### 正常測試
+
+- 週期矩陣應消去常數場，且在歐氏內積下對稱負半定。
+- Dirichlet 算子應精確再現二次函數的二階導數。
+- Neumann ghost 算子應消去符合邊界導數的線性函數。
+- Neumann 矩陣本身預期不對稱，但 $H$ 加權二次型應非正。
+- 二維週期矩陣應對稱且每個橫列元素和為零。
+
+### 邊界測試
+
+- `n_intervals=2` 可建立單一 Dirichlet 內點。
+- `np.int64` 網格數應被接受。
+- `True`、`False` 必須拒絕。
+- 齊次 Neumann 矩陣消去常數場，但不能因此宣稱可唯一反解。
+
+### 故障與使用契約
+
+程式會拒絕非有限間距、非法網格數與非有限邊界值。以下兩項則是**呼叫端契約**，不是函式能自動辨識的錯誤：
+
+1. 矩陣與待乘直向量的尺寸應由呼叫端先檢查；NumPy 尺寸不合時通常會在矩陣乘法處報錯。
+2. 函式無法猜測輸入值究竟代表 $u_x$ 或 $\partial_nu$；呼叫者必須依介面文件轉換。
+
+### 性質必須分開
+
+- 一致性不等於穩定性。
+- 守恆不等於非負性。
+- 負半定空間算子不保證任意時間步長能量下降。
+- 能量下降不保證濃度非負。
+- 所有代數測試通過也不等於物理模型已被現場驗證。
+
+---
+
+## 除錯與常見陷阱
+
+1. **符號反轉**：若 $A=-L$，擴散式應寫成 $\dot{\boldsymbol{u}}=-DA\boldsymbol{u}$。
+2. **漏掉 Dirichlet 右端貢獻**：非零邊界值必須移到右端。
+3. **混淆 $u_x$ 與 $\partial_nu$**：西側法向符號為負，東側為正。
+4. **把 ghost cell 計入質量**：ghost cell 不屬於物理域。
+5. **只看平滑圖**：應另測常數、線性、二次函數與高頻模態。
+6. **忽略光滑性**：$u(x)=|x|$ 在尖點不能套用二階 Taylor 結論。
+7. **裁零掩蓋負值**：裁零會改變總量，必須記錄質量修正。
+8. **把 Neumann 矩陣當成歐氏對稱矩陣**：本章 ghost 閉合需使用端點半權重的 $H$ 內積。
+
+---
+
+## 養殖與相場案例
+
+### 合成池域濃度
+
+考慮長度 $10\,\mathrm{m}$ 的一維合成水道：
+
+$$
+c_t=Dc_{xx}+s,\qquad D=10^{-4}\,\mathrm{m^2/s},
+$$
+
+初始條件為合成場 $c(x,0)=c_0(x)$。左端封閉牆可設零外向通量，右端設固定合成濃度 $c_R$。這是一端 Neumann、一端 Dirichlet 的混合閉合。
+
+濃度換算為
+
+$$
+1\,\mathrm{mg/L}
+=
+\frac{10^{-6}\,\mathrm{kg}}{10^{-3}\,\mathrm{m^3}}
+=
+10^{-3}\,\mathrm{kg/m^3}.
+$$
+
+來源 $s$ 的單位必須為 $\mathrm{kg/(m^3\,s)}$。平滑解與小代數殘差都不能證明合成參數代表真實池域。
+
+### 相場中的 Laplacian
+
+此處採用無因次空間座標 $\hat{\boldsymbol{x}}=\boldsymbol{x}/\ell_0$、無因次序參量 $\phi$ 與無因次參數 $\kappa>0$：
+
+$$
+W(\phi)=\frac{(\phi^2-1)^2}{4},
+$$
+
+$$
+\mu=\phi^3-\phi-\kappa\hat{\Delta}\phi.
+$$
+
+因此各項量綱一致。離散後為
+
+$$
+\boldsymbol{\mu}
+=
+\boldsymbol{\phi}^{\circ3}
+-\boldsymbol{\phi}
+-\kappa L\boldsymbol{\phi}.
+$$
+
+若保留有因次座標，梯度係數必須重新賦予長度平方及相應自由能尺度，不能直接沿用上述無因次 $\kappa$。
+
+相場序參量不是養殖濃度；溶氧跨越管理門檻也不是物理相變。
+
+---
+
+## 習題
+
+1. **手算題**：推導二階單邊公式
+   $$
+   u''(x_0)\approx\frac{2u_0-5u_1+4u_2-u_3}{h^2}.
+   $$
+
+2. **程式題**：建立 $N_x=3$、$N_y=2$ 的二維週期 Laplacian，檢查常數零模態、對稱性與橫列和。
+
+3. **反例題**：用 $u(x)=|x|$ 反駁「中心差分總是二階準確」。
+
+4. **整合題**：考慮
+   $$
+   u''=0,\qquad \partial_nu(0)=-2,\qquad u(1)=5.
+   $$
+   取 $h=1/2$，寫出完整三節點系統並求解。
+
+5. **辨析題**：某擴散程式保持總量但產生負濃度。能否推論穩定、能量下降或物理可信？能否直接裁零？
+
+---
+
+## 習題解答
+
+### 解答一
+
+由 Taylor 漸近展開配係數可得
+
+$$
+2u_0-5u_1+4u_2-u_3
+=
+h^2u_0''-\frac{11}{12}h^4u_0^{(4)}+O(h^5).
+$$
+
+所以
+
+$$
+\frac{2u_0-5u_1+4u_2-u_3}{h^2}
+=
+u_0''-\frac{11}{12}h^2u_0^{(4)}+O(h^3),
+$$
+
+為二階單邊公式。
+
+### 解答二
+
+使用本章 `periodic_laplacian_2d`：
+
+```python
+L = periodic_laplacian_2d(
+    np.int64(3), np.int64(2), 1.0, 1.0
+)
+assert np.allclose(L @ np.ones(6), 0.0)
+assert np.allclose(L, L.T)
+assert np.allclose(L.sum(axis=1), 0.0)
+```
+
+$N_y=2$ 時南北鄰居落在同一格點，但代表兩個方向，係數應累加兩次。
+
+### 解答三
+
+在 $x=0$，
+
+$$
+\frac{|h|-|-h|}{2h}=0.
+$$
+
+但左導數為 $-1$、右導數為 $1$，故導數不存在。數值為零只是對稱造成，Taylor 光滑性條件並未成立。
+
+### 解答四
+
+左端 $n=-1$，所以
+
+$$
+\partial_nu=-u_x=-2
+\quad\Longrightarrow\quad
+u_x(0)=2.
+$$
+
+解析解為 $u(x)=2x+3$。取 $h=1/2$：
+
+$$
+\begin{bmatrix}
+-3&4&-1\\
+1&-2&1\\
+0&0&1
+\end{bmatrix}
+\begin{bmatrix}
+u_0\\u_1\\u_2
+\end{bmatrix}
+=
+\begin{bmatrix}
+2\\0\\5
+\end{bmatrix}.
+$$
+
+解為
+
+$$
+(u_0,u_1,u_2)=(3,4,5).
+$$
+
+代入三個橫列分別得到 $2$、$0$、$5$。
+
+### 解答五
+
+不能由守恆推論穩定、能量下降或物理可信。負濃度可能表示時間步長、格式或模型範圍有問題。直接裁零會改變總量；若採用修正，必須報告修正前後的質量差。
+
+---
+
+## 本章小結
+
+有限差分以 Taylor 漸近展開建立局部近似，再利用邊界條件閉合域外資料。週期 $L$ 在歐氏內積下對稱負半定；本章 Neumann ghost 矩陣則不對稱，其非正能量性質需在端點半權重的離散內積下陳述。
+
+常數場檢查橫列和，線性場檢查 Neumann 符號，二次場檢查二階差分，高頻模態檢查 Laplacian 符號。這些測試互補，但不能互相取代。正確邊界閉合是可信離散的必要條件，不是物理驗證的充分條件。
+
+---
+
+## 參考來源
+
+1. **F1：FiPy 有限體積離散與邊界**  
+   <https://pages.nist.gov/fipy/en/latest/numerical/discret.html>
+
+2. **F2：FEniCSx Poisson 與弱形式**  
+   <https://jsdokken.com/dolfinx-tutorial/chapter1/fundamentals.html>
+
+3. **F3：PETSc 線性系統求解器**  
+   <https://petsc.org/release/manual/ksp/>
+
+4. **F4：SciPy 稀疏線性代數 API**  
+   <https://docs.scipy.org/doc/scipy/reference/sparse.linalg.html>
+
+5. **F6：FiPy Cahn–Hilliard 相分離示範**  
+   <https://pages.nist.gov/fipy/en/latest/generated/examples.cahnHilliard.mesh2D.html>
+
+來源提供相應主題的比較背景，不表示所有跨章主張均由來源逐條驗證。FiPy 的序參量慣例亦不必然等同本卷的 $[-1,1]$ 雙井形式。

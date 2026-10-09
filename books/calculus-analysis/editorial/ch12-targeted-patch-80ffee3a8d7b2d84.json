@@ -1,0 +1,11 @@
+{
+  "key": "80ffee3a8d7b2d84e22be2cf1e86f5845c01900d3f7df085625690eeb9754194",
+  "person": {
+    "id": "v4_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 261,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n包含該端點的完整圓弧不能在此寫成定義於 $x=1$ 之開區間上的可微函數 $y=g(x)$。這不是只說單側公式的導數變大，而是說任何以 $x$ 為局部座標的圖形表示，都不能同時涵蓋端點兩側的完整曲線鄰域。\n<<<NEW>>>\n上半弧在 $x<1$ 一側仍可寫成 $y=\\sqrt{1-x^2}$，但不能延伸為定義於包含 $x=1$ 的開區間上的實值隱函數分支：該開區間必含 $x>1$，而圓在那一側沒有實數解。包含端點的完整曲線鄰域則可改用 $y$ 作局部座標。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n還須明確處理鄰域：選取足夠小的 $V,W$，使 $V\\times W\\subset N$，並使 $(x,0)\\in M$。\n<<<NEW>>>\n還須明確處理鄰域：先取足夠小的 $W$，再利用 $\\psi$ 的連續性縮小 $V$，使 $V\\times W\\subset N$、$(x,0)\\in M$，且 $g(V)=\\psi(V,0)\\subset W$。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n3. MIT OpenCourseWare，*18.02SC Multivariable Calculus*：<https://ocw.mit.edu/courses/18-02sc/multivariable-calculus-fall-2010/>\n<<<NEW>>>\n3. MIT OpenCourseWare，*18.02SC Multivariable Calculus*：<https://ocw.mit.edu/courses/18-02sc-multivariable-calculus-fall-2010/>\n<<<END>>>"
+}

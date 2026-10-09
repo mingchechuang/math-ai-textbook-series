@@ -1,0 +1,11 @@
+{
+  "key": "3d3c3854f1cdfc63644ed74285785740530459815bc3762d0199e94527c9464c",
+  "person": {
+    "id": "v5_editor_11",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "reviewer"
+  },
+  "call": 449,
+  "result": "VERDICT: APPROVE"
+}

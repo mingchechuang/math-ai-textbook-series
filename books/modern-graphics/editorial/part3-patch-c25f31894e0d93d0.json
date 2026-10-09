@@ -1,0 +1,40 @@
+{
+  "key": "c25f31894e0d93d08ccdc544865d3b5b39b309291addf9a33878d7c1b44831f8",
+  "person": {
+    "id": "v2_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 284,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "分母 $4(N\\cdot\\omega_i)(N\\cdot\\omega_o)$ 常被當作「背下來」的公式，其實它是把單位半球上的微面立體角 $\\mathrm{d}\\omega_h$ 轉到巨觀入射立體角 $\\mathrm{d}\\omega_i$ 的 Jacobian。推導分三步：",
+        "new": "分母 $4(N\\cdot\\omega_i)(N\\cdot\\omega_o)$ 來自半向量映射 Jacobian、微面投影面積與巨觀入射／出射投影餘弦的合併，不能視為單一立體角 Jacobian。推導分三步："
+      },
+      {
+        "chapter": 16,
+        "old": "若要具體驗證這個 Jacobian 的完整性，可以想像 $D(h)$ 收斂為狄拉克分佈",
+        "new": "若要具體驗證這組幾何與變數轉換因子的完整性，可以想像 $D(h)$ 收斂為狄拉克分佈"
+      },
+      {
+        "chapter": 16,
+        "old": "觀察方向 $\\omega_o$ 在半球內積分上式，若 $D$ 的歸一與 $G$ 的形式匹配，總反射率在 $m=0$ 時應接近 $\\rho$。**白色爐測試**是檢驗這件事最方便的合成實驗：假設入射輻射亮度在各方向都等於 $L$，則理想表面反射的總亮度也應等於 $L$，因為它不可能超過入射能量。若把採樣器、$D$、$G$、$F$、Jacobian 逐一帶入，把出射亮度對立體角積分，Smith 形式在 $r$ 很低時確實接近 $L$，但 $r\\to1$ 時只到 $0.7L$ 甚至更低——這就是單次散射假設的損失。多重散射補償（如 Kulla–Conty）就是用一個額外的漫反射項把損失的能量補回來。本章不展開該推導，但讀者須記得：**沒有補償的 Smith–GGX 模型在高粗糙度下會整體偏暗，這不是參數設錯，而是模型本身的已知缺口**。",
+        "new": "觀察方向 $\\omega_o$ 固定時，漫反射與鏡面項的半球積分合計應符合被動材質的能量限制；該總反射率不等同於漫反射基底色 $\\rho$。**白色爐測試**是檢查此限制的合成實驗：假設入射輻亮度在各方向都等於 $L$，被動材質的出射輻亮度不應穩定超過 $L$。對設定為白色且無吸收的完整模型，結果才應接近 $L$；本章的單次散射近似可能因未補償多重散射而偏低。多重散射補償（如 Kulla–Conty）可用額外項補回部分損失。本章不展開該推導，也不指定普遍適用的固定偏低比例；結果會依材質參數、觀察方向與漫反射耦合方式而變。"
+      },
+      {
+        "chapter": 16,
+        "old": "$N$ 為巨觀法線，$\\omega_i$ 為入射方向（由表面出發），$\\omega_o$ 為出射方向，皆已單位化。",
+        "new": "$N$ 為單位化的最終著色法線；在使用法線貼圖時，它是依第17章的 TBN 將切線空間法線轉至世界空間並重新正規化後的結果。$\\omega_i$ 為由表面指向光源的單位方向，$\\omega_o$ 為由表面指向觀察者的單位方向。另須保留幾何法線 $N_g$ 作面向與可見性判定，不以貼圖擾動法線取代幾何判定；若 $N\\cdot N_g\\leq0$，應拒絕或修正該法線貼圖結果，或採用明確的著色法線修正策略。"
+      },
+      {
+        "chapter": 16,
+        "old": "def normalize(v):\n    n = np.linalg.norm(v)\n    if n < 1e-12:\n        raise ValueError(\"zero-length vector\")\n    return v / n",
+        "new": "def normalize(v):\n    v = np.asarray(v, dtype=float)\n    if not np.all(np.isfinite(v)):\n        raise ValueError(\"vector must be finite\")\n    n = np.linalg.norm(v)\n    if not np.isfinite(n) or n < 1e-12:\n        raise ValueError(\"zero-length or non-finite vector\")\n    return v / n"
+      }
+    ],
+    "reason": "統一第16章對 Cook–Torrance 分母與 Jacobian 的描述，修正白色爐能量限制的適用條件與固定比例斷言；明確連接第17章最終著色法線與幾何法線的用途，並讓方向正規化拒絕非有限輸入。"
+  }
+}

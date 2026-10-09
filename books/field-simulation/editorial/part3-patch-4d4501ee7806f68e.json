@@ -1,0 +1,55 @@
+{
+  "key": "4d4501ee7806f68eeb97f7d9d1868acd2a83709f504959107b25b2687c19c277",
+  "person": {
+    "id": "v3_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 337,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "對 $f$ 的節點值 $f(x_i)$ 以頂點梯形積分：\n\n$$\nb_i=\\int_0^L f\\phi_i\\,dx\n\\approx\n\\begin{cases}\n\\dfrac{h_{i-1}+h_i}{4}f(x_i)+\\dfrac{h_{i-1}}{2}f(x_{i-1})+\\dfrac{h_i}{2}f(x_{i+1}), & \\text{內部}\\\\[2mm]\n\\dfrac{h_0}{2}f(x_0), & i=0\\\\[2mm]\n\\dfrac{h_{N-1}}{2}f(x_N), & i=N\n\\end{cases}\n$$\n\n在均勻網格上內部節點即 $b_i=h f(x_i)$，端點 $b_i=\\frac{h}{2}f(x_i)$。對線性 $f$，梯形法精確；對非線性 $f$，這只是二階精度的近似，若要提高可改用 Gauss 求積或解析積分。本章一律使用此近似，並在測試中檢驗其表現。",
+        "new": "本章程式採用單元端點求積近似 $\\int_{I_e} f\\phi_i\\,dx$。若 $f$ 以節點值線性插值，此簡化的端點質量集中的載荷為\n\n$$\nb^{(e)}\\approx\\frac{h_e}{2}\n\\begin{bmatrix}f(x_e)\\\\f(x_{e+1})\\end{bmatrix}.\n$$\n\n組裝後，內部節點載荷為 $b_i\\approx\\frac{h_{i-1}}2f(x_{i-1})+\\frac{h_i}{2}f(x_{i+1})$；端點則只有相鄰單元對應的半格貢獻。這是近似求積，不是 $f\\phi_i$ 的一般精確積分：即使 $f$ 線性，$f\\phi_i$ 通常是二次函數。若假設單元內 $f$ 為線性並精確積分，一致載荷另為\n\n$$\nb^{(e)}=\\frac{h_e}{6}\n\\begin{bmatrix}2f(x_e)+f(x_{e+1})\\\\f(x_e)+2f(x_{e+1})\\end{bmatrix}.\n$$\n\n須選定一種求積並讓程式、手算及測試一致。"
+      },
+      {
+        "chapter": 16,
+        "old": "這不是巧合：對一維對稱二階問題，P1 Galerkin 解在節點上是精確的（節點超收斂），因為誤差 $w=u-u_h$ 滿足 $a(w,\\phi_i)=0$，而格林函數在節點間是分片線性的。詳細證明可參考一般有限元素教科書。",
+        "new": "此例的節點吻合有其特殊條件：常係數純 Poisson 問題、均勻網格、Dirichlet 邊界及與精確載荷一致的內部方程。此結果不能不加條件地推廣到含變係數、反應項或不同近似求積的一般一維二階問題。"
+      },
+      {
+        "chapter": 16,
+        "old": "**測試 C（線性 $f$ 的精確性）。** 取 $f(x)=2$、Dirichlet 兩端為零，$\\int_0^1 f\\phi_i dx$ 由頂點梯形法在線性 $f$ 上為精確，因此節點解應與 $u=x(1-x)$ 的節點值吻合（浮點誤差內）。這同時檢驗右端向量的求積精度。",
+        "new": "**測試 C（常數來源的節點吻合特例）。** 取 $f\\equiv2$、均勻網格及 Dirichlet 兩端為零。依程式的端點載荷求積，內部節點負載為 $hf_i$；對此常係數純 Poisson 例，節點解預期與解析解 $u=x(1-x)$ 的節點值一致。這只驗證本例的組裝與求積組合，不能據此宣稱端點梯形法對一般線性 $f\\phi_i$ 精確，也不能推廣至非均勻網格或任意係數問題。"
+      },
+      {
+        "chapter": 16,
+        "old": "**習題 2 解答。** 節點誤差為零的理由已在例題 1 說明：對稱二階問題的 P1 解在所有節點取精確值。$L^2$ 誤差則來自單元內部的插值誤差。由泰勒餘項 $u-u_h=\\tfrac12 u''(x^\\ast)(x-x_i)(x-x_{i+1})$，對每個單元得出",
+        "new": "**習題 2 解答。** 對本題的常係數純 Poisson 方程 $-u''=1$、均勻網格、Dirichlet 邊界及程式所用端點載荷，節點值預期與解析解相同；這是本特例的節點吻合，不是一般對稱二階問題的通則。$L^2$ 誤差來自單元內的線性插值誤差。由泰勒餘項 $u-u_h=\\tfrac12 u''(x^\\ast)(x-x_i)(x-x_{i+1})$，對本二次解析解的每個單元可得"
+      },
+      {
+        "chapter": 16,
+        "old": "    x = np.asarray(x, dtype=float)\n    if x.ndim != 1 or x.size < 2:\n        raise ValueError(\"x 必須是一維且至少兩個節點\")\n    if np.any(np.diff(x) <= 0.0):\n        raise ValueError(\"網格必須嚴格遞增\")\n    a = np.asarray(a, dtype=float)\n    n_el = x.size - 1\n    if a.size != n_el:\n        raise ValueError(\"a 的長度必須等於單元數\")",
+        "new": "    x = np.asarray(x, dtype=float)\n    if x.ndim != 1 or x.size < 2:\n        raise ValueError(\"x 必須是一維且至少兩個節點\")\n    if not np.all(np.isfinite(x)):\n        raise ValueError(\"x 必須全部為有限值\")\n    if np.any(np.diff(x) <= 0.0):\n        raise ValueError(\"網格必須嚴格遞增\")\n    a = np.asarray(a, dtype=float)\n    n_el = x.size - 1\n    if a.ndim != 1 or a.shape != (n_el,):\n        raise ValueError(\"a 必須是一維且長度等於單元數\")"
+      },
+      {
+        "chapter": 16,
+        "old": "    K = K.copy(); b = b.copy()\n    idx = np.atleast_1d(np.asarray(idx, dtype=int))\n    val = np.atleast_1d(np.asarray(val, dtype=float))\n    if idx.size != val.size:\n        raise ValueError(\"idx 與 val 長度需一致\")\n    n = K.shape[0]\n    free = np.setdiff1d(np.arange(n), idx)",
+        "new": "    K, b = np.asarray(K, dtype=float), np.asarray(b, dtype=float)\n    if K.ndim != 2 or K.shape[0] != K.shape[1]:\n        raise ValueError(\"K 必須是方陣\")\n    if b.ndim != 1 or b.shape != (K.shape[0],):\n        raise ValueError(\"b 必須是一維且長度與 K 相符\")\n    if not np.all(np.isfinite(K)) or not np.all(np.isfinite(b)):\n        raise ValueError(\"K 與 b 必須全部為有限值\")\n    K, b = K.copy(), b.copy()\n    raw_idx = np.asarray(idx)\n    if raw_idx.ndim > 1 or not np.issubdtype(raw_idx.dtype, np.integer):\n        raise ValueError(\"idx 必須是一維整數索引\")\n    idx = np.atleast_1d(raw_idx.astype(int, copy=False))\n    try:\n        val = np.atleast_1d(np.asarray(val, dtype=float))\n    except (TypeError, ValueError) as err:\n        raise ValueError(\"val 必須為有限實數值\") from err\n    if idx.size != val.size:\n        raise ValueError(\"idx 與 val 長度需一致\")\n    if np.unique(idx).size != idx.size:\n        raise ValueError(\"idx 不得包含重複邊界節點\")\n    if np.any(idx < 0) or np.any(idx >= K.shape[0]):\n        raise ValueError(\"Dirichlet 節點索引越界\")\n    if not np.all(np.isfinite(val)):\n        raise ValueError(\"Dirichlet 值必須全部為有限值\")\n    n = K.shape[0]\n    free = np.setdiff1d(np.arange(n), idx)"
+      },
+      {
+        "chapter": 13,
+        "old": "    if residual_norm > bound or abs(h * np.sum(u)) > bound:\n        raise ArithmeticError(\"original equation or mean check failed\")",
+        "new": "    mean_atol = atol\n    mean_rtol = rtol\n    mean_integral = h * np.sum(u)\n    mean_scale = h * np.sum(np.abs(u))\n    mean_bound = mean_atol + mean_rtol * mean_scale\n    if residual_norm > bound:\n        raise ArithmeticError(\"original equation residual check failed\")\n    if abs(mean_integral) > mean_bound:\n        raise ArithmeticError(\"zero-mean normalization check failed\")"
+      },
+      {
+        "chapter": 15,
+        "old": "    \"\"\"教學用右預條件 GMRES；A 為小型稠密方陣。\"\"\"",
+        "new": "    \"\"\"教學用固定線性右預條件 GMRES；A 為小型稠密方陣。\n\n    apply_Pinv 必須在單次求解期間代表同一個線性映射；本函式不支援\n    隨迭代變動或非線性預條件器。此類問題需使用另行推導的 Flexible GMRES。\n    \"\"\""
+      }
+    ],
+    "reason": "修正第16章端點載荷求積與正文、測試一致性，限定節點吻合結論並補足輸入契約；第13章分開均值與真殘差尺度；第15章明定右預條件為固定線性映射。各 old 對應同一輸入原稿且不重疊；未執行程式。"
+  }
+}

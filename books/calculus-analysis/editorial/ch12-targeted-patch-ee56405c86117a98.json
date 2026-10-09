@@ -1,0 +1,11 @@
+{
+  "key": "ee56405c86117a98366ea5f92151bc940dc032fb101aec0b10f2fb307b4ea798",
+  "person": {
+    "id": "v4_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 311,
+  "result": "<<<PATCH 12>>>\n<<<OLD>>>\n當其他尺度固定時，\n\n$$\n2k_O(C-C_*)-\\alpha\\gamma\n$$\n\n接近零可作輔助警示，但不能取代奇異值分析。\n<<<NEW>>>\n此處未尺度化的行列式為\n\n$$\n\\det(D_yF)=2k_O(C-C_*)-\\alpha\\gamma.\n$$\n\n它等於零可判定精確秩失效，但其數值大小受單位與尺度影響。比較接近秩失效的程度時，須先固定並交代方程與狀態尺度，以無因次矩陣 $S_F^{-1}D_yF S_y$ 的奇異值和條件數為準。\n<<<END>>>"
+}

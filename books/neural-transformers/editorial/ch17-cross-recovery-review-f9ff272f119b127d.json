@@ -1,0 +1,11 @@
+{
+  "key": "f9ff272f119b127d4fdd62b10a2200af2fb58ff16d55fed1987a4419f5ae6c70",
+  "person": {
+    "id": "v5_editor_33",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 545,
+  "result": "本版已將「無位置」基線明確限定為不加顯式位置編碼、但保留相同因果遮罩，並說明遮罩仍提供順序結構；整合題也已相應修正。來源說明未冒稱作者查閱或執行，程式與測試未宣稱已實際執行。未發現阻擋性錯誤。\n\nVERDICT: APPROVE"
+}

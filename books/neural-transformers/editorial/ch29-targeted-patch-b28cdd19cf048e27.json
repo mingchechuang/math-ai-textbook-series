@@ -1,0 +1,11 @@
+{
+  "key": "b28cdd19cf048e27fc4bc13fe92c78bed271ea9a21fcec9227dae441d9112f0d",
+  "person": {
+    "id": "v5_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 415,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n3.  驗證 `details` 中的參數哈希與工具返回值哈希是否匹配（需與另行保存的結果重算比較）。\n<<<NEW>>>\n3.  找到同一 `call_id` 的 `RECEIVED` 與 `SUCCEEDED` 事件；分別對另行保存的原始參數與結果依相同JSON序列化規則重算摘要，再各自核對 `params_hash` 與 `result_hash`。兩者不是互相比對。\n<<<END>>>"
+}

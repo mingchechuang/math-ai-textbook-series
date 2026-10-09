@@ -1,0 +1,11 @@
+{
+  "key": "8533d21b600f2e65611eb037a2ce404d2cb21ca2e189318914739d87421eb498",
+  "person": {
+    "id": "v5_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 171,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\ndef checkpoint_paths(prefix):\n<<<NEW>>>\ndef majority_class(y, classes):\n    \"\"\"只由訓練標籤決定常數預測；平手選較小類別。\"\"\"\n    if y.ndim != 1 or len(y) == 0:\n        raise ValueError(\"訓練標籤必須是非空一維陣列\")\n    if np.any(y < 0) or np.any(y >= classes):\n        raise ValueError(\"訓練標籤超出類別範圍\")\n    return int(np.argmax(np.bincount(y, minlength=classes)))\n\n\ndef checkpoint_paths(prefix):\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    return {\n        \"status\": \"completed\",\n        \"metrics\": metrics,\n        \"W\": best_W,\n<<<NEW>>>\n    baseline_class = majority_class(ytr, cfg.classes)\n    baseline_accuracy = {\n        name: float(np.mean(parts[name][\"y\"] == baseline_class))\n        for name in (\"train\", \"val\", \"test\")\n    }\n    return {\n        \"status\": \"completed\",\n        \"metrics\": metrics,\n        \"baseline_class\": baseline_class,\n        \"baseline_accuracy\": baseline_accuracy,\n        \"W\": best_W,\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n`resume=True` 時，程式重建相同合成資料及切分，核對設定、群組和標準化統計，再恢復當前參數、最佳參數、早停計數與 RNG 狀態。因 checkpoint 在每個 epoch 結束後寫入，下一輪由 `epoch+1` 開始。\n<<<NEW>>>\n`resume=True` 時，程式重建相同合成資料及切分，核對設定、群組和標準化統計，再恢復當前參數、最佳參數、早停計數與 RNG 狀態。因 checkpoint 在每個 epoch 結束後寫入，下一輪由 `epoch+1` 開始。此實作只支援兩個檔案均完成寫入後的 epoch 邊界中止；`.npz` 與 JSON 分開覆寫，若寫入期間中斷，檔案可能不完整或彼此不一致，不保證可恢復。若需抵抗這類故障，應將完整版本寫入暫存位置並核驗，再以原子方式發布完整版本。\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n### 正常測試：checkpoint 讀回\n<<<NEW>>>\n### 正常測試：訓練集多數類別基線\n\n只用訓練標籤選出預測類別；若計數相同，選編號較小者。對三集合均以與模型相同的準確率定義評估，但測試結果只在選模完成後查看，不用於改選模型。\n\n```python\ncfg = Config(epochs=3)\nresult = train(cfg, checkpoint_prefix=\"baseline_test\")\nparts, _, _ = prepare(cfg)\nchosen = majority_class(parts[\"train\"][\"y\"], cfg.classes)\nassert result[\"baseline_class\"] == chosen\nfor name in (\"train\", \"val\", \"test\"):\n    expected = np.mean(parts[name][\"y\"] == chosen)\n    assert np.isclose(result[\"baseline_accuracy\"][name], expected)\n```\n\n預期：可將各集合的模型準確率與基線準確率並列；不預設模型必然較高。本測試未在寫作時執行。\n\n### 正常測試：checkpoint 讀回\n<<<END>>>"
+}

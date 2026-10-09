@@ -1,0 +1,11 @@
+{
+  "key": "b4346db751d1861a60b97d6b1afdf1a58c2bd6d71a823d4b656c18f7b7633909",
+  "person": {
+    "id": "v5_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 196,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n反向傳播是鏈式法則的有效實作。每個節點接收下游梯度，以局部導數計算對其輸入的 VJP，再把結果傳向上游。若同一值流向多個分支，各分支都會產生梯度貢獻，這些貢獻必須相加，不能互相覆寫。\n<<<NEW>>>\n反向傳播是鏈式法則的有效實作。每個節點接收下游梯度，以局部導數計算對其輸入的 VJP，再把結果傳向上游。若同一值流向多個分支，各分支都會產生梯度貢獻，這些貢獻必須相加，不能互相覆寫。\n\n上游梯度描述損失對節點輸出的敏感度；局部反傳則把它分配給節點的各個輸入。以仿射節點為例，資料、權重與偏置取得的梯度形狀不同，但都從同一份輸出端梯度推得。因此除核對公式外，還須逐一核對前向值與反向形狀：矩陣乘法要注意因子的次序，廣播要沿被複製的軸求和，分支要在共同來源處累加。只檢查最終損失數值，不能發現漏掉的反向路徑；方向導數則可檢查合併後的梯度是否符合損失的局部變化。若核對失敗，先查是否把求和誤作平均，再查廣播軸與分支累加，最後調整有限差分步長；不可為了讓測試通過而任意放寬容差。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    expect_value_error(\n        \"wrong label shape\",\n        lambda: bce_logits_mean(\n            np.zeros((2, 1)), np.zeros((2,))\n        ),\n    )\n<<<NEW>>>\n    expect_value_error(\n        \"NaN logit\",\n        lambda: bce_logits_mean(\n            np.array([[np.nan]]), np.array([[1.0]])\n        ),\n    )\n    expect_value_error(\n        \"wrong label shape\",\n        lambda: bce_logits_mean(\n            np.zeros((2, 1)), np.zeros((2,))\n        ),\n    )\n<<<END>>>"
+}

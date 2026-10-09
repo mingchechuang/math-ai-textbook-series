@@ -1,0 +1,227 @@
+# 第22章 多物理場耦合與時間尺度
+
+## 學習目標與先備知識
+
+本章目標是區分單向／雙向與弱／強耦合，推導交換系統的守恆、時間尺度與能量收支，理解分區固定點迭代，並分開診斷耦合殘差、離散誤差與物理誤差。先備知識為常微分方程、時間積分、守恆律、特徵值及NumPy。
+
+## 問題與直覺
+
+單向／雙向描述物理依賴方向；弱／強耦合描述數值協調方式。兩區塊交換物質時，一側失去的質量必須由另一側取得。平滑曲線不能證明守恆，固定點殘差小也不能證明模型符合現實。
+
+## 數學與物理推導
+
+令$M_i=V_iC_i$，交換率為$J_{12}=K(C_1-C_2)$，其中$K$為$\mathrm{m^3/s}$：
+
+$$
+\frac{dM_1}{dt}=S_1-J_{12},\qquad
+\frac{dM_2}{dt}=S_2+J_{12}.
+$$
+
+故
+
+$$
+\frac{d}{dt}(M_1+M_2)=S_1+S_2.
+$$
+
+封閉系統的總質量守恆。令$\delta=C_1-C_2$，則
+
+$$
+\delta'=-K\left(\frac1{V_1}+\frac1{V_2}\right)\delta,
+$$
+
+$$
+\tau_{\mathrm{ex}}
+=\frac1{K(1/V_1+1/V_2)}.
+$$
+
+其他尺度包括
+
+$$
+\tau_{\mathrm{adv}}\sim\frac LU,\qquad
+\tau_{\mathrm{diff}}\sim\frac{L^2}{D},\qquad
+\tau_{\mathrm{react}}\sim\frac1k.
+$$
+
+尺度相差很大時會形成快慢模態與剛性。隱式方法可改善穩定性，但大步長仍可能抹去快速過渡。
+
+分區Gauss–Seidel迭代可寫為
+
+$$
+\mathbf u^{(k+1)}=\mathcal S_u(\mathbf v^{(k)}),\qquad
+\mathbf v^{(k+1)}=\mathcal S_v(\mathbf u^{(k+1)}).
+$$
+
+若迭代映射$\mathcal G$滿足局部壓縮條件，或$\rho(J_{\mathcal G})<1$，固定點局部收斂。欠鬆弛為
+
+$$
+\mathbf z^{(k+1)}
+=(1-\omega)\mathbf z^{(k)}
++\omega\mathcal G(\mathbf z^{(k)}).
+$$
+
+耦合迭代增量小不等於完整方程真殘差小，更不等於物理誤差小。
+
+對熱交換，
+
+$$
+Q_{12}=G(T_1-T_2),
+$$
+
+$$
+H_1T_1'=-Q_{12},\qquad H_2T_2'=Q_{12}.
+$$
+
+總顯熱守恆，且
+
+$$
+\frac{d}{dt}\frac{(T_1-T_2)^2}{2}
+=
+-G\left(\frac1{H_1}+\frac1{H_2}\right)(T_1-T_2)^2\le0.
+$$
+
+這是連續耗散，不保證任意離散步長也耗散。
+
+離散收支缺口可定義為
+
+$$
+\epsilon_{\mathrm{bal}}^n
+=
+M_{\mathrm{tot}}^{n+1}-M_{\mathrm{tot}}^n
+-\Delta t(S_1^n+S_2^n).
+$$
+
+共享通量下此值應接近捨入尺度。若兩側各自計算介面通量，還應檢查其面積積分是否大小相等、符號相反。
+
+## 逐步手算例題
+
+### 例一：解析交換
+
+取$V_1=V_2=1\,\mathrm{m^3}$、$K=0.1\,\mathrm{m^3/s}$、$C_1(0)=2$、$C_2(0)=0\,\mathrm{kg/m^3}$。總質量為$2\,\mathrm{kg}$，平衡濃度為$1\,\mathrm{kg/m^3}$。因$\delta'= -0.2\delta$，
+
+$$
+C_1(t)=1+e^{-0.2t},\qquad
+C_2(t)=1-e^{-0.2t}.
+$$
+
+### 例二：守恆但不非負
+
+顯式Euler使用
+
+$$
+J^n=K(C_1^n-C_2^n),
+$$
+
+$$
+C_1^{n+1}=C_1^n-\Delta tJ^n/V_1,\qquad
+C_2^{n+1}=C_2^n+\Delta tJ^n/V_2.
+$$
+
+取$\Delta t=1\,\mathrm s$得$[1.8,0.2]^T$；取$\Delta t=20\,\mathrm s$得$[-2,4]^T$。兩者均守恆，但後者不非負且不穩定。不得以裁零掩蓋故障。
+
+## 實作與程式
+
+```python
+import numpy as np
+
+METHODS = ("explicit", "backward_euler")
+
+def validate(c, v, K, dt, steps):
+    c = np.asarray(c, float)
+    v = np.asarray(v, float)
+    if c.shape != (2,) or v.shape != (2,):
+        raise ValueError("c與v必須為形狀(2,)")
+    if not np.all(np.isfinite(c)) or not np.all(np.isfinite(v)):
+        raise ValueError("輸入必須有限")
+    if np.any(v <= 0) or not np.isfinite(K) or K < 0:
+        raise ValueError("體積須為正，K須為有限非負")
+    if not np.isfinite(dt) or dt <= 0:
+        raise ValueError("dt須為有限正數")
+    if not isinstance(steps, int) or isinstance(steps, bool) or steps < 0:
+        raise ValueError("steps須為非負整數")
+    return c.copy(), v.copy()
+
+def step_explicit(c, v, K, dt):
+    J = K * (c[0] - c[1])
+    m = v * c
+    m[0] -= dt * J
+    m[1] += dt * J
+    return m / v
+
+def step_be(c, v, K, dt):
+    v1, v2 = v
+    A = np.array([[1+dt*K/v1, -dt*K/v1],
+                  [-dt*K/v2, 1+dt*K/v2]])
+    return np.linalg.solve(A, c)
+
+def run(method, c0, volumes, K, dt, steps):
+    if method not in METHODS:
+        raise ValueError("未知方法")
+    c, v = validate(c0, volumes, K, dt, steps)
+    m0 = float(v @ c)
+    for _ in range(steps):
+        c = (step_explicit(c, v, K, dt) if method == "explicit"
+             else step_be(c, v, K, dt))
+    mass = float(v @ c)
+    return c, mass, mass - m0, float(np.min(c))
+```
+
+此程式在迴圈前驗證方法，因此`steps=0`也不能繞過未知方法檢查。結果未在此執行。
+
+## 測試與預期結果
+
+正常測試預期一步顯式結果為$[1.8,0.2]^T$。固定終止時間，以$\Delta t=1,0.5,0.25$細化，預期顯式Euler在漸近區呈一階趨勢，但實際觀測階須由資料計算。
+
+故障測試包括：負體積、非有限輸入、負$K$、非正步長、未知方法及布林型步數，均應被拒絕。`run("unknown",c,v,K,dt,0)`也應引發`ValueError`。若把第二側更新誤寫成同號損失，總量測試應失敗。
+
+守恆、穩定、非負性、能量下降與收斂必須分別檢查；任何一項通過都不能替代其他項目。
+
+## 除錯與常見陷阱
+
+1. 把單向耦合誤稱為弱耦合。
+2. 兩側分別重算介面通量。
+3. 體積不同時仍檢查濃度和。
+4. 把固定點增量當成完整方程殘差。
+5. 把耦合殘差當成物理誤差。
+6. 時間步細化時不收緊耦合容差。
+7. 用欠鬆弛掩蓋符號或單位錯誤。
+8. 用裁零恢復非負而不記錄質量改變。
+9. 只檢查總量，忽略振盪與負值。
+10. 只在時間迴圈內驗證方法名稱。
+
+## 養殖與相場案例
+
+合成耗氧率可寫為
+
+$$
+R_C(T,C)=-k(T)C.
+$$
+
+若溫度影響耗氧而濃度不回饋熱方程，這是單向耦合；若反應放熱再回饋溫度，則是雙向耦合，並須列出反應焓及單位。本章不提供現場閾值，agent也不得據此自行操作設備。
+
+相場與溫度可透過溫度依賴自由能及潛熱雙向耦合。若只令$T$影響$W(\phi,T)$而漏掉潛熱回饋，便不能宣稱總熱能守恆。連續能量律也不保證分區時間離散具有相同能量性質。
+
+## 習題
+
+1. 求$V_1=2$、$V_2=1\,\mathrm{m^3}$、$K=0.3\,\mathrm{m^3/s}$的交換尺度及初值$C_1=3,C_2=0$的平衡濃度。
+2. 在程式加入$S_1=s,S_2=-s$並檢查總量。
+3. 構造守恆但產生負濃度的顯式反例。
+4. 耦合殘差低於$10^{-8}$但網格細化結果改變，提出診斷。
+
+## 習題解答
+
+1. $\lambda=0.3(1/2+1)=0.45\,\mathrm{1/s}$，故$\tau_{\mathrm{ex}}\approx2.22\,\mathrm s$。總質量為$6\,\mathrm{kg}$，平衡濃度為$2\,\mathrm{kg/m^3}$。
+2. 使用$M_1^{n+1}=M_1^n+\Delta t(s-J^n)$及$M_2^{n+1}=M_2^n+\Delta t(-s+J^n)$，總量應只含捨入誤差。
+3. 取例二的$\Delta t=20\,\mathrm s$，得到$[-2,4]^T$；總量守恆但非負性失敗。
+4. 應計算真殘差，分別細化空間與時間，收緊耦合及代數容差，檢查介面通量、總量、非負性與能量，並以解析解或製造解核對。低耦合殘差不控制空間離散誤差或模型誤差。
+
+## 本章小結
+
+多物理耦合必須明定依賴方向、交換量、符號、單位、時間層與停止準則。共享通量以相反符號加入兩側，才能保存總量。時間步細化診斷時間離散誤差；固定點殘差診斷耦合迭代；真殘差診斷代數求解；物理模型誤差仍需獨立validation。
+
+## 參考來源
+
+1. FiPy有限體積離散：https://pages.nist.gov/fipy/en/latest/numerical/discret.html
+2. FEniCSx弱形式：https://jsdokken.com/dolfinx-tutorial/chapter1/fundamentals.html
+3. PETSc KSP：https://petsc.org/release/manual/ksp/
+4. SciPy稀疏線性代數：https://docs.scipy.org/doc/scipy/reference/sparse.linalg.html
+5. FiPy相場示例：https://pages.nist.gov/fipy/en/latest/generated/examples.phase.simple.html

@@ -1,0 +1,80 @@
+{
+  "key": "6ce33745964624f6f2560bb4852b28d015cf5c3956bc14512c4e1420738f9217",
+  "person": {
+    "id": "v2_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 218,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "本章要把前一章的局部照明推向可比較、可量測的物理材質。讀者應先掌握第14章的 Lambert 模型與立體角概念、第15章的 UV 與貼圖座標，以及第一卷的向量內積、外積與有限差分思維。",
+        "new": "本章把局部照明推向可比較的物理材質。讀者應先掌握第14章的 UV 與貼圖座標，以及第15章的 Lambert 模型、立體角與 BRDF 基礎；也需具備第一卷的向量內積、外積與基本微積分概念。"
+      },
+      {
+        "chapter": 16,
+        "old": "第一卷第14章的 Lambert 材質只有一個參數：反照率。",
+        "new": "第15章的 Lambert 材質只有一個主要參數：反照率。"
+      },
+      {
+        "chapter": 16,
+        "old": "2. 給定入射方向 $\\omega_i$，出射方向的微分由 $h$ 的微分決定。對 $\\omega_o$ 關於 $h$ 取微分可得映射 $\\mathrm{d}\\omega_o = 4\\,(\\omega_i\\cdot h)\\,\\mathrm{d}\\omega_h$。\n3. 由互易性，把出射側的立體角轉到入射側，並將 $\\omega_i\\cdot h$ 用 $N$ 投影表示。在半角定義下 $\\omega_i\\cdot h = \\omega_o\\cdot h$，配合投影分解可得\n\n$$\\mathrm{d}\\omega_i = \\frac{4\\,(N\\cdot h)^2}{(N\\cdot\\omega_o)(N\\cdot\\omega_i)}\\,\\mathrm{d}\\omega_h.$$",
+        "new": "固定入射方向時，半角向量與反射方向的立體角關係為\n\n$$\nd\\omega_h=\\frac{d\\omega_o}{4|\\omega_o\\cdot h|}.\n$$\n\n$D(h)$ 描述微面法線相對巨觀表面的分布；微面投影、可見性與遮蔽則由推導中的其他因子處理。將微面分布、Fresnel、幾何項與反射方向的 Jacobian 合併，可得常用鏡面微表面 BRDF：\n\n$$\nf_r^{\\mathrm{spec}}(\\omega_i,\\omega_o)=\n\\frac{F(\\omega_i,h)D(h)G(\\omega_i,\\omega_o)}\n{4|N\\cdot\\omega_i||N\\cdot\\omega_o|}.\n$$\n\n這是推導綱要；完整結果取決於 $D$ 與 $G$ 的定義，不能由單一立體角等式直接推出。外側半球的巨觀點積為正時，分母中的絕對值可省略。"
+      },
+      {
+        "chapter": 16,
+        "old": "def ggx_d(n_dot_h, roughness):\n    alpha = roughness * roughness\n    a2 = alpha * alpha\n    denom = (n_dot_h ** 2) * (a2 - 1.0) + 1.0\n    return a2 / (np.pi * denom * denom)\n\ndef smith_g1(n_dot_x, roughness):\n    alpha = roughness * roughness\n    a2 = alpha * alpha\n    ndx = np.clip(n_dot_x, 1e-6, 1.0)\n    return 2.0 * ndx / (ndx + np.sqrt(a2 + (1.0 - a2) * ndx * ndx))",
+        "new": "def checked_roughness(roughness):\n    r = float(roughness)\n    if not np.isfinite(r) or not 0.0 <= r <= 1.0:\n        raise ValueError(\"roughness 必須是 [0, 1] 內的有限純量\")\n    # alpha = r^2；設正下限以避免 r=0 時 GGX 峰值形成 0/0。\n    return max(r * r, 1e-4)\n\ndef ggx_d(n_dot_h, roughness):\n    alpha = checked_roughness(roughness)\n    a2 = alpha * alpha\n    nh = np.clip(n_dot_h, 0.0, 1.0)\n    denom = (nh ** 2) * (a2 - 1.0) + 1.0\n    return a2 / (np.pi * denom * denom)\n\ndef smith_g1(n_dot_x, roughness):\n    alpha = checked_roughness(roughness)\n    a2 = alpha * alpha\n    ndx = np.clip(n_dot_x, 1e-6, 1.0)\n    return 2.0 * ndx / (ndx + np.sqrt(a2 + (1.0 - a2) * ndx * ndx))"
+      },
+      {
+        "chapter": 16,
+        "old": "def cook_torrance(N, V, L, albedo, roughness, metallic):\n    N = normalize(np.asarray(N, float))\n    V = normalize(np.asarray(V, float))\n    L = normalize(np.asarray(L, float))\n    H = normalize(V + L)\n    nv = max(np.dot(N, V), 1e-6)\n    nl = max(np.dot(N, L), 1e-6)\n    nh = max(np.dot(N, H), 0.0)\n    vh = max(np.dot(V, H), 0.0)\n    f0 = 0.04 * (1.0 - metallic) + albedo * metallic\n    F = fresnel_schlick(vh, f0)\n    D = ggx_d(nh, roughness)\n    G = smith_g1(nv, roughness) * smith_g1(nl, roughness)\n    spec = F * D * G / (4.0 * nv * nl)\n    kd = (1.0 - F) * (1.0 - metallic)\n    diff = kd * albedo / np.pi\n    return diff + spec, diff, spec",
+        "new": "def cook_torrance(N, V, L, albedo, roughness, metallic):\n    N = normalize(np.asarray(N, dtype=float))\n    V = normalize(np.asarray(V, dtype=float))\n    L = normalize(np.asarray(L, dtype=float))\n    albedo = np.asarray(albedo, dtype=float)\n    metallic = float(metallic)\n    if albedo.ndim > 1 or not np.all(np.isfinite(albedo)):\n        raise ValueError(\"albedo 須為有限純量或 RGB 向量\")\n    if not np.isfinite(metallic) or not 0.0 <= metallic <= 1.0:\n        raise ValueError(\"metallic 必須是 [0, 1] 內的有限值\")\n    checked_roughness(roughness)\n\n    nv = float(np.dot(N, V))\n    nl = float(np.dot(N, L))\n    zero = np.zeros_like(albedo, dtype=float)\n    if nv <= 0.0 or nl <= 0.0:\n        return zero, zero, zero\n\n    half_sum = V + L\n    if np.linalg.norm(half_sum) < 1e-12:\n        return zero, zero, zero\n    H = normalize(half_sum)\n    nh = max(float(np.dot(N, H)), 0.0)\n    vh = max(float(np.dot(V, H)), 0.0)\n\n    f0 = 0.04 * (1.0 - metallic) + albedo * metallic\n    F = fresnel_schlick(vh, f0)\n    D = ggx_d(nh, roughness)\n    G = smith_g1(nv, roughness) * smith_g1(nl, roughness)\n    spec = F * D * G / (4.0 * nv * nl)\n    kd = (1.0 - F) * (1.0 - metallic)\n    diff = kd * albedo / np.pi\n    return diff + spec, diff, spec"
+      },
+      {
+        "chapter": 15,
+        "old": "$$\nI_{\\mathrm{Phong}}\n=k_d\\max(0,\\mathbf n\\cdot\\mathbf l)\n+k_s\\max(0,\\mathbf r\\cdot\\mathbf v)^s.\n$$",
+        "new": "對不透明單面表面，背面光源不應產生正面 Phong 高光，因此模型應明確加入入射半球條件：\n\n$$\nI_{\\mathrm{Phong}}=\n\\begin{cases}\nk_d(\\mathbf n\\cdot\\mathbf l)+k_s\\max(0,\\mathbf r\\cdot\\mathbf v)^s,\n&\\mathbf n\\cdot\\mathbf l>0,\\\\\n0,&\\mathbf n\\cdot\\mathbf l\\leq0.\n\\end{cases}\n$$"
+      },
+      {
+        "chapter": 17,
+        "old": "TBN 矩陣的三個**縱行**為",
+        "new": "TBN 矩陣的三個**縱列（column）**依序為 $\\mathbf T,\\mathbf B,\\mathbf N$："
+      },
+      {
+        "chapter": 14,
+        "old": "本卷遵循 OpenGL 風格：貼圖原點 $(0,0)$ 位於左下角，V 軸向上。然而，影像檔像素原點通常位於左上角，Y 軸向下。",
+        "new": "本章使用紋素中心映射 $x=uW-0.5$、$y=(1-v)H-0.5$；第13章則採邊緣對齊映射 $x=u(W-1)$、$y=(1-v)(H-1)$。兩套約定都可使用，但同一 UV 的取樣位置不同：本章在 $u=0$ 時落於邊界位置，再依 clamp 或 repeat 規則處理；第13章則落在第0欄中心。本章貼圖原點 $(0,0)$ 位於左下角、V 軸向上；影像陣列原點通常在左上角、列索引向下。跨章沿用取樣程式時，必須同時核對座標映射與邊界模式。"
+      },
+      {
+        "chapter": 14,
+        "old": "write_ppm(\"fish_pc.ppm\", img_pc)",
+        "new": "write_ppm(\"fish_pc_linear.ppm\", img_pc)"
+      },
+      {
+        "chapter": 14,
+        "old": "write_ppm(\"fish_affine.ppm\", img_affine)",
+        "new": "write_ppm(\"fish_affine_linear.ppm\", img_affine)"
+      },
+      {
+        "chapter": 14,
+        "old": "write_ppm(\"fish_checker_pc.ppm\", img_checker_pc)",
+        "new": "write_ppm(\"fish_checker_pc_linear.ppm\", img_checker_pc)"
+      },
+      {
+        "chapter": 14,
+        "old": "write_ppm(\"fish_checker_affine.ppm\", img_checker_affine)",
+        "new": "write_ppm(\"fish_checker_affine_linear.ppm\", img_checker_affine)"
+      },
+      {
+        "chapter": 15,
+        "old": "with open(\"lambert_sphere.ppm\", \"w\", encoding=\"ascii\") as f:",
+        "new": "with open(\"lambert_sphere_linear.ppm\", \"w\", encoding=\"ascii\") as f:"
+      }
+    ],
+    "reason": "修正第15、16章的章號依賴、微表面 Jacobian 說明及背面照明處理；補上粗糙度邊界與半角退化保護；統一 TBN 縱列用語，明示第13、14章 UV 映射差異，並為線性 RGB PPM 輸出加上檔名標記。"
+  }
+}

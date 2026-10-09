@@ -1,0 +1,11 @@
+{
+  "key": "71b9d29c70f4df03ddff52187a31ab6c08764f058675ee25518746b35ab0f4db",
+  "person": {
+    "id": "v5_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 155,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。\n<<<NEW>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。\n\n此命題是實數運算的陳述。固定精度浮點實作中，`logits / temperature` 若因極小正溫度溢位成非有限值，本 API 的契約是拒絕該步輸入，而不是宣稱仍可比較機率。因此下方 `next_token_distribution` 在縮放後、softmax 前檢查縮放結果是否全為有限值；不滿足就拋出例外。\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    prob = stable_softmax(logits / temperature)\n    prob = apply_top_k(prob, top_k)\n    prob = apply_top_p(prob, top_p)\n    return renormalize(prob)\n<<<NEW>>>\n    scaled = logits / temperature\n    if not np.all(np.isfinite(scaled)):\n        raise ValueError(\n            \"logits 除以 temperature 後必須全部有限；請避免極小正溫度\"\n        )\n\n    prob = stable_softmax(scaled)\n    prob = apply_top_k(prob, top_k)\n    prob = apply_top_p(prob, top_p)\n    return renormalize(prob)\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([0.0, 1.0]), temperature=-1.0),\n        ValueError\n    )\n<<<NEW>>>\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([0.0, 1.0]), temperature=-1.0),\n        ValueError\n    )\n    # 極小正溫度可能讓 logits/temperature 溢位成無限值；\n    # 契約要求拒絕，而不是回傳未定義分布。\n    must_raise(\n        lambda: next_token_distribution(\n            np.array([1e308, 0.0]), temperature=1e-300),\n        ValueError\n    )\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n故障測試檢查：\n\n- 非有限模型輸出；\n- 負溫度；\n- 零溫度配非法 top-k 或 top-p；\n<<<NEW>>>\n故障測試檢查：\n\n- 非有限模型輸出；\n- 負溫度；\n- 極小正溫度導致 logits 縮放溢位；\n- 零溫度配非法 top-k 或 top-p；\n<<<END>>>"
+}

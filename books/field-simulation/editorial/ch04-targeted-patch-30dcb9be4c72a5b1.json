@@ -1,0 +1,35 @@
+{
+  "key": "30dcb9be4c72a5b14948ddad50df3c58405d80a14024a27085fc7b626d57c39a",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 249,
+  "result": {
+    "patches": [
+      {
+        "chapter": 4,
+        "old": "Neumann 邊界的特徵值問題：$X'' + \\lambda X = 0$，$X'(0)=X'(1)=0$。特徵值 $\\lambda_0 = 0$，$X_0 = 1$；$\\lambda_n = (n\\pi)^2$，$X_n = \\cos(n\\pi x)$，$n=1,2,\\dots$\n\n通解：\n\n$$\nc(x,t) = b_0 + \\sum_{n=1}^{\\infty} b_n \\cos(n\\pi x) e^{-D (n\\pi)^2 t}\n$$",
+        "new": "Neumann 邊界的特徵值問題為 $X''+\\lambda X=0$，$X'(0)=X'(L)=0$。常數模態是 $\\lambda_0=0$、$X_0=1$；其餘特徵值與特徵函數為 $\\lambda_n=(n\\pi/L)^2$、$X_n(x)=\\cos(n\\pi x/L)$，其中 $n=1,2,\\dots$。餘弦的引數因除以 $L$ 而無因次。通解為\n\n$$\nc(x,t)=b_0+\\sum_{n=1}^{\\infty}b_n\\cos\\left(\\frac{n\\pi x}{L}\\right)e^{-D(n\\pi/L)^2t}.\n$$"
+      },
+      {
+        "chapter": 4,
+        "old": "- 擴散使濃度場趨於空間平均（此處為 $1$）。",
+        "new": "- 擴散使濃度場趨於空間平均；本例的平均濃度為 $c_\\ast=1\\,\\mathrm{kg/m^3}$。"
+      },
+      {
+        "chapter": 4,
+        "old": "以下提供一個自足 NumPy 實作，求解一維擴散方程 $\\partial c/\\partial t = D c''$，支持 Dirichlet 與 Neumann 邊界，使用顯式 FTCS 格式。",
+        "new": "以下提供一個自足 NumPy 實作，求解一維擴散方程 $\\partial c/\\partial t=Dc''$，支援齊次 Dirichlet、齊次 Neumann 與兩端 Robin 邊界，使用顯式 FTCS 格式。"
+      },
+      {
+        "chapter": 4,
+        "old": "E(20)\\approx\\left(1+\\frac4\\pi\\right)^2e^{-2(0.12337)(20)}\\int_0^2\\sin^2\\left(\\frac{\\pi x}{2}\\right)dx.",
+        "new": "E(20)\\approx c_\\ast^2\\left(1+\\frac4\\pi\\right)^2e^{-2(0.12337\\,\\mathrm{s}^{-1})(20\\,\\mathrm s)}\\int_0^{2\\,\\mathrm m}\\sin^2\\left(\\frac{\\pi x}{2\\,\\mathrm m}\\right)\\,dx."
+      }
+    ],
+    "reason": "修正例二中間推導的特徵值、邊界位置與無因次餘弦引數，並補回習題一平方範數推導所需的濃度尺度平方。另使兩處說明與既有單位及 Robin 程式介面一致；未執行程式。"
+  }
+}

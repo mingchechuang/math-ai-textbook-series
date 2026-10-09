@@ -1,0 +1,19 @@
+{
+  "key": "144e16a548e265b0af7637c41734d7d63391f6dd0f80e42767b4ed1a12559dd4",
+  "person": {
+    "id": "v3_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 161,
+  "result": {
+    "patches": [
+      {
+        "chapter": 27,
+        "old": "在週期或零法向梯度邊界下，\n\n$$\n\\frac{dQ}{dt}\n=\n-M\\int_\\Omega\\mu\\,d\\boldsymbol{x}\n=\n-M\\int_\\Omega(\\phi^3-\\phi)\\,d\\boldsymbol{x},\n$$\n\n因為\n\n$$\n\\int_\\Omega\\Delta\\phi\\,d\\boldsymbol{x}=0.\n$$\n\n右端一般不為零。",
+        "new": "以下推導假設 $M$ 為正常數。在此前提及週期或零法向梯度邊界下，\n\n$$\n\\frac{dQ}{dt}\n=\n-M\\int_\\Omega\\mu\\,d\\boldsymbol{x}\n=\n-M\\int_\\Omega(\\phi^3-\\phi)\\,d\\boldsymbol{x},\n$$\n\n因為\n\n$$\n\\int_\\Omega\\Delta\\phi\\,d\\boldsymbol{x}=0.\n$$\n\n若 $M=M(\\boldsymbol{x},\\phi)>0$ 隨位置或序參量改變，則一般只能寫成\n\n$$\n\\frac{dQ}{dt}\n=\n-\\int_\\Omega M\\mu\\,d\\boldsymbol{x},\n$$\n\n此時 Laplacian 項因 $M$ 的空間變化而在積分中一般不再消失，$Q$ 的演化必須同時計入加權的 $\\Delta\\phi$ 貢獻。\n\n在常數 $M$ 的情形，右端一般不為零。"
+      }
+    ]
+  }
+}

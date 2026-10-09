@@ -1,0 +1,40 @@
+{
+  "key": "46fdaa2ae3d8584ca1dd212093c75efdbb90c00989aff9adf08bd14c84047d62",
+  "person": {
+    "id": "v3_editor_28",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 183,
+  "result": {
+    "patches": [
+      {
+        "chapter": 4,
+        "old": "$D(\\pi/2)^2 = 0.05 \\times \\pi^2/4 \\approx 0.01234$。\n\n$t=20$ 時，$e^{-20 \\times 0.01234} = e^{-0.2468} \\approx 0.781$。\n\n高頻模式衰減極快：$n=3$ 時，$e^{-20 \\times 0.05 \\times (3\\pi/2)^2}=e^{-(3\\pi/2)^2}=e^{-22.207}\\approx2.27\\times10^{-10}$。\n\n故近似：\n\n$$\nc(x,20) \\approx \\left(\\frac{4}{\\pi} + 1\\right) \\sin\\left(\\frac{\\pi x}{2}\\right) \\times 0.781\n$$\n\n能量：\n\n$$\nE(t) = \\int_0^2 c^2 dx\n$$\n\n由於高頻模式可忽略，近似為單模式：\n\n$$\nE(20) \\approx \\left(\\frac{4}{\\pi} + 1\\right)^2 \\times (0.781)^2 \\int_0^2 \\sin^2\\left(\\frac{\\pi x}{2}\\right) dx\n$$\n\n$\\int_0^2 \\sin^2(\\pi x/2) dx = 1$（因 $\\sin^2$ 週期為 $\\pi$，在 $[0,2]$ 上積分為 $1$）。\n\n$\\left(\\frac{4}{\\pi} + 1\\right) \\approx 1.273 + 1 = 2.273$。\n\n$E(20) \\approx (2.273)^2 \\times (0.781)^2 \\times 1 \\approx 5.167 \\times 0.610 \\approx 3.15$。\n\n（精確值需包含高頻項，但貢獻 $< 0.01$）",
+        "new": "$D(\\pi/2)^2 = 0.05 \\times \\pi^2/4 \\approx 0.12337\\,\\text{s}^{-1}$。\n\n$t=20$ 時，首模態振幅因子為 $e^{-20\\times0.12337}=e^{-2.4674}\\approx0.08480$。$n=3$ 模態的振幅因子為 $e^{-20\\times0.05\\times(3\\pi/2)^2}=e^{-22.207}\\approx2.27\\times10^{-10}$，其餘高頻模態更小。因此在 $0<x<2$，解可用首模態近似：\n\n$$\nc(x,20)\\approx\\left(1+\\frac4\\pi\\right)\\sin\\left(\\frac{\\pi x}{2}\\right)\\times0.08480.\n$$\n\n初值 $f(0)=f(2)=1$，與齊次 Dirichlet 邊界在 $t=0$ 不相容。此正弦級數是在區間內表示初值；對 $t>0$，端點值由 Dirichlet 條件固定為零。故此例可視為具有不相容時空角點資料的弱解／瞬態展開，不應宣稱角點上存在相容的古典解。\n\n由正弦模態正交，能量是各模態能量之和。首模態近似為\n\n$$\nE(20)\\approx\\left(1+\\frac4\\pi\\right)^2e^{-2(0.12337)(20)}\\int_0^2\\sin^2\\left(\\frac{\\pi x}{2}\\right)dx.\n$$\n\n積分為 $1$，故 $E(20)\\approx5.1677\\times e^{-4.9348}\\approx5.1677\\times0.007192\\approx0.03716$。$n=3$ 以上模態的能量貢獻是其係數平方乘上各自的衰減因子平方，在此時間已極小。"
+      },
+      {
+        "chapter": 4,
+        "old": "Neumann 邊界：$c'(0,t)=1$（左邊界有淨流入），$c'(1,t)=0$（右邊界絕緣）。",
+        "new": "Neumann 邊界：$c'(0,t)=1$（左邊界有淨流出），$c'(1,t)=0$（右邊界絕緣）。若 $c$ 為有因次濃度，此處導數邊界資料的單位為濃度／長度；本題取 $L=1\\,\\text{m}$，並把截面積視為單位面積，因此 $M=\\int_0^1c\\,dx$ 是每單位截面積的質量。"
+      },
+      {
+        "chapter": 4,
+        "old": "- 預期：程式拋出 `ValueError`，訊息包含 CFL 上限\n- 驗證：確保不會產生非物理振盪或溢出",
+        "new": "- 預期：程式拋出 `ValueError`，訊息包含 `explicit limit`，指出超過顯式格式的步長上限。若使用 Robin 邊界，該上限還包含邊界交換係數，不應只稱為純擴散 CFL 上限。\n- 驗證：確認非法步長在時間更新前被拒絕；這項檢查本身不證明合法步長下的解符合物理或已收斂。"
+      },
+      {
+        "chapter": 4,
+        "old": "類似地，溫度場 $T$ 滿足熱擴散方程 $\\partial T/\\partial t = \\alpha \\nabla^2 T + Q/\\rho c_p$，其中 $\\alpha$ 為熱擴散係數，$Q$ 為熱源項。邊界條件可為對流散熱（Robin）：$-k_T \\partial T/\\partial n = h_T(T - T_{\\infty})$，其中 $k_T$ 為導熱係數，$h_T$ 為熱傳係數。",
+        "new": "類似地，溫度場 $T$ 滿足熱擴散方程 $\\partial T/\\partial t = \\alpha \\nabla^2 T + Q/(\\rho c_p)$，其中 $\\alpha$ 的單位為 $\\mathrm{m^2/s}$，$\\rho$ 為密度，$c_p$ 為比熱；$Q$ 指單位體積熱源，單位為 $\\mathrm{W/m^3}$，故 $Q/(\\rho c_p)$ 的單位為 $\\mathrm{K/s}$。邊界條件可為對流散熱（Robin）：$-k_T \\partial T/\\partial n = h_T(T-T_{\\infty})$，其中 $k_T$ 為導熱係數，$h_T$ 為熱傳係數。"
+      },
+      {
+        "chapter": 4,
+        "old": "4. **數值格式**：顯式 FTCS 需滿足 CFL 條件 $dt \\le dx^2/(2D)$。Neumann 邊界使用 ghost cell 實現二階精度。",
+        "new": "4. **數值格式**：顯式 FTCS 的純擴散更新需符合 $dt\\le dx^2/(2D)$；加入 Robin 邊界後，步長還須滿足相應的邊界係數限制。Neumann 邊界可用 ghost cell 閉合，但整體精度仍應透過網格細化或解析解比較確認，不可只由內點格式推斷。"
+      }
+    ],
+    "reason": "修正習題1擴散衰減率與能量計算，補明其初始與邊界資料不相容；更正左端Neumann通量方向及質量單位說明；使步長測試預期符合程式實際錯誤訊息；明確熱源項單位，並限定Neumann ghost-cell精度主張。"
+  }
+}

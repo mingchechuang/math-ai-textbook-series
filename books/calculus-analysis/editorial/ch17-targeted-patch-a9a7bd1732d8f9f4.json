@@ -1,0 +1,11 @@
+{
+  "key": "a9a7bd1732d8f9f4102e2646f66673e66d72472ebeeb0b94ddcfa749688b8747",
+  "person": {
+    "id": "v4_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 204,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n受限 Hessian 特徵值為 $0,1$。預期分類為「正半定但不正定」。它與局部最小的二階必要條件相容，也因存在正方向而排除局部最大，但不能保證嚴格局部最小。\n<<<NEW>>>\n受限 Hessian 特徵值為 $0,1$。直接呼叫 `classify_reduced_hessian(np.array([0.0, 1.0]))`，預期分類為「正半定但不正定」；這不是完整求解函式的成功測試。零條約束時 KKT 矩陣就是奇異的 $Q$，`solve_equality_qp` 會在分類前拋出 `ValueError`。滿足 LICQ 時，切空間上的受限 Hessian 若有零特徵值，KKT 矩陣必奇異，因此無法藉增加約束而同時保留該零特徵值及非奇異 KKT 矩陣。此分類與局部最小的二階必要條件相容，也因存在正方向而排除局部最大，但不能保證嚴格局部最小。\n<<<END>>>"
+}

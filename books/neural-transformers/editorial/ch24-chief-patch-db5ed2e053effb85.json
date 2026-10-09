@@ -1,0 +1,11 @@
+{
+  "key": "db5ed2e053effb85d34f9a0509e2ce16c25fe2ea14d7957ddf64cd25cf020576",
+  "person": {
+    "id": "v5_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 158,
+  "result": "<<<PATCH 24>>>\n<<<OLD>>>\n此機制能有效降低「已回答樣本」中的風險（Risk），但代價是降低了「覆蓋率」（Coverage，即回答的比例）。\n<<<NEW>>>\n若信心分數能有效排序錯誤風險，選擇性拒答可能降低「已回答樣本」中的風險（Risk），但代價是降低了「覆蓋率」（Coverage，即回答的比例）；是否成立必須由驗證集 R-Curve 檢查。\n<<<END>>>\n<<<PATCH 25>>>\n<<<OLD>>>\n| Mean NLL | 1.0 | 2.5 |\n| PPL | 2.718 | 12.182 |\n<<<NEW>>>\n| Mean NLL | 1.0 | 2.3 |\n| PPL | 2.718 | 9.97 |\n<<<END>>>\n<<<PATCH 26>>>\n<<<OLD>>>\n    *   $m = 10$.\n    *   $\\sum e^{z-m} \\approx e^{-110} + e^{0} + e^{-110} + e^{-110} \\approx 1$.\n    *   $\\text{LSE} = 10 + \\ln(1) = 10$.\n    *   $\\text{NLL}_2 = 10 - 10 = 0$.\n*   t=3: logits $[-100, -100, 1, -100]$，真實標籤 $y=2$ (C)。\n    *   同理，$\\text{NLL}_3 \\approx 0$.\n*   Total NLL$_1 = 3.4402 + 0 + 0 = 3.4402$.\n<<<NEW>>>\n    *   $m = 10$.\n    *   $\\sum e^{z-m} = e^{-110} + e^{0} + e^{-110} + e^{-110} = 1 + 3e^{-110}$.\n    *   $\\text{LSE} = 10 + \\ln(1 + 3e^{-110}) \\approx 10$.\n    *   $\\text{NLL}_2 = \\ln(1 + 3e^{-110}) \\approx 0$（極小但非精確零）。\n*   t=3: logits $[-100, -100, 1, -100]$，真實標籤 $y=2$ (C)。\n    *   同理，$\\text{NLL}_3 = \\ln(1 + 3e^{-101}) \\approx 0$。\n*   Total NLL$_1 = 3.4402 + \\text{NLL}_2 + \\text{NLL}_3 \\approx 3.4402$.\n<<<END>>>\n<<<PATCH 27>>>\n<<<OLD>>>\n當 $n=0$ 時，$X_b$ 未定義，但在 ECE 公式中 $\\frac{N_b}{N} |X_b|$ 項為 0（若定義 $0 \\cdot \\infty = 0$ 或明確跳過）。對於 $n>0$：\n<<<NEW>>>\n當 $n=0$ 時，直接定義該箱貢獻為 $0$；不需要引入 $0 \\cdot \\infty$ 的約定。對於 $n>0$：\n<<<END>>>"
+}

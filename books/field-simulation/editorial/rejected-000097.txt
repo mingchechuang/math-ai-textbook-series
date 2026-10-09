@@ -1,0 +1,304 @@
+# 第14章 稀疏矩陣與共軛梯度
+
+> **本章目標**：掌握稀疏線性系統 $Ax=b$ 的結構化表示（CSR）、對稱正定（SPD）條件下的共軛梯度（Conjugate Gradient, CG）演算法。本節明確區分「數值穩定性」、「守恆性」、「能量下降」與「非負性」，並提供自足的 NumPy CPU 實作。
+
+## 學習目標與先備知識
+
+1.  **CSR 資料結構**：理解 Compressed Sparse Row 格式如何以三個陣列（`indptr`, `indices`, `data`）高效存儲稀疏矩陣，及其與矩陣-向量乘法（MatVec）的複雜度關係。
+2.  **SPD 與 CG**：推導 CG 如何通過 $A$-共軛方向序列化地解決 $Ax=b$，並證明其收斂性依賴於 $A$ 的特徵值條件數 $\kappa(A)$。
+3.  **預條件作用**：理解 Jacobi 預條件如何改變有效條件數，以及其在 1D Poisson 問題中的局限性。
+4.  **錯誤診斷**：學會區分「真殘差 $r = b - Ax$」與「迭代過程中的局部殘差」，並能設計針對非 SPD 矩陣的故障測試。
+
+**先備知識**：
+-   線性代數：內積 $\langle x, y \rangle = x^T y$、正交投影、特徵值分解。
+-   有限差分：1D Poisson 方程 $-u''=f$ 的三對角離散矩陣構造。
+-   優化基礎：二次型 $f(x) = \frac{1}{2}x^T A x - b^T x$ 的凸性條件。
+
+## 問題與直覺
+
+在解決二維 Poisson 問題 $-\nabla^2 u = f$ 時，若網格大小為 $N \times N$，未知數個數 $n = N^2$。直接法（如 LU 分解）的時間複雜度為 $O(n^3)$，空間複雜度為 $O(n^2)$。然而，Laplacian 算子的離散形式僅與鄰近點相關，導致矩陣 $A$ 具有極高的稀疏性（非零元素僅佔總元素的 $O(1/N^2)$）。
+
+**直覺**：迭代法不顯式地存儲所有 $n^2$ 個元素，而是通過函數式地計算 $y = Ax$。若 $A$ 為 SPD，CG 算法保證在有限步內（理想情況下 $n$ 步，實際少於 $n$）收斂。CG 的核心在於利用之前的殘差信息，構建新的搜索方向，使得每一步都在 Krylov 空間 $\mathcal{K}_k(A, r_0)$ 中找到能量泛函的最優解，從而避免梯度下降法的“之字形”振盪。
+
+![稀疏矩陣與迭代求解流程](../figures/solvers.svg)
+
+*圖 14-1：左為三對角稀疏矩陣 $A$，中為 CG 迭代流程，右為殘差對數規模收斂曲線。注意收斂初期可能緩慢，隨步數增加加速。*
+
+## 數學與物理推導
+
+### 1. CSR 結構與 MatVec
+CSR 格式使用三個一維陣列存儲 $n \times n$ 稀疏矩陣：
+-   `data`：長 $nnz$（非零元素數），存儲非零值。
+-   `indices`：長 $nnz$，存儲 `data` 中每個元素對應的列索引。
+-   `indptr`：長 $n+1$，`indptr[i]` 到 `indptr[i+1]` 區間內存儲第 $i$ 行的所有 `data` 和 `indices`。
+
+MatVec 操作 $y = Ax$ 的偽代碼：
+```python
+for i in range(n):
+    y[i] = sum(data[k] * x[indices[k]] for k in range(indptr[i], indptr[i+1]))
+```
+此操作的時間複雜度為 $O(nnz)$，對於 1D 三對角矩陣，$nnz \approx 3n$，遠優於密集矩陣的 $O(n^2)$。
+
+### 2. SPD 矩陣與能量泛函
+設 $A \in \mathbb{R}^{n \times n}$ 為對稱正定（SPD），即 $x^T A x > 0$ 對所有 $x \neq 0$ 成立。考慮二次泛函：
+$$
+E(x) = \frac{1}{2} x^T A x - b^T x
+$$
+其梯度為 $\nabla E(x) = Ax - b$。求解 $Ax=b$ 等价於最小化 $E(x)$。
+定義 $A$-內積 $\langle u, v \rangle_A = u^T A v$。在此內積下，能量可寫為：
+$$
+E(x) - E(x_*) = \frac{1}{2} \|x - x_*\|_A^2
+$$
+其中 $x_*$ 是精確解。因此，最小化能量等价於在 $A$-範數下逼近精確解。
+
+### 3. CG 演算法推導
+CG 基於以下兩個關鍵性質：
+1.  **殘差正交性**：$r_k = b - Ax_k$ 彼此正交，即 $r_i^T r_j = 0$ 當 $i \neq j$。
+2.  **方向 $A$-共軛性**：搜索方向 $p_k$ 滿足 $p_i^T A p_j = 0$ 當 $i \neq j$。
+
+初始化：$x_0 = 0$（或任意），$r_0 = b - Ax_0$，$p_0 = r_0$。
+
+第 $k$ 步迭代：
+$$
+\alpha_k = \frac{r_k^T r_k}{p_k^T A p_k}
+$$
+$$
+x_{k+1} = x_k + \alpha_k p_k
+$$
+$$
+r_{k+1} = r_k - \alpha_k A p_k
+$$
+$$
+\beta_k = \frac{r_{k+1}^T r_{k+1}}{r_k^T r_k}
+$$
+$$
+p_{k+1} = r_{k+1} + \beta_k p_k
+$$
+
+**收斂性**：CG 在第 $k$ 步產生的解 $x_k$ 是 Krylov 空間 $\mathcal{K}_k = \text{span}\{r_0, Ar_0, \dots, A^{k-1}r_0\}$ 中使 $\|x_k - x_*\|_A$ 最小的向量。收斂速度取決於 $\kappa(A) = \lambda_{\max}/\lambda_{\min}$。誤差界：
+$$
+\|x_k - x_*\|_A \le 2 \left( \frac{\sqrt{\kappa(A)} - 1}{\sqrt{\kappa(A)} + 1} \right)^k \|x_0 - x_*\|_A
+$$
+
+### 4. Jacobi 預條件
+若 $A$ 的特徵值分布較廣，CG 收斂慢。預條件矩陣 $M \approx A$ 可改善條件數。Jacobi 預條件取 $M = D$（$A$ 的對角矩陣）。
+求解 $Ax=b$ 轉換為求解 $D^{-1} A x = D^{-1} b$。
+令 $\tilde{A} = D^{-1} A$，$\tilde{b} = D^{-1} b$。
+CG 應用於 $\tilde{A}$ 時，使用 $M^{-1}$ 計算 $z_k = M^{-1} r_k$。
+對於 1D Poisson，$D$ 為常數矩陣，$\kappa(\tilde{A})$ 與 $\kappa(A)$ 相似，收斂加速效果有限；但在 2D 或變係數問題中可能更有效。
+
+## 逐步手算例題
+
+### 例 1：1D Poisson 三點系統（SPD）
+問題：$-u''(x) = f(x)$，$x \in [0,1]$，$u(0)=u(1)=0$。網格 $N=2$ 內部點，$h=1/3$，$f(x)=1$。
+離散矩陣 $A = \begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix}$，右端 $b = h^2 f = \begin{bmatrix} 1/9 \\ 1/9 \end{bmatrix}$。
+$A$ 的特徵值為 $1, 3$，SPD。
+
+**手算 CG（$x_0=0$）**：
+1.  $r_0 = b = [1/9, 1/9]^T$，$p_0 = r_0$。
+2.  $A p_0 = [1/9, 1/9]^T$。
+3.  $\alpha_0 = \frac{r_0^T r_0}{p_0^T A p_0} = \frac{2/81}{2/81} = 1$。
+4.  $x_1 = x_0 + \alpha_0 p_0 = [1/9, 1/9]^T$。
+5.  $r_1 = b - A x_1 = [0, 0]^T$。
+6.  $r_1=0$，停止。1 步收斂。
+驗證：$A x_1 = [1/9, 1/9]^T = b$。正確。
+
+### 例 2：非 SPD 反例（故障測試）
+設 $A = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$，$b = [1, 0]^T$。
+$A$ 對稱但特徵值為 $\pm 1$，非正定。
+1.  $r_0 = b = [1, 0]^T$，$p_0 = r_0$。
+2.  $A p_0 = [0, 1]^T$。
+3.  $p_0^T A p_0 = 1\cdot0 + 0\cdot1 = 0$。
+4.  $\alpha_0 = \frac{1}{0}$ **未定義（除零錯誤）**。
+**結論**：標準 CG 無法處理非 SPD 系統。若 $p_k^T A p_k$ 接近零或為負，應立即中止並報告錯誤，而非強制繼續。
+
+## 實作與程式
+
+以下提供自足的 NumPy 實現，包含 CSR 構造、CG 求解及錯誤檢查。
+
+```python
+import numpy as np
+
+def csr_matvec(indptr, indices, data, x):
+    """高效 CSR 矩陣-向量乘法"""
+    n = len(x)
+    y = np.zeros(n)
+    for i in range(n):
+        start, end = indptr[i], indptr[i+1]
+        y[i] = np.dot(data[start:end], x[indices[start:end]])
+    return y
+
+def build_poisson_csr(N):
+    """構造 1D Poisson 三對角矩陣的 CSR 格式"""
+    n = N
+    indptr = np.zeros(n + 1, dtype=int)
+    indices = np.zeros(3 * n, dtype=int)
+    data = np.zeros(3 * n)
+    nnz = 0
+    for i in range(n):
+        indptr[i] = nnz
+        cols = []
+        vals = []
+        if i > 0:
+            cols.append(i - 1); vals.append(-1.0)
+        cols.append(i); vals.append(2.0)
+        if i < n - 1:
+            cols.append(i + 1); vals.append(-1.0)
+        indices[nnz:nnz+len(cols)] = cols
+        data[nnz:nnz+len(cols)] = vals
+        nnz += len(cols)
+    indptr[n] = nnz
+    return indptr[:n+1], indices[:nnz], data[:nnz]
+
+def cg_solve(indptr, indices, data, b, rtol=1e-8, atol=1e-10, max_iter=100):
+    """
+    共軛梯度求解 Ax=b。
+    返回: (x, n_iter, residual_norm, converged, status_msg)
+    """
+    n = len(b)
+    if not (np.all(np.isfinite(b)) and np.all(np.isfinite(data))):
+        return None, 0, np.inf, False, "Input contains NaN or Inf"
+    
+    x = np.zeros(n)
+    r = b.copy()  # x0=0 -> r0=b
+    norm_r = np.linalg.norm(r)
+    if norm_r < atol + rtol * np.linalg.norm(b):
+        return x, 0, norm_r, True, "Initial guess converged"
+    
+    p = r.copy()
+    rz = np.dot(r, p)
+    converged = False
+    n_iter = 0
+    residual_history = []
+    
+    for k in range(max_iter):
+        n_iter = k + 1
+        Ap = csr_matvec(indptr, indices, data, p)
+        pAp = np.dot(p, Ap)
+        
+        # 關鍵檢查：SPD 條件違反
+        if pAp <= 1e-12:
+            return x, n_iter, norm_r, False, f"Non-SPD detected at step {k}: p^T A p = {pAp}"
+        
+        alpha = rz / pAp
+        x += alpha * p
+        r -= alpha * Ap
+        norm_r = np.linalg.norm(r)
+        residual_history.append(norm_r)
+        
+        if norm_r < atol + rtol * np.linalg.norm(b):
+            converged = True
+            break
+        
+        # 檢查殘差是否意外增大（數值不穩定信號）
+        if norm_r > 10 * np.linalg.norm(b) and k > 5:
+            return x, n_iter, norm_r, False, "Residual diverged"
+        
+        rz_new = np.dot(r, p) # 錯誤：應是 r_new^T r_new / r_old^T r_old
+        # 正確更新 p
+        beta = np.dot(r, r) / rz
+        rz = np.dot(r, r)
+        p = r + beta * p
+        
+    return x, n_iter, norm_r, converged, "Converged" if converged else "Max iter reached"
+
+# 測試例 1
+N = 5
+h = 1.0 / (N + 1)
+b = h**2 * np.ones(N)
+indptr, indices, data = build_poisson_csr(N)
+x_cg, nit, res, conv, msg = cg_solve(indptr, indices, data, b)
+x_direct = np.linalg.solve(np.diag(2*np.ones(N) - 1*np.ones(N-1, 1) - 1*np.ones(N-1, -1) + np.eye(N, N, 1) + np.eye(N, N, -1) - np.diag(2*np.ones(N)), b) # 簡化構造，實際應用稀疏庫
+print(f"CG result: x={x_cg}, nit={nit}, res={res:.2e}, conv={conv}, msg={msg}")
+# 預期：conv=True, nit <= N, res < 1e-8
+```
+
+### SciPy 接口（可選參考）
+若環境中有 SciPy，可使用 `scipy.sparse` 驗證：
+```python
+from scipy.sparse import diags
+from scipy.sparse.linalg import cg as spcg
+# A_sp = diags([-1, 2, -1], [-1, 0, 1], shape=(N, N), format='csr')
+# x_scipy, info = spcg(A_sp, b, rtol=1e-8)
+```
+*注意：本章核心實作不依賴 SciPy，僅作對照。*
+
+## 測試與預期結果
+
+1.  **正常測試（SPD）**：
+    -   輸入：1D Poisson $N=10$。
+    -   預期：`conv=True`，`nit < N`，`res < 1e-8`。
+    -   驗證：$\|Ax - b\|_2$ 應小於容差。
+2.  **邊界測試（零右端）**：
+    -   輸入：$b=0$。
+    -   預期：`x=0`，`nit=0`，`conv=True`。
+3.  **故障測試（非 SPD）**：
+    -   輸入：$A = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$。
+    -   預期：`conv=False`，`msg` 包含 "Non-SPD"，拋出或返回錯誤狀態。
+4.  **故障測試（NaN 輸入）**：
+    -   輸入：$b$ 含 `np.nan`。
+    -   預期：立即拒絕，`msg` 包含 "Input contains NaN"。
+
+## 除錯與常見陷阱
+
+1.  **殘差小不等於解準確**：必須報告 $\|r\|_2 / \|b\|_2$（相對殘差），並與 $\|x_{iter} - x_{ref}\|$（若有參考解）分開記錄。
+2.  **CSR 索引錯誤**：`indptr` 長度必須為 $n+1$，`indptr[n]` 必須等於 `len(data)`。常見錯誤是 `indptr` 未正確累加。
+3.  **非 SPD 誤用**：若問題包含平流項（Advection），$A$ 非對稱，CG 不適用，需改用 BiCGStab 或 GMRES（見第 15 章）。
+4.  **預條件不匹配**：若 $M^{-1}$ 計算錯誤（如除以零），會導致 $z_k$ 爆炸，殘差發散。
+
+## 養殖與相場案例
+
+**合成池域溫度求解**：
+考慮一個矩形養殖池，穩態溫度分佈滿足 $-\kappa \nabla^2 T = S$，邊界為環境溫度。離散後得到 2D Poisson 系統 $A T = b$。
+-   **規模**：$64 \times 64$ 網格，$n = 4096$。
+-   **直接法**：$O(n^2)$ 空間 $\approx 10^8$ doubles，時間 $O(n^3)$ 不可行。
+-   **CG 法**：每步 $O(n)$，預期迭代 $O(\sqrt{\kappa}) \approx 50-100$ 步，總計算 $O(n \sqrt{\kappa}) \approx 10^5$ MatVec，快速可行。
+-   **物理可信度**：溫度場應滿足最大原則（無源項時，內部極值不超過邊界極值）。若 CG 收斂後出現負溫度或異常尖峰，需檢查邊界條件施加或離散符號錯誤。
+
+## 習題
+
+1.  **手算**：對 $N=3$ 的 1D Poisson（$h=1/4$, $f=1$），寫出 $A, b$，手算 CG 前兩步，驗證 $r_1^T r_0 = 0$。
+2.  **程式**：修改 `cg_solve`，加入 Jacobi 預條件（$M=D$），比較 $N=32$ 時有/無預條件的迭代步數。
+3.  **反例**：構造一個 $4 \times 4$ 對稱但非正定矩陣，示範 CG 在第幾步失敗，並解釋原因。
+4.  **整合**：將 1D Poisson CG 擴展到 2D（$N_x=N_y=16$），使用 CSR 構造 5-點 Laplacian，求解 $-\Delta u = 1$，與解析解比較 $L_2$ 誤差。
+
+## 習題解答
+
+### 習題 1
+$N=3$, $h=1/4$, $A = \begin{bmatrix} 2 & -1 & 0 \\ -1 & 2 & -1 \\ 0 & -1 & 2 \end{bmatrix}$, $b = h^2 [1,1,1]^T = [1/16, 1/16, 1/16]^T$.
+$r_0 = b$, $p_0 = r_0$.
+$A p_0 = [1/16, 0, 1/16]^T$.
+$\alpha_0 = \frac{\|r_0\|^2}{p_0^T A p_0} = \frac{3/256}{2/256} = 1.5$.
+$x_1 = 1.5 r_0 = [3/32, 3/32, 3/32]^T$.
+$r_1 = b - A x_1 = [1/16 - 3/32, 1/16 - 0, 1/16 - 3/32]^T = [-1/32, 2/32, -1/32]^T$.
+$r_0^T r_1 = (1/16)(-1/32) + (1/16)(2/32) + (1/16)(-1/32) = 0$. 正交驗證成功。
+
+### 習題 2
+（程式略）預期：無預條件步數 ~ $O(N)$，有 Jacobi 預條件步數可能略減或不變，因為 1D Poisson 條件數 $O(N^2)$，Jacobi 預條件後條件數仍 $O(N^2)$，收斂率 $O(1 - c/N)$ 未根本改變。需 Multigrid 才能達 $O(1)$。
+
+### 習題 3
+$A = \begin{bmatrix} 1 & 2 \\ 2 & 1 \end{bmatrix}$（特徵值 $3, -1$）。
+$b=[1,0]^T$. $r_0=[1,0]^T$, $p_0=[1,0]^T$.
+$A p_0 = [1,2]^T$. $p_0^T A p_0 = 1 > 0$.
+$\alpha_0 = 1/1 = 1$. $x_1 = [1,0]^T$.
+$r_1 = [0,-2]^T$.
+$p_1 = r_1 + \beta_0 p_0$. $\beta_0 = \|r_1\|^2/\|r_0\|^2 = 4$.
+$p_1 = [0,-2]^T + 4[1,0]^T = [4,-2]^T$.
+$A p_1 = [0, 6]^T$.
+$p_1^T A p_1 = 4(0) + (-2)(6) = -12 < 0$.
+**失敗於第 2 步**，因為 $p_1^T A p_1$ 為負，違反 SPD 假設。
+
+### 習題 4
+2D Laplacian CSR 構造較複雜，需處理邊界。解析解 $u(x,y) = \frac{1}{2}(x^2 - x + y^2 - y)$。
+預期 $L_2$ 誤差 ~ $O(h^2)$，$h=1/17$，誤差 ~ $10^{-3}$ 量級。CG 步數 ~ $O(N^2) = 256$ 步。
+
+## 本章小結
+
+本章闡述了稀疏矩陣 CSR 格式與 CG 求解器的內在聯繫。SPD 是 CG 收斂的必要條件，違反此條件將導致發散或除錯。實作中必須嚴格檢查真殘差與輸入有效性。對於非對稱系統（如平流問題），需轉至第 15 章探討 GMRES。
+
+## 參考來源
+
+-   F1: FiPy 有限體積離散與邊界 (https://pages.nist.gov/fipy/en/latest/numerical/discret.html)
+-   F3: PETSc 線性系統求解器 (https://petsc.org/release/manual/ksp/)
+-   F4: SciPy 稀疏線性代數 API (https://docs.scipy.org/doc/scipy/reference/sparse.linalg.html)
+-   F2: FEniCSx Poisson 與弱形式 (https://jsdokken.com/dolfinx-tutorial/chapter1/fundamentals.html)

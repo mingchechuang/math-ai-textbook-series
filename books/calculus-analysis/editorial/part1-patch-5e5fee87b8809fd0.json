@@ -1,0 +1,11 @@
+{
+  "key": "5e5fee87b8809fd06c75a3a8ccb5c013aa8bc601e74186c37c2a8ffdb4ba935b",
+  "person": {
+    "id": "v4_editor_06",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "author"
+  },
+  "call": 431,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n### 例 2（手算 $C^2$ 失效的邊界性）\n<<<NEW>>>\n### 例 2（域條件與 $\\sup|f''|$ 無界的邊界性）\n<<<END>>>\n<<<PATCH 01>>>\n<<<OLD>>>\n（訊號 $x_0+h=0.1>0$）\n<<<NEW>>>\n（即 $x_0+h=0.1>0$）\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n### 1. 多變量極限的 $\\epsilon-\\delta$ 定義\n<<<NEW>>>\n本節及後續定義中，$\\|\\cdot\\|$ 表示 $\\mathbb{R}^n$ 或 $\\mathbb{R}^m$ 上的任一範數；由第3章有限維範數等價，極限與連續性不依範數選擇而變。\n\n### 1. 多變量極限的 $\\epsilon-\\delta$ 定義\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n此定義等价於\n<<<NEW>>>\n此定義等價於\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n並驗證你的构造\n<<<NEW>>>\n並驗證你的構造\n<<<END>>>\n<<<PATCH 06>>>\n<<<OLD>>>\n\\sin((2k+1)\\pi-\\pi/2)=(-1)^k\\cdot(-1)^{2k+1}\\cdot 1\n<<<NEW>>>\n\\sin((2k+1)\\pi-\\pi/2)=\\sin(2k\\pi+\\pi/2)=1\n<<<END>>>"
+}

@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "seed": 42,
+  "split_before_windowing": true,
+  "fit_preprocessing": "train_only",
+  "mask_true_means": "allowed",
+  "device": "cpu",
+  "agent_permissions": "read_only_mock",
+  "operational_thresholds": null
+}

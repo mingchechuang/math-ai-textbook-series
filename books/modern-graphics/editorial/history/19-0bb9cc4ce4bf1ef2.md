@@ -1,0 +1,571 @@
+# 第19章 射線、交點與數值穩健性
+
+## 學習目標與先備知識
+
+本章建立 CPU 端的最小射線光追基礎，核心在於**正確判定幾何相交**與**處理數值邊界**。讀者應已具備 Volume I 的向量運算與第 3 章的齊次座標基礎。
+
+**核心技能目標：**
+1. 定義射線參數 $\mathbf{r}(t) = \mathbf{o} + t\mathbf{d}$，理解 $t$ 的物理意義（距離）與數學意義（參數）。
+2. 推導並實作射線與球面、平面、三角形的解析解。
+3. 掌握穩定二次求根算法，避免浮點消去誤差（Catastrophic Cancellation）。
+4. 理解並實作「起點法線偏移」（Origin Epsilon）與「射線下界」（$t_{min}$）在避免自相交中的作用。
+5. 建構一個可生成 16×16 PPM 影像的最小 Ray Caster，並包含單元測試。
+
+**單位與約定：**
+- 長度：公尺 (m)。
+- 座標系：右手系，+Z 由畫面向觀者。相機局部看向 -Z。
+- 像素：原點左上，中心 $(u+0.5, v+0.5)$。
+- 色彩：本例直接輸出顯示用 RGB 端點值，不進行光學或線性光色彩計算；這些數值僅供示意，不應當作線性輻射量。
+
+## 問題與直覺
+
+在光柵化中，我們掃描像素並檢查哪些三角形覆蓋該像素；在光追中，我們從像素中心發射射線，尋找第一個命中的幾何體。
+
+**為什麼需要數值穩健性？**
+1. **自相交（Self-Intersection）：** 射線從表面點 $\mathbf{p}$ 出發時，浮點表示與求交計算可能使原表面再次被判為命中。起點偏移與 $t_{min}$ 是兩種不同的處理方式：前者改變起點，後者限制可接受的射線參數。
+2. **球面相切與判別式：** 球面求交會得到二次方程。相切時判別式 $\Delta$ 為零；有限精度下，接近零的值可能因誤差變號，造成相切被誤判為相交或未相交。
+3. **二次方程消去誤差：** 當 $|b|$ 與 $\sqrt{\Delta}$ 接近時，直接套用 $\frac{-b \pm \sqrt{\Delta}}{2a}$ 的其中一個分子可能是兩個近似數相減，損失有效位元。這與判別式接近零是不同問題，穩定求根可減少此類消去。
+4. **平面平行：** 平面求交不是二次方程。當射線方向與平面法線內積接近零，交點公式分母接近零，$t$ 可能不穩定或不存在。
+
+**直覺模型：**
+想像雷射筆從鏡面上的點出發。數值計算可能讓它立即再次命中同一表面，形成自相交。可用起點偏移將射線原點沿適當法線方向移開，或設定 $t_{min}$ 排除起點附近的命中參數；兩者可併用，但都只是幾何計算的數值處理，不是物理安全閾值。偏移量與參數下界需依場景尺度、座標精度及物件尺寸選擇，不能將固定的 $10^{-6}$ 公尺視為通用常數。
+
+## 數學與幾何推導
+
+### 射線參數化
+
+射線是起點與方向定義的一維集合。本文令方向正規化，使參數 $t$ 的量綱為公尺；若輸入未正規化方向，程式會先正規化，因此同一條幾何射線上的參數值會依方向縮放而改變。這也是求交函式內部採用一致參數尺度的原因。
+
+射線區間可採閉區間或半開區間，必須由API明確決定。本章程式的球、平面與三角形交點均以 $t_{min}\leq t\leq t_{max}$ 接受端點；`shadow_test` 為了排除光源端點，額外要求命中滿足 $t_{min}<t<t_{max}$。在場景中尋找最近物體時，應比較所有有效命中的 $t$，選取最小值，而不能以物件輸入順序決定可見表面。
+
+
+定義射線：
+$$ \mathbf{r}(t) = \mathbf{o} + t\mathbf{d}, \quad t \in \mathbb{R} $$
+其中 $\mathbf{o}$ 為起點，$\mathbf{d}$ 為單位方向向量（$\|\mathbf{d}\|=1$）。
+- 若 $\mathbf{d}$ 未正規化，$t$ 的單位不再是公尺，所有容差判斷需調整。本節假設 $\mathbf{d}$ 已正規化。
+- 有效射線區間定義為 $[t_{min}, t_{max}]$。通常 $t_{min} > 0$ 用於避免自相交，$t_{max} = \infty$ 或光源距離。
+
+### 射線與球面求交
+
+球心 $\mathbf{c}$，半徑 $R$。交點滿足 $\|\mathbf{r}(t) - \mathbf{c}\|^2 = R^2$。
+令 $\mathbf{m} = \mathbf{o} - \mathbf{c}$，展開得：
+$$ (\mathbf{m} + t\mathbf{d}) \cdot (\mathbf{m} + t\mathbf{d}) = R^2 $$
+$$ \mathbf{m}\cdot\mathbf{m} + 2t(\mathbf{m}\cdot\mathbf{d}) + t^2(\mathbf{d}\cdot\mathbf{d}) = R^2 $$
+因 $\|\mathbf{d}\|=1$，整理為 $at^2 + bt + c = 0$：
+$$ a = 1, \quad b = 2\mathbf{m}\cdot\mathbf{d}, \quad c = \|\mathbf{m}\|^2 - R^2 $$
+
+**數值穩定求根：**
+判別式 $\Delta = b^2 - 4ac$。
+若 $\Delta < 0$，無交點。若 $\Delta \approx 0$，需容差處理。
+直接計算 $t = \frac{-b \pm \sqrt{\Delta}}{2a}$ 時，若 $b$ 與 $\sqrt{\Delta}$ 符號相反且大小接近，會發生消去誤差。
+- 若 $b > 0$，$-b < 0$，$\sqrt{\Delta} > 0$。$-b + \sqrt{\Delta}$ 是兩個負/正小數相加（若 $\sqrt{\Delta} \approx b$），可能抵消。應使用 $-b - \sqrt{\Delta}$（兩負數相加，結果大且穩定）。
+- 若 $b < 0$，$-b > 0$，$\sqrt{\Delta} > 0$。$-b - \sqrt{\Delta}$ 是兩個正數相減，可能抵消。應使用 $-b + \sqrt{\Delta}$（兩正數相加，結果大且穩定）。
+
+**穩定算法：**
+1. 計算 $q = -0.5 \cdot (b + \text{copysign}(\sqrt{\Delta}, b))$。
+   - 若 $b > 0$，$\text{copysign}(\sqrt{\Delta}, b) = \sqrt{\Delta}$，$q = -0.5(b+\sqrt{\Delta})$。
+   - 若 $b < 0$，$\text{copysign}(\sqrt{\Delta}, b) = -\sqrt{\Delta}$，$q = -0.5(b-\sqrt{\Delta})$。
+2. 若 $q \neq 0$，兩根為 $t_0 = q/a$ 和 $t_1 = c/q$。
+3. 若 $q=0$，不可計算 $c/q$；直接使用雙根 $-b/(2a)$。一般相切由經容差處理後的 $\Delta=0$ 判定，並不必然使 $q=0$。
+4. 對可計算的根排序，並檢查是否落在射線區間 $[t_{min},t_{max}]$。若區間端點要排除，必須在實作中改用嚴格不等式；本章程式採含端點的閉區間判斷。
+
+**容差尺度：**
+$\Delta$ 的單位是 $m^2$（因為 $b$ 是 m，$c$ 是 $m^2$）。容差 $\tau_\Delta$ 應與 $\Delta$ 的各項量級相關，例如 $\tau_\Delta = 10^{-12} \cdot \max(b^2, 4|ac|, 1)$。若 $\Delta < -\tau_\Delta$，判無交點；若 $-\tau_\Delta \le \Delta < 0$，視 $\Delta=0$ 處理相切。
+
+### 射線與平面求交
+
+平面定義：$\mathbf{n}\cdot\mathbf{p} + d = 0$，其中 $\mathbf{n}$ 為單位法線。
+$$ \mathbf{n}\cdot(\mathbf{o} + t\mathbf{d}) + d = 0 \implies t = -\frac{\mathbf{n}\cdot\mathbf{o} + d}{\mathbf{n}\cdot\mathbf{d}} $$
+**邊界檢查：**
+- 若 $|\mathbf{n}\cdot\mathbf{d}| < \tau_{par}$（例如 $10^{-8}$），視為平行，返回無交點。
+- 注意：此處 $\mathbf{n}$ 必須正規化，否則 $\tau_{par}$ 的意義隨法線長度改變。
+
+### 射線與三角形求交（Möller–Trumbore）
+
+頂點 $\mathbf{v}_0, \mathbf{v}_1, \mathbf{v}_2$。
+1. $\mathbf{e}_1 = \mathbf{v}_1 - \mathbf{v}_0$, $\mathbf{e}_2 = \mathbf{v}_2 - \mathbf{v}_0$。
+2. $\mathbf{p} = \mathbf{d} \times \mathbf{e}_2$。
+3. $det = \mathbf{e}_1 \cdot \mathbf{p}$。
+   - 若 $|det| < \tau_{det}$，平行或退化。$\tau_{det}$ 應與三角形面積尺度相關，例如 $10^{-8} \cdot \|\mathbf{e}_1\| \|\mathbf{e}_2\|$。
+4. $invDet = 1.0 / det$。
+5. $\mathbf{tvec} = \mathbf{o} - \mathbf{v}_0$。
+6. $u = (\mathbf{tvec} \cdot \mathbf{p}) \cdot invDet$。
+7. $\mathbf{q} = \mathbf{tvec} \times \mathbf{e}_1$。
+8. $v = (\mathbf{d} \cdot \mathbf{q}) \cdot invDet$。
+9. $t = (\mathbf{e}_2 \cdot \mathbf{q}) \cdot invDet$。
+10. 檢查 $u \ge -\tau_{bary}, v \ge -\tau_{bary}, u+v \le 1+\tau_{bary}$ 且 $t \in [t_{min}, t_{max}]$。
+    - $\tau_{bary}$ 為無因次容差（例如 $10^{-4}$）。
+    - 回傳重心座標 $(w_0, w_1, w_2) = (1-u-v, u, v)$ 與交點。
+
+### 自相交處理：起點偏移與 $t_{min}$
+
+**起點法線偏移：**
+若新射線從交點 $\mathbf{p}$ 沿方向 $\mathbf{d}_{new}$ 發射，幾何法線為 $\mathbf{n}_g$。
+$$ \mathbf{o}_{new} = \mathbf{p} + \epsilon_{orig} \cdot \text{sign}(\mathbf{d}_{new} \cdot \mathbf{n}_g) \cdot \mathbf{n}_g $$
+若內積為 0，通常選 $+1$ 或依上下文決定。$\epsilon_{orig}$ 為小距離（如 $10^{-4}$ m）。
+
+**射線下界 $t_{min}$：**
+即使起點偏移，數值誤差仍可能存在。因此求交函式應接受 $t_{min}$，僅接受 $t > t_{min}$ 的解。
+- 對於陰影射線，$t_{max}$ 設為光源距離減去端點容差。
+
+## 逐步手算例題
+
+### 例題 1：射線與球面（穿越與內部出射）
+
+**場景 A：外部穿越**
+球心 $\mathbf{c}=(0,0,0)$、半徑 $R=1$，射線起點 $\mathbf{o}=(0,0,-5)$，單位方向 $\mathbf{d}=(0,0,1)$，區間為 $[10^{-4},\infty)$。
+
+令 $\mathbf{m}=\mathbf{o}-\mathbf{c}=(0,0,-5)$，得到 $a=1$、$b=-10$、$c=24$，故
+
+$$
+\Delta=b^2-4ac=100-96=4,
+\qquad \sqrt{\Delta}=2.
+$$
+
+$\operatorname{copysign}(2,b)=-2$，所以 $q=-0.5(-10-2)=6$。兩根為 $q/a=6$ 與 $c/q=4$；排序後是4、6。近根4落在射線區間內，交點為 $(0,0,-1)$。
+
+**場景 B：內部出射**
+- 球心 $\mathbf{c}=(0,0,0)$，$R=1$。
+- 射線 $\mathbf{o}=(0,0,0)$，$\mathbf{d}=(1,0,0)$，$t_{min}=10^{-4}$。
+
+**計算：**
+$\mathbf{m}=(0,0,0)$，因此 $a=1$、$b=0$、$c=-1$，判別式 $\Delta=4$。依穩定公式，$q=-0.5(0+2)=-1$，兩根為 $q/a=-1$ 與 $c/q=1$。在閉區間 $[10^{-4},\infty)$ 中，負根被排除，正根命中，交點為 $(1,0,0)$。
+
+### 例題 2：射線與三角形（Möller–Trumbore）
+
+**場景：**
+- $\mathbf{v}_0 = (0,0,0), \mathbf{v}_1 = (1,0,0), \mathbf{v}_2 = (0,1,0)$。
+- $\mathbf{o} = (0.2, 0.2, -1)$，$\mathbf{d} = (0, 0, 1)$。
+
+**計算：**
+$\mathbf{e}_1 = (1, 0, 0)$，$\mathbf{e}_2 = (0, 1, 0)$。
+$\mathbf{p} = \mathbf{d} \times \mathbf{e}_2 = (0,0,1) \times (0,1,0) = (-1, 0, 0)$。
+$det = \mathbf{e}_1 \cdot \mathbf{p} = -1$。
+$|det| = 1 > \tau_{det}$。
+$invDet = -1$。
+$\mathbf{tvec} = (0.2, 0.2, -1)$。
+$u = (\mathbf{tvec} \cdot \mathbf{p}) \cdot invDet = (-0.2) \cdot (-1) = 0.2$。
+$\mathbf{q}=\mathbf{tvec}\times\mathbf{e}_1=(0.2,0.2,-1)\times(1,0,0)=(0,-1,-0.2)$。
+$v = (\mathbf{d} \cdot \mathbf{q}) \cdot invDet = ((0,0,1)\cdot(0,-1,-0.2)) \cdot (-1) = (-0.2) \cdot (-1) = 0.2$。
+現在 $u=0.2, v=0.2$。
+$u \ge 0, v \ge 0, u+v = 0.4 \le 1$。OK。
+$t = (\mathbf{e}_2 \cdot \mathbf{q}) \cdot invDet = ((0,1,0)\cdot(0,-1,-0.2)) \cdot (-1) = (-1) \cdot (-1) = 1$。
+$t > t_{min}$。
+**結果：** $t=1$，交點 $(0.2, 0.2, 0)$。重心 $(0.6, 0.2, 0.2)$。
+
+## 實作與程式
+
+以下程式包含完整的 Ray Caster、PPM 輸出與測試，使用 NumPy 陣列儲存三維向量。球面二次式採 $a=1$，因 `Ray` 建構時會將方向正規化。對球面判別式使用相對容差：尺度項至少包含 $b^2$ 與 $|4ac|$，避免僅以固定絕對 epsilon 套用於不同尺寸場景。平面法線在建構時正規化並同步縮放平面常數 $d$；三角形 determinant 的容差依兩條邊向量長度縮放，退化三角形因此不會除以零。
+
+命中函式回傳的 $t$ 在正規化方向下以公尺計。若場景物件有重疊，渲染迴圈以最小有效 $t$ 決定可見物件。球與平面只回傳最近的有效根；三角形則回傳命中距離、交點、重心座標與 face-forward 法線。
+
+```python
+import numpy as np
+from typing import Optional, Tuple
+
+
+def vector3(value):
+    result = np.asarray(value, dtype=float)
+    if result.shape != (3,) or not np.all(np.isfinite(result)):
+        raise ValueError("Expected a finite three-component vector")
+    return result
+
+
+class Ray:
+    def __init__(self, origin: np.ndarray, direction: np.ndarray, t_min: float = 1e-4, t_max: float = float('inf')):
+        origin = vector3(origin)
+        direction = vector3(direction)
+        if not np.isfinite(t_min) or t_min < 0.0:
+            raise ValueError("t_min must be finite and non-negative")
+        if np.isnan(t_max) or t_max < t_min:
+            raise ValueError("t_max must not be NaN or less than t_min")
+        self.origin = origin
+        length = np.linalg.norm(direction)
+        if not np.isfinite(length) or length <= 0.0:
+            raise ValueError("Ray direction must be finite and non-zero")
+        self.direction = direction / length
+        self.t_min = t_min
+        self.t_max = t_max
+
+class Sphere:
+    def __init__(self, center: np.ndarray, radius: float, color: np.ndarray = None):
+        center = vector3(center)
+        if not np.isfinite(radius) or radius <= 0:
+            raise ValueError("Invalid sphere parameters")
+        self.center = center
+        self.radius = radius
+        self.color = color if color is not None else np.array([1.0, 0.0, 0.0])
+
+class Plane:
+    def __init__(self, normal: np.ndarray, d: float, color: np.ndarray = None):
+        normal = vector3(normal)
+        if not np.isfinite(d):
+            raise ValueError("Plane offset must be finite")
+        length = np.linalg.norm(normal)
+        if not np.isfinite(length) or length <= 0.0:
+            raise ValueError("Plane normal must be finite and non-zero")
+        self.normal = normal / length
+        self.d = d / length  # 必須同步縮放 d
+        self.color = color if color is not None else np.array([0.0, 1.0, 0.0])
+
+class Triangle:
+    def __init__(self, v0: np.ndarray, v1: np.ndarray, v2: np.ndarray, color: np.ndarray = None):
+        v0, v1, v2 = vector3(v0), vector3(v1), vector3(v2)
+        self.v0 = v0
+        self.v1 = v1
+        self.v2 = v2
+        self.color = color if color is not None else np.array([0.0, 0.0, 1.0])
+
+def intersect_sphere(ray: Ray, sphere: Sphere) -> Optional[float]:
+    m = ray.origin - sphere.center
+    a = 1.0
+    b = 2.0 * np.dot(m, ray.direction)
+    c = np.dot(m, m) - sphere.radius**2
+    
+    delta = b*b - 4*a*c
+    # 相對容差
+    scale = max(b*b, abs(4*a*c), 1.0)
+    tol = 1e-12 * scale
+    
+    if delta < -tol:
+        return None
+    
+    if delta < 0:
+        delta = 0.0
+        
+    sqrt_delta = np.sqrt(delta)
+    
+    # 穩定求根
+    if b > 0:
+        t0 = (-b - sqrt_delta) / (2*a)
+    else:
+        t0 = (-b + sqrt_delta) / (2*a)
+        
+    roots = []
+    if t0 >= ray.t_min and t0 <= ray.t_max:
+        roots.append(t0)
+        
+    if t0 != 0:
+        t1 = c / t0
+    else:
+        t1 = -b / (2*a)
+        
+    if t1 >= ray.t_min and t1 <= ray.t_max:
+        roots.append(t1)
+        
+    if not roots:
+        return None
+    return min(roots)
+
+def intersect_plane(ray: Ray, plane: Plane) -> Optional[float]:
+    denom = np.dot(ray.direction, plane.normal)
+    if abs(denom) < 1e-8:
+        return None
+    t = -np.dot(ray.origin, plane.normal) - plane.d
+    t /= denom
+    if t >= ray.t_min and t <= ray.t_max:
+        return t
+    return None
+
+def intersect_triangle(ray: Ray, tri: Triangle) -> Optional[Tuple[float, np.ndarray, Tuple[float, float, float], np.ndarray]]:
+    e1 = tri.v1 - tri.v0
+    e2 = tri.v2 - tri.v0
+    p = np.cross(ray.direction, e2)
+    det = np.dot(e1, p)
+    
+    scale = np.linalg.norm(e1) * np.linalg.norm(e2)
+    if scale == 0:
+        return None
+    det_tol = 1e-8 * scale
+    
+    if abs(det) < det_tol:
+        return None
+        
+    inv_det = 1.0 / det
+    tvec = ray.origin - tri.v0
+    
+    u = np.dot(tvec, p) * inv_det
+    if u < -1e-4 or u > 1.0 + 1e-4:
+        return None
+        
+    q = np.cross(tvec, e1)
+    v = np.dot(ray.direction, q) * inv_det
+    if v < -1e-4 or u + v > 1.0 + 1e-4:
+        return None
+        
+    t = np.dot(e2, q) * inv_det
+    if t >= ray.t_min and t <= ray.t_max:
+        w0 = 1.0 - u - v
+        w1 = u
+        w2 = v
+        point = w0 * tri.v0 + w1 * tri.v1 + w2 * tri.v2
+        n = np.cross(e1, e2)
+        n = n / np.linalg.norm(n)
+        if np.dot(n, ray.direction) > 0:
+            n = -n
+        return t, point, (w0, w1, w2), n
+    return None
+
+def render(width: int, height: int, objects: list, cam_pos: np.ndarray, cam_dir: np.ndarray, fov_v: float = 90.0) -> np.ndarray:
+    if not isinstance(width, int) or not isinstance(height, int) or width <= 0 or height <= 0:
+        raise ValueError("Image dimensions must be positive integers")
+    cam_pos, cam_dir = vector3(cam_pos), vector3(cam_dir)
+    img = np.zeros((height, width, 3), dtype=np.uint8)
+
+    # 驗證相機
+    d_norm = np.linalg.norm(cam_dir)
+    if not np.isfinite(d_norm) or d_norm < 1e-8:
+        raise ValueError("Camera direction invalid")
+    cam_dir = cam_dir / d_norm
+        
+    if not (0 < fov_v < 180):
+        raise ValueError("FOV must be between 0 and 180")
+    focal_length = 1.0 / np.tan(np.radians(fov_v) / 2.0)
+    aspect = width / height
+    
+    up = np.array([0.0, 1.0, 0.0])
+    right = np.cross(cam_dir, up)
+    right_len = np.linalg.norm(right)
+    if right_len < 1e-8:
+        raise ValueError("Camera up vector parallel to look direction")
+    right = right / right_len
+    up = np.cross(right, cam_dir)
+    
+    for j in range(height):
+        for i in range(width):
+            # 像素中心
+            x = (2.0 * (i + 0.5) / width - 1.0) * aspect / focal_length
+            y = (1.0 - 2.0 * (j + 0.5) / height) / focal_length
+            ray_dir = cam_dir + x * right + y * up
+            ray = Ray(cam_pos, ray_dir)
+            
+            hit_t = float('inf')
+            hit_obj = None
+            
+            for obj in objects:
+                t = None
+                if isinstance(obj, Sphere):
+                    t = intersect_sphere(ray, obj)
+                elif isinstance(obj, Plane):
+                    t = intersect_plane(ray, obj)
+                elif isinstance(obj, Triangle):
+                    res = intersect_triangle(ray, obj)
+                    if res:
+                        t = res[0]
+                        
+                if t is not None and t < hit_t:
+                    hit_t = t
+                    hit_obj = obj
+            
+            if hit_obj is not None:
+                color = hit_obj.color
+                # 簡單量化到 8-bit
+                pixel = np.clip(color, 0.0, 1.0) * 255.0
+                img[j, i] = pixel.astype(np.uint8)
+            else:
+                img[j, i] = np.array([255, 255, 255], dtype=np.uint8)
+                
+    return img
+
+def write_ppm(filename: str, img: np.ndarray):
+    if not isinstance(img, np.ndarray) or img.ndim != 3 or img.shape[2] != 3:
+        raise ValueError("PPM image must have shape (height, width, 3)")
+    if img.dtype != np.uint8:
+        raise ValueError("PPM image must use uint8 channels")
+    h, w, _ = img.shape
+    if h <= 0 or w <= 0:
+        raise ValueError("PPM dimensions must be positive")
+    with open(filename, 'wb') as f:
+        f.write(b"P6\n")
+        f.write(f"{w} {h}\n".encode())
+        f.write(b"255\n")
+        f.write(img.tobytes())
+
+def shadow_test(point: np.ndarray, geometric_normal: np.ndarray,
+                light_position: np.ndarray, objects: list,
+                epsilon: float = 1e-4) -> bool:
+    """若點至點光源之間有遮擋物回傳 True；僅作合成幾何測試。"""
+    point, geometric_normal, light_position = map(vector3, (point, geometric_normal, light_position))
+    n_len = np.linalg.norm(geometric_normal)
+    if not np.isfinite(n_len) or n_len <= 0.0:
+        raise ValueError("Geometric normal must be finite and non-zero")
+    if not (np.all(np.isfinite(point)) and
+            np.all(np.isfinite(light_position))):
+        raise ValueError("Point and light position must be finite")
+    if not np.isfinite(epsilon) or epsilon < 0.0:
+        raise ValueError("epsilon must be finite and non-negative")
+
+    n = geometric_normal / n_len
+    to_light = light_position - point
+    distance = np.linalg.norm(to_light)
+    if not np.isfinite(distance) or distance <= epsilon:
+        return False
+    direction = to_light / distance
+    side = 1.0 if np.dot(direction, n) >= 0.0 else -1.0
+    origin = point + side * epsilon * n
+    shifted_to_light = light_position - origin
+    t_max = np.linalg.norm(shifted_to_light)
+    if t_max <= epsilon:
+        return False
+    # 基本求交使用閉區間；先把開區間界移到內側可表示浮點數，
+    # 避免最近根恰在被排除的端點時，漏掉同一球的另一個內部根。
+    lower = np.nextafter(epsilon, np.inf)
+    upper = np.nextafter(t_max, -np.inf)
+    if lower > upper:
+        return False
+    ray = Ray(origin, shifted_to_light, t_min=lower, t_max=upper)
+
+    for obj in objects:
+        if isinstance(obj, Sphere):
+            hit = intersect_sphere(ray, obj)
+        elif isinstance(obj, Plane):
+            hit = intersect_plane(ray, obj)
+        elif isinstance(obj, Triangle):
+            result = intersect_triangle(ray, obj)
+            hit = result[0] if result is not None else None
+        else:
+            raise TypeError("Unsupported object type")
+        if hit is not None:
+            return True
+    return False
+
+
+def run_tests():
+    print("Running tests...")
+    # 1. Sphere Tangent
+    s = Sphere(np.array([0.0, 0.0, 0.0]), 1.0)
+    r = Ray(np.array([1.0, 0.0, -5.0]), np.array([0.0, 0.0, 1.0]), t_min=1e-4)
+    t = intersect_sphere(r, s)
+    assert t is not None and abs(t - 5.0) < 1e-5, f"Tangent sphere failed: {t}"
+    
+    # 最近根回歸測試：由球外的負Z位置沿 +Z 入射，須取近側根 t=4。
+    r_near = Ray(np.array([0.0, 0.0, -5.0]),
+                 np.array([0.0, 0.0, 1.0]), t_min=1e-4)
+    t_near = intersect_sphere(r_near, s)
+    assert t_near is not None and abs(t_near - 4.0) < 1e-5
+
+    # 2. Sphere Inside
+    r_in = Ray(np.array([0.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0]), t_min=1e-4)
+    t_in = intersect_sphere(r_in, s)
+    assert t_in is not None and abs(t_in - 1.0) < 1e-5, f"Inside sphere failed: {t_in}"
+    
+    # 3. Plane Parallel
+    p = Plane(np.array([0.0, 1.0, 0.0]), 0.0)
+    r_par = Ray(np.array([0.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0]))
+    t_par = intersect_plane(r_par, p)
+    assert t_par is None, "Parallel plane should be None"
+    
+    # 4. Triangle Hit
+    tri = Triangle(np.array([0.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]))
+    r_tri = Ray(np.array([0.2, 0.2, -1.0]), np.array([0.0, 0.0, 1.0]), t_min=1e-4)
+    res = intersect_triangle(r_tri, tri)
+    assert res is not None, "Triangle hit failed"
+    t_tri = res[0]
+    assert abs(t_tri - 1.0) < 1e-5, f"Triangle t failed: {t_tri}"
+    assert np.allclose(res[2], (0.6, 0.2, 0.2))
+    r_outside = Ray(np.array([1.2, 1.2, -1.0]),
+                    np.array([0.0, 0.0, 1.0]), t_min=1e-4)
+    assert intersect_triangle(r_outside, tri) is None
+    
+    # 5. Epsilon Test (Self-intersection avoidance)
+    # Ray starts on surface, shoots out
+    r_surf = Ray(np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, 1.0]), t_min=1e-4)
+    s_small = Sphere(np.array([0.0, 0.0, 0.0]), 1.0)
+    t_surf = intersect_sphere(r_surf, s_small)
+    # Should be None because t=0 is < t_min, and other root is negative
+    assert t_surf is None, f"Surface self-intersection failed: {t_surf}"
+    
+    # 獨立展示場景：相機在 y=1、朝 -Z；球與三角形均位於相機前方。
+    scene_sphere = Sphere(np.array([0.0, 0.0, -2.0]), 0.5,
+                          np.array([1.0, 0.0, 0.0]))
+    scene_plane = Plane(np.array([0.0, 1.0, 0.0]), 0.0,
+                        np.array([0.0, 1.0, 0.0]))
+    scene_tri = Triangle(np.array([-1.0, 0.1, -3.0]),
+                         np.array([1.0, 0.1, -3.0]),
+                         np.array([0.0, 1.5, -3.0]),
+                         np.array([0.0, 0.0, 1.0]))
+    img = render(16, 16, [scene_sphere, scene_plane, scene_tri],
+                 np.array([0.0, 1.0, 0.0]),
+                 np.array([0.0, 0.0, -1.0]))
+    assert img.shape == (16, 16, 3)
+    assert img.dtype == np.uint8
+    assert np.all((img >= 0) & (img <= 255))
+    write_ppm("output_19.ppm", img)
+    print("Tests passed. PPM contents are subject to the scene and camera setup.")
+
+if __name__ == "__main__":
+    run_tests()
+```
+
+## 測試與預期結果
+
+程式中的 `run_tests()` 測試幾何函式，最後另以獨立場景呼叫 `render()` 及 `write_ppm()`。以下均為依幾何配置推得的預期，未宣稱已執行或實際檢視影像。
+
+本程式的測試集中檢查幾何條件：相切、最近根、內部出射、平行平面、三角形命中與未命中，以及影像形狀和資料型別。若要再驗證 `t_min` 的數值效果，可在球面外側沿法線發射，分別設定較小和較大的下界：較大的下界可能排除非常近的另一個有效表面；下界為零則可能接受起點處的根。這種比較應同時檢查交點是否真的位於場景尺度所需的解析範圍內，而不能只為讓測試通過任意調整 epsilon。
+
+為測試 `shadow_test`，可令接收點位於平面上、點光源在其上方，再放置一個位於兩者之間的三角形；預期回傳遮擋。將三角形移至光源後方，射線仍可能與三角形相交，但命中參數應大於光源距離，預期不遮擋。還可測法線反向時偏移側是否隨新射線方向改變，以及零長度法線是否引發 `ValueError`。這些測試檢查的是線段遮擋判定，不代表光照強度或水下成像。
+
+渲染場景與單元測試場景分開：單元測試使用位於原點的單位球、平面與三角形；展示場景則將球放在相機前方、三角形放在較遠的負Z位置。逐像素畫面受物件遮擋、投影及取樣影響，因此本章只承諾程式推得的尺寸、型別與值域，不宣稱特定未檢視像素顏色或視覺品質。
+
+1. **相切測試：** 射線從 $(1,0,-5)$ 沿 $+Z$ 射向單位球，預期 $t=5$。
+2. **最近根回歸測試：** 射線從 $(0,0,-5)$ 沿 $+Z$ 射入單位球，預期回傳近根 $t=4$，不是遠根6。
+3. **內部出射：** 射線從球心沿 $+X$ 射出，預期 $t=1$。
+4. **平行平面：** 測試平面法線為 $(0,1,0)$，故平面是XZ平面；沿 $+X$ 的射線與之平行，預期 `None`。
+5. **三角形命中：** 射線打向三角形內部，預期 $t=1$，重心座標為 $(0.6,0.2,0.2)$；另有三角形外射線，預期 `None`。
+6. **自相交下界：** 射線由球面向外發射，$t=0$ 被正的 $t_{min}$ 排除，且沒有其他有效正根，預期 `None`。可另比較略低於表面的起點在不同 $t_{min}$ 下的結果，理解下界也可能排除真實近交點。
+7. **PPM輸出：** 預期建立16×16、三通道 `uint8` 影像；測試檢查尺寸、型別與通道值域。展示場景把球置於相機前方、三角形置於較遠的負Z位置，平面位於 $y=0$。顏色是顯示RGB，沒有光照計算；不以未檢視的畫面宣稱特定像素必然呈現某顏色。
+
+$t_{min}$ 過大可能漏掉靠近表面的有效交點；移除下界則可能讓起點附近的根被接受。應依場景尺度選值，並用近表面測試檢查兩種失效方向。
+
+## 除錯與常見陷阱
+
+1. **浮點精度丟失：**
+   - 當 $|b|\approx\sqrt{\Delta}$ 時，其中一個分子可能發生近似數相減的消去誤差。這與 $\Delta\approx0$ 時判別式正負可能被誤差改變，是不同問題。
+   - **解決：** 使用穩定求根算法。
+
+2. **法線未正規化：**
+   - 平面求交中，若 $\mathbf{n}$ 未正規化，$\tau_{par}$ 失效。
+   - **解決：** 建構時強制正規化並同步縮放 $d$。
+
+3. **$t_{min}$ 與起點偏移混淆：**
+   - 起點偏移改變射線原點；$t_{min}$ 限制接受的參數區間。兩者功能不同，且容差都必須按場景尺度選擇。
+   - **解決：** 對表面發射的次級射線，先依幾何法線及新方向選擇偏移側，再設定適當的 $t_{min}$；不應把固定 epsilon 當成通用物理閾值。陰影射線另將 $t_{max}$ 設為光源距離，避免把光源後方物體誤判為遮擋。
+
+4. **三角形繞序與法線：**
+   - $\mathbf{e}_1\times\mathbf{e}_2$ 的方向由頂點繞序決定；本程式求交後會把法線翻至與射線方向相反，這是 face-forward 法線，不保留原始外向方向。
+   - **解決：** 若後續需要判定幾何外側或處理折射，應另外保存原始幾何法線與繞序，不要把 face-forward 法線誤當成外向法線。
+
+## 養殖數位分身案例
+
+1. **遮蔽分析：** 對池底合成點 $\mathbf{p}$，朝點光源位置 $\mathbf{l}$ 發射有限長射線。使用幾何法線決定起點偏移側，並令 $t_{max}$ 不超過光源距離；只有開區間內命中棚架三角形才判為遮擋。平行、共面或退化三角形應依求交API的容差與回傳慣例處理，不能把「無交點」一概解讀成確定無遮蔽。
+2. **感測器幾何示意：** 可為合成相機的像素建立射線，檢查是否命中以球體或三角網格表示的合成魚。這只提供幾何可見性，不會自動生成真實攝影機的曝光、散射、折射或噪聲。
+3. **介質限制：** 本章只處理幾何相交，未包含水體吸收與散射。若加入Beer–Lambert吸收，須另定義介質係數、路徑長度及色彩單位；單靠幾何命中不能推出水下影像的物理準確度。
+4. **稽核資料：** 每條測試射線可記錄起點、單位方向、$t_{min}$、$t_{max}$、命中物件ID及資料來源。這些欄位有助於重現幾何判定，但合成結果不是現場感測值。
+
+## 習題
+
+1. **手算：** 射線 $\mathbf{o}=(1, -1, -1)$, $\mathbf{d}=(0, 0, 1)$，球心 $(0,0,0)$, $R=1$。求 $t$。
+2. **程式測試：** 修改 `intersect_sphere` 返回所有有效根。測試外部穿越與內部出射。
+3. **除錯：** 若 $b > 0$ 且 $\sqrt{\Delta}\approx b$，直接計算 $-b + \sqrt{\Delta}$ 有何問題？
+4. **整合：** 使用本章完整的 `shadow_test`，以起點法線偏移及 $t_{min}$ 排除自相交，並用 $t_{max}$ 限制至點光源。測試一個光源與遮擋三角形之間的命中，並測試光源後方的物體不得算作遮擋。
+
+若將其改寫成獨立練習，可用下列流程核對，而非引用未提供的外部函式：先正規化幾何法線；若新方向與法線內積非負，沿法線偏移，否則反向偏移；從偏移後位置計算至光源的單位方向和距離；建構區間為 $[t_{min},t_{max}]$ 的射線；逐一呼叫本章三種求交函式；僅當命中嚴格滿足 $t_{min}<t<t_{max}$ 時回報遮擋。若光源距離不大於偏移量，沒有可測的線段，應回報未遮擋或依應用明確定義該退化情形。
+
+## 習題解答
+
+1. $\mathbf{m}=(1,-1,-1)$。$b = 2(0+0-1) = -2$。$c = 1+1+1-1 = 2$。$\Delta = 4 - 8 = -4 < 0$。無交點。
+2. 修改程式收集所有 $t \in [t_{min}, t_{max}]$ 的根。例題中由 $(0,0,-5)$ 沿 $+Z$ 穿越單位球，預期兩根為 $[4,6]$。內部出射預期 $[1]$（若 $t_{min}$ 小於 1）。
+3. 若 $b > 0$，$-b < 0$，$\sqrt{\Delta} > 0$。若 $\sqrt{\Delta} \approx b$，則 $-b + \sqrt{\Delta}$ 為兩接近數相減，有效位元喪失。應使用 $-b - \sqrt{\Delta}$。
+4. `shadow_test` 先將幾何法線正規化，依新射線與法線內積選擇偏移側，再由偏移後起點重新計算至光源的方向和距離。它將 `t_min` 設為正值，`t_max` 設為光源距離，並分派球、平面或三角形求交；若存在嚴格落在兩界之間的命中，回傳遮擋。習題要求的是起點偏移與射線下界兩種處理，而不是把 $t_{min}$ 稱為偏移。
+
+## 本章小結
+
+射線以起點、正規化方向及參數區間描述。球、平面與三角形求交各有不同的退化與平行情形；球面求根須分別處理判別式符號誤差與相近數相減造成的消去。起點偏移改變射線原點，$t_{min}$ 限制接受的參數範圍，兩者用途不同。最近命中由有效交點中最小的 $t$ 決定；有限光源陰影測試還要限制 $t_{max}$。測試應涵蓋相切、最近根、內部出射、平行、三角形重心、未命中及影像輸出契約。容差須按量綱與場景尺度選擇，不能當作通用物理安全閾值。
+
+## 參考來源
+
+- [G4] *Ray Tracing in One Weekend*，https://raytracing.github.io/books/RayTracingInOneWeekend.html
+- [G1] PBRT 4：Transformations，https://pbr-book.org/4ed/Geometry_and_Transformations/Transformations
+- [G7] NumPy線性代數參考，https://numpy.org/doc/stable/reference/routines.linalg.html
+
+列出來源僅供延伸閱讀，不表示本章已逐項獨立查證或執行來源範例。

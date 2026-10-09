@@ -1,0 +1,11 @@
+{
+  "key": "e9610831c532ba43570032344d8ed8846c28663f333150c17592ee0e6596c804",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 539,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n傳入 `float32` mask → 拋 `ValueError`\n<<<NEW>>>\n傳入 `float32` mask → 拋 `TypeError`\n<<<END>>>"
+}

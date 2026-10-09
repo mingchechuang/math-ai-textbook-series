@@ -1,0 +1,60 @@
+{
+  "key": "59d5aae8bf1f1009c9b63a1ca8afe7c8f611dc6ab9b357127a346fcaa2503af6",
+  "person": {
+    "id": "v3_editor_28",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 198,
+  "result": {
+    "patches": [
+      {
+        "chapter": 29,
+        "old": "在 1D 有限體積法中，設域長 $L_x$，分為 $N$ 個 cell-centered 節點，$\\Delta x = L_x/N$。\n第 $i$ 個 cell 中心位於 $x_i = (i+0.5)\\Delta x$，體積 $V_i = A \\Delta x$。本章自本節起統一採**每單位截面積**計量：令 $A=1$ m²，焓密度 $H$ 乘以 $\\Delta x$ 得到每單位截面積能量（J/m²）；面通量率 $q$ 乘以 $\\Delta t$ 得到每單位截面積熱量（J/m²）。以下出現的「能量」、「熱輸入」與「熱收支殘差」均以此每單位截面積解讀。若讀者需要實際總能量，把結果乘以實際截面積 $A$ 即可，但不可在推導中途把 $A$ 只乘到某一邊而漏乘另一邊。\n對時間採用後向 Euler 隱式離散：\n$$ \\frac{C_{eff,i}^n (T_i^{n+1} - T_i^n)}{\\Delta t} V_i = F_{i-1/2}^{n+1} - F_{i+1/2}^{n+1} $$\n其中 $F_{i+1/2}$ 定義為沿 $+x$ 方向通過面 $x_{i+1/2}$ 的有號熱流率（W）；cell $i$ 的淨輸入是 $F_{i-1/2}-F_{i+1/2}$。",
+        "new": "在 1D 有限體積法中，域長為 $L_x$，分為 $N$ 個 cell-centered 網格，$\\Delta x=L_x/N$，第 $i$ 個 cell 中心位於 $x_i=(i+0.5)\\Delta x$。本章採**每單位截面積**計量，不在控制體方程中引入截面積 $A$：焓密度 $H$ 乘以 $\\Delta x$ 得每單位面積焓 $\\mathcal E_i=H_i\\Delta x$，單位為 $\\mathrm{J/m^2}$；面熱流密度 $q$ 的單位為 $\\mathrm{W/m^2}$。若需實際總能量，最後才將每單位面積結果乘以實際截面積，單位成為 J。\n對時間採用後向 Euler 隱式離散：\n$$ C_{eff,i}^n\\Delta x\\frac{T_i^{n+1}-T_i^n}{\\Delta t}=q_{i-1/2}^{n+1}-q_{i+1/2}^{n+1}. $$\n面通量密度定義為沿 $+x$ 方向取正的 Fourier 熱流：$q=-k\\,\\partial T/\\partial x$。因此 $q_{i-1/2}$ 是西面向 $+x$ 的通量密度，正值表示進入 cell；$q_{i+1/2}$ 是東面向 $+x$ 的通量密度，正值表示離開 cell。兩者差值是 cell 的每單位面積淨熱輸入率，單位為 $\\mathrm{W/m^2}$。"
+      },
+      {
+        "chapter": 29,
+        "old": "**步驟 5：熱收支檢查**\n左邊界通量（使用 $T_0^1$）：\n$Q_{in} = \\frac{2kA}{\\Delta x} (T_{left} - T_0^1) \\Delta t = \\frac{2(1)(1)}{0.5} (10 - 7.439) (1) = 4 \\times 2.561 = 10.244$ J/m²。\n\n初始焓 $E^0$：\n$H_0^0 = \\rho c_p (5-4) + \\rho L (0.5) = 1 + 5 = 6$ J/m³。\n$H_1^0 = 6$ J/m³。\n$E^0 = (6 + 6) \\Delta x = 12 \\times 0.5 = 6$ J/m²。\n\n最終焓 $E^1$：\n$H_0^1 = \\rho c_p (7.439-4) + \\rho L (1) = 3.439 + 10 = 13.439$ J/m³。\n$H_1^1 = \\rho c_p (5.9756-4) + \\rho L (0.9878) = 1.9756 + 9.878 = 11.8536$ J/m³。\n$E^1 = (13.439 + 11.8536) \\times 0.5 = 25.2926 \\times 0.5 = 12.6463$ J/m²。\n\n收支誤差 $R = E^1 - E^0 - Q_{in} = 12.6463 - 6 - 10.244 = -3.5977$ J/m²。\n*註：由於使用顯式 $C_{eff}^n$，當溫度跨越相變區端點時，$C_{eff}^n \\Delta T \\neq \\Delta H$，導致能量不守恆。在固定空間網格、固定終止時間，且時間步足以解析所有跨越相變事件的前提下，預期此熱收支誤差隨 $\\Delta t$ 細化而下降；這是必須以多個步長數值測試確認的預期，而非已證明的普遍定理。*",
+        "new": "**步驟 5：熱收支檢查**\n左邊界向域內的熱流密度為 $q_{in}=2k(T_{left}-T_0^1)/\\Delta x$。一個時間步的每單位面積熱輸入為\n$$\\mathcal Q_{in}=q_{in}\\Delta t=\\frac{2k}{\\Delta x}(T_{left}-T_0^1)\\Delta t=\\frac{2}{0.5}(10-7.439)=10.244\\ \\mathrm{J/m^2}.$$\n\n初始焓密度為 $H_0^0=H_1^0=\\rho c_p(5-4)+\\rho L(0.5)=6\\ \\mathrm{J/m^3}$，故每單位面積初始焓為 $\\mathcal E^0=(H_0^0+H_1^0)\\Delta x=6\\ \\mathrm{J/m^2}$。終態焓密度約為 $H_0^1=13.439\\ \\mathrm{J/m^3}$、$H_1^1=11.8536\\ \\mathrm{J/m^3}$，所以 $\\mathcal E^1=(H_0^1+H_1^1)\\Delta x\\approx12.6463\\ \\mathrm{J/m^2}$。熱收支殘差為 $R_E=\\mathcal E^1-\\mathcal E^0-\\mathcal Q_{in}\\approx-3.5977\\ \\mathrm{J/m^2}$。\n\n此殘差可由方程組裝直接交叉核對：每單位面積蓄熱增量為 $\\sum_i C_{eff,i}^0(T_i^1-T_i^0)\\Delta x$，線性系統保證其等於邊界熱輸入；但這不必等於以分段焓函數計得的 $\\sum_i[H(T_i^1)-H(T_i^0)]\\Delta x$。原因是一步跨越熱容折點時，$C_{eff}^0\\Delta T$ 不等於有限焓差。固定空間網格與終止時間，並確保時間步能解析相變跨越時，預期收支殘差會隨 $\\Delta t$ 細化而下降；須以多個時間步測試確認，不能宣稱為普遍定理。"
+      },
+      {
+        "chapter": 29,
+        "old": "*   **網格**：$N$ 個 cell，$\\Delta x = L_x/N$。\n*   **變量**：$T[i]$ 對應 cell $i$ 的中心溫度。\n*   **邊界**：左側 Dirichlet $T_L$，右側零通量（Neumann 0）。\n*   **方法**：後向 Euler 擴散，顯式有效熱容 $C_{eff}^n$。\n\n```python",
+        "new": "*   **網格**：$N$ 個 cell，$\\Delta x=L_x/N$；每單位截面積計算，焓乘 $\\Delta x$ 為 $\\mathrm{J/m^2}$，面通量密度為 $\\mathrm{W/m^2}$。\n*   **變量**：`T[i]` 對應 cell $i$ 的中心溫度。\n*   **邊界**：左側 Dirichlet $T_L$，右側零通量（Neumann 0）。\n*   **方法**：後向 Euler 擴散，顯式有效熱容 $C_{eff}^n$。線性殘差檢查的是代數求解精度，熱收支殘差檢查的是離散焓與熱輸入是否平衡，兩者不得混為一談。\n\n```python"
+      },
+      {
+        "chapter": 29,
+        "old": "        # Flux at left boundary: q_left = (2k/dx) * (T_left - T_new[0]) * Area\n        q_left = (2.0 * k / dx) * (T_left - T_new[0]) * 1.0 # Area = 1\n        heat_in_step = q_left * dt",
+        "new": "        # 左邊界每單位面積熱流密度，單位 W/m²；乘 dt 得 J/m²。\n        q_left = (2.0 * k / dx) * (T_left - T_new[0])\n        heat_in_step = q_left * dt"
+      },
+      {
+        "chapter": 29,
+        "old": "        r_vec = b - A @ T_new\n        abs_res = float(np.linalg.norm(r_vec))",
+        "new": "        if not np.all(np.isfinite(T_new)):\n            raise RuntimeError(f\"步驟 {step} 的線性解含非有限值\")\n        r_vec = b - A @ T_new\n        abs_res = float(np.linalg.norm(r_vec))"
+      },
+      {
+        "chapter": 29,
+        "old": "  $$\n  c_{\\mathrm{eff}}=\\rho c_p$。\n  數值解應收斂於解析解。注意邊界條件需匹配（半無限域 vs 有限域）。",
+        "new": "  $$\n  當 $L=0$ 時，$C_{eff}=\\rho c_p$，溫度方程退化為純熱擴散。程式仍會依 $T$ 計算診斷用的 $\\phi(T)$，但其值不影響焓或溫度方程。數值解應收斂於解析解；比較半無限域解析解時，還須確認有限域右端在所選時間內尚未顯著影響解。"
+      },
+      {
+        "chapter": 29,
+        "old": "*   **過冷（Undercooling）**：若 $T_{left} < T_{melt} - \\Delta T_m/2$，物體不應融化，$\\phi$ 保持 0。",
+        "new": "*   **過冷（Undercooling）**：若初始全域與左邊界溫度都低於 $T_{melt}-\\Delta T_m/2$，且 $Q=0$、沒有其他加熱邊界，則預期 $\\phi$ 保持 0。僅限制邊界溫度並不足以保證此結果；若初始溫度已在糊狀區或液相區，初始 $\\phi$ 就可能非零。"
+      },
+      {
+        "chapter": 29,
+        "old": "    由第二式 $T_0^1 = 7 T_1^1 - 30$。\n    代入第一式：$9(7 T_1^1 - 30) - T_1^1 = 50$\n    $63 T_1^1 - 270 - T_1^1 = 50$\n    $62 T_1^1 = 320 \\implies T_1^1 = 320/62 \\approx 5.161$ K。\n    $T_0^1 = 7(5.161) - 30 = 36.127 - 30 = 6.127$ K。",
+        "new": "    由第二式 $T_0^1=7T_1^1-30$。代入第一式：$9(7T_1^1-30)-T_1^1=50$，故 $62T_1^1=320$，$T_1^1=160/31\\approx5.16129\\ \\mathrm K$。代回保留分數得 $T_0^1=7(160/31)-30=190/31\\approx6.12903\\ \\mathrm K$。"
+      },
+      {
+        "chapter": 29,
+        "old": "比較解析解 $T(x,t) = T_{init} + (T_{left}-T_{init}) \\operatorname{erfc}\\left(\\frac{x}{2\\sqrt{\\alpha t}}\\right)$（半無限域近似）。",
+        "new": "比較半無限域解析解 $T(x,t)=T_{init}+(T_{left}-T_{init})\\operatorname{erfc}\\left(x/(2\\sqrt{\\alpha t})\\right)$，其中熱擴散率 $\\alpha=k/(\\rho c_p)$，單位為 $\\mathrm{m^2/s}$。此比較只在有限域右端的零通量邊界尚未顯著影響解的時間範圍內成立；否則應改用與有限域、右端邊界相符的解析解或製造解。"
+      }
+    ],
+    "reason": "統一有限體積推導、手算與程式的每單位面積量綱；修正習題解答中L=0時相分率的錯誤敘述、過冷測試前提、手算數值及解析解參數。另依審查意見補上T_new有限性檢查。"
+  }
+}

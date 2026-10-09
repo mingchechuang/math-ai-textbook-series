@@ -1,0 +1,11 @@
+{
+  "key": "205edd827203200dd265cee779e3e78bbd95b7efd6da9d24621171aa91cffa24",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 541,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n4. **非布林遮罩**：傳入 `float32` mask → 拋 `ValueError`；這避免用 0/1 混過布林約定。\n<<<NEW>>>\n4. **非布林遮罩**：傳入 `float32` mask → 拋 `TypeError`；這避免用 0/1 混過布林約定。\n<<<END>>>"
+}

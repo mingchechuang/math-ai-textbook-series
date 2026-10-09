@@ -1,0 +1,11 @@
+{
+  "key": "e531d7f84095e80f8ced8c4293421d622eec6eafe39a2e777245ec8e09af3cb6",
+  "person": {
+    "id": "v5_editor_13",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 286,
+  "result": "1. **遮罩 dtype 契約仍未明確落實。**  \n   原句：「`if mask.shape != times.shape:`」及「`allowed = mask & (abs_delta <= float(window))`」  \n   原因：程式只檢查遮罩 shape，未檢查 dtype。章稿把遮罩定義為二值 $\\{0,1\\}$，但呼叫者傳入整數型 0/1 張量時，`allowed` 可能仍是整數型，後續作為 `torch.where` 條件會失敗；錯誤也不會指出遮罩型別不符合契約。  \n   最小修法：明訂遮罩必須是 `torch.bool` 並在入口拒絕其他 dtype；或驗證值域為 0/1 後轉成 bool。加入整數遮罩的測試。\n\n前輪的非有限超參數與最近位置數值邊界已補上處理。此遮罩輸入契約仍未修正。\n\nVERDICT: REVISE"
+}

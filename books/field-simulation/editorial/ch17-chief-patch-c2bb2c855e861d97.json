@@ -1,0 +1,45 @@
+{
+  "key": "c2bb2c855e861d9777b4c976ea53910793c34b582f8ad95f3af5936f46abc63f",
+  "person": {
+    "id": "v3_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 154,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "$$\n\\nu=g_D\n\\quad\\text{於 }\\Gamma_D,\n$$",
+        "new": "$$\nu=g_D\n\\quad\\text{於 }\\Gamma_D,\n$$"
+      },
+      {
+        "chapter": 17,
+        "old": "$$\n\\nu=0\n\\quad\\text{於 }\\partial\\Omega.\n$$",
+        "new": "$$\nu=0\n\\quad\\text{於 }\\partial\\Omega.\n$$"
+      },
+      {
+        "chapter": 17,
+        "old": "則邊界負載為\n\n$$\nF_\\Gamma^{(e)}\n=\n\\frac{q_NL_e}{2}\n\\begin{bmatrix}\n1\\\\\n1\n\\end{bmatrix}.\n$$",
+        "new": "則該**邊**的邊界負載為\n\n$$\nF_\\Gamma^{(e)}\n=\n\\frac{q_NL_e}{2}\n\\begin{bmatrix}\n1\\\\\n1\n\\end{bmatrix},\n$$\n\n此式是邊上兩個局部節點的二維直向量，不是元素三個自由度的完整負載。組裝到元素時，須依該邊在元素局部編號中的位置，把這兩個分量映射到對應的局部列，第三個局部節點的分量則為零。例如元素局部節點編號為 $(0,1,2)$、Neumann 邊為局部節點 $(1,2)$，則元素邊界負載應為 $(0,\\ q_NL_e/2,\\ q_NL_e/2)^T$。若映射錯置，邊界通量會被錯誤加到內部節點，即使總收支仍可能通過部分測試，空間分布已錯。"
+      },
+      {
+        "chapter": 17,
+        "old": "    if atol < 0.0 or rtol < 0.0:\n        raise ValueError(\"atol 與 rtol 必須非負\")\n\n    defect = float(np.sum(b))\n    limit = atol + rtol * float(np.linalg.norm(b, ord=1))",
+        "new": "    if not np.isfinite(atol) or not np.isfinite(rtol):\n        raise ValueError(\"atol 與 rtol 必須為有限值\")\n    if atol < 0.0 or rtol < 0.0:\n        raise ValueError(\"atol 與 rtol 必須非負\")\n\n    defect = float(np.sum(b))\n    b_norm1 = float(np.linalg.norm(b, ord=1))\n    limit = atol + rtol * b_norm1\n    if not np.isfinite(defect) or not np.isfinite(limit):\n        raise ValueError(\"相容性診斷量非有限，拒絕繼續\")"
+      },
+      {
+        "chapter": 17,
+        "old": "    # 故障示例：常數正來源、零 Neumann、c=0 不相容。\n    try:\n        check_pure_neumann_compatibility(b)\n    except ValueError as err:\n        print(\"expected rejection:\", err)",
+        "new": "    # 相容案例：把中間節點的來源調整到使 sum(b) 落在容差內。\n    # 這只示範檢查函式本身；實際純 Neumann 求解還需零均值增廣或投影。\n    b_compatible = b.copy()\n    b_compatible[4] = -np.sum(b_compatible[[0, 1, 2, 3]])\n    try:\n        check_pure_neumann_compatibility(b_compatible)\n        print(\"compatible case accepted\")\n    except ValueError as err:\n        print(\"unexpected rejection:\", err)\n\n    # 不相容故障：常數正來源、零 Neumann、c=0 時 sum(b) = 1 != 0。\n    # 契約：不相容資料不得進入後續純 Neumann 求解流程。\n    try:\n        check_pure_neumann_compatibility(b)\n    except ValueError as err:\n        print(\"expected rejection:\", err)\n    else:\n        raise AssertionError(\"不相容右端未被拒絕\")"
+      },
+      {
+        "chapter": 17,
+        "old": "對無因次序參量 $\\phi$，取\n\n$$\nW(\\phi)=\\frac{(\\phi^2-1)^2}{4},\n$$\n\n$$\nF[\\phi]\n=\n\\int_\\Omega\n\\left[\nW(\\phi)+\\frac{\\kappa}{2}|\\nabla\\phi|^2\n\\right]d\\Omega.\n$$",
+        "new": "對無因次序參量 $\\phi$，本節採**全無因次化**：空間座標以參考長度 $\\ell_0$ 縮放為 $\\hat{\\mathbf{x}}=\\mathbf{x}/\\ell_0$，自由能以參考能量密度 $f_0$ 縮放，$\\kappa$ 亦理解為無因次參數 $\\kappa/(f_0\\ell_0^2)$。在此約定下取\n\n$$\nW(\\phi)=\\frac{(\\phi^2-1)^2}{4},\n$$\n\n$$\nF[\\phi]\n=\n\\int_\\Omega\n\\left[\nW(\\phi)+\\frac{\\kappa}{2}|\\nabla\\phi|^2\n\\right]d\\Omega,\n$$\n\n其中 $\\Omega$、$F$、$\\kappa$ 與 $\\nabla$ 均以無因次座標計，故 $W$ 與 $\\kappa|\\nabla\\phi|^2/2$ 量綱一致。若保留有因次座標 $x$ 卻仍使用無因次 $\\phi$，梯度項的單位便與 $W$ 不同，必須重新引入能量密度尺度與 $\\kappa$ 的單位，不能直接沿用此式。下文離散能量沿用全無因次約定；有因次版本須另列 $\\kappa$ 的單位。"
+      }
+    ],
+    "reason": "重新以更短、精確且唯一的片段作為 old，避免前次 patch 因上下文過長導致非唯一匹配。(1) 問題段與例三的 Dirichlet 條件由 \\nu 改為 u，兩處 old 各自唯一。(2) Neumann 邊負載說明補上 shape 與局部節點映射。(3) check_pure_neumann_compatibility 加入 atol/rtol 有限性檢查與 defect/limit 有限性檢查。(4) main 新增相容通過案例，並在拒絕分支後以 else 斷言確保不相容右端確實被拒絕、契約明示不得繼續後續求解。(5) 相場能量段落補上全無因次化說明及參考尺度，避免 W 與梯度項量綱不一致。"
+  }
+}

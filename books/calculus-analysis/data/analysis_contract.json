@@ -1,0 +1,20 @@
+{
+  "synthetic": true,
+  "dimensionless_demo": true,
+  "input_shape": [
+    2
+  ],
+  "output_shape": [
+    2
+  ],
+  "jacobian_shape": [
+    2,
+    2
+  ],
+  "mapping": [
+    "x0**2+2*x1",
+    "x0*x1"
+  ],
+  "seed": 42,
+  "note": "只作合成分析與形狀檢查；非實際感測器或操作閾值"
+}

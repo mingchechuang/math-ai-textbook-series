@@ -1,0 +1,137 @@
+# 獨立審稿報告：第26章 量化、蒸餾與效率的證據
+
+## 1. 數學與程式核對
+
+### 1.1 量化誤差界 (Proposition 26.1)
+- **定義**：$s = \max|x| / q_{max}$。
+- **誤差界**：$|x - \hat{x}| \le s/2$。
+- **證明檢查**：
+    - $x_i / s \in [-q_{max}, q_{max}]$。
+    - $\text{round}(x_i/s)$ 產生整數 $m_i$。
+    - 若 $x_i/s$ 在 $[-q_{max}, q_{max}]$ 內，$\text{round}$ 後的值不會超出此範圍（因為端點是整數，round會保持在端點或內部）。
+    - Clip 是恆等映射。
+    - $|x_i - s \cdot m_i| = s |x_i/s - m_i| \le s \cdot 0.5$。
+    - **結論**：證明邏輯正確。
+
+### 1.2 蒸餾梯度 (Proposition 26.2)
+- **損失**：$\mathcal{L} = \text{KL}(p || q) = \sum p \log p - \sum p \log q$。
+- **梯度**：$\frac{\partial \mathcal{L}}{\partial z_{s,j}} = \frac{q_j - p_j}{T}$。
+- **證明檢查**：
+    - $\frac{\partial}{\partial z_j} \sum_k p_k \log q_k = \sum_k p_k \frac{1}{q_k} \frac{\partial q_k}{\partial z_j}$。
+    - $\frac{\partial q_k}{\partial z_j} = \frac{1}{T} q_k (\delta_{kj} - q_j)$。
+    - $\sum_k p_k \frac{1}{q_k} \frac{1}{T} q_k (\delta_{kj} - q_j) = \frac{1}{T} \sum_k p_k (\delta_{kj} - q_j) = \frac{1}{T} (p_j - q_j \sum p_k) = \frac{1}{T} (p_j - q_j)$。
+    - 因為 KL 是 $-\sum p \log q$ 加上常數，梯度取負號：$-\frac{1}{T}(p_j - q_j) = \frac{1}{T}(q_j - p_j)$。
+    - **結論**：公式正確。
+
+### 1.3 程式碼與實作
+- **Shape/Broadcast**：
+    - `quantize_per_column`: `W` is `(Din, Dout)`. `max_abs` along `axis=0` is `(1, Dout)`. Correct.
+    - `distill_kl_and_grad`: `z_t, z_s` are `(N, C)`. `logp, logq` are `(N, C)`. `term` is `(N, C)`. `kl_per_sample` is `(N,)`. `grad` is `(N, C)`. Correct.
+- **Gradient Check**：
+    - `manual_grads`: `dW = X.T @ dz`. `dz` includes `1/N`. So `dW` is correct for the averaged loss.
+    - `fd_grad`: Central difference. Correct.
+- **NaN Handling**：
+    - `np.where(p > 0, p * (logp - logq), 0.0)`.
+    - **關鍵檢查**：NumPy 的 `np.where` 會先計算兩個分支。如果 `p=0`，`logp` 可能是 `-inf`（如果直接取 log）。但這裡 `logp` 是 `st - logsumexp(st)`。
+    - 如果 `st` 是有限值，`logsumexp` 是有限值，`logp` 就是有限值。
+    - 只有當 `st` 極大導致 `exp` 溢位時，`logsumexp` 可能不穩，但 `st - max` 會避免溢位。
+    - 文檔中說明：「`logp` 與 `logq` 是直接以縮放 logits 減去 logsumexp 計算... 不會因此必然產生 NaN」。這是非常準確的 NumPy 數值分析。
+    - 程式碼中檢查了 `np.isfinite(logp)` 和 `logq`，確保不會有 NaN/Inf 流入 `np.where` 導致意外。這是一個很好的防禦性編程習慣。
+
+### 1.4 手算例題
+- **26.1 (量化)**：
+    - $x=[-1.2, 0.4, 0.9, -0.3]$。
+    - $s=1.2/3=0.4$。
+    - $x/s = [-3, 1, 2.25, -0.75]$。
+    - Round: $[-3, 1, 2, -1]$。
+    - Dequant: $[-1.2, 0.4, 0.8, -0.4]$。
+    - Error: $[0, 0, 0.1, 0.1]$。Max error $0.1 \le 0.2$。
+    - **結論**：計算正確。
+- **26.2 (蒸餾)**：
+    - $z_t=[2,1,0], z_s=[0,1,2], T=2$。
+    - $p \approx [0.506, 0.307, 0.186]$。
+    - $q \approx [0.186, 0.307, 0.506]$。
+    - Grad: $(q-p)/2 \approx [-0.16, 0, 0.16]$。
+    - **結論**：計算正確。
+
+### 1.5 習題與解答
+- **A1**: $x=[-3.0, 1.5, 0.05]$, $b=4, q_{max}=7$.
+    - $s=3/7 \approx 0.4286$.
+    - $x/s = [-7, 3.5, 0.116]$.
+    - Round(3.5) in NumPy is 4 (Banker's rounding).
+    - Dequant: $[-3.0, 4*0.4286, 0] = [-3.0, 1.7144, 0]$.
+    - Error: $[0, 1.5-1.7144, 0.05] = [0, -0.2144, 0.05]$.
+    - Max error $0.2144 \le 0.4286/2 = 0.2143$?
+    - Wait. $0.21428...$ vs $0.21428...$
+    - $s = 3/7$. $s/2 = 3/14 \approx 0.2142857$.
+    - Error for 1.5: $1.5 - 4*(3/7) = 1.5 - 12/7 = 10.5/7 - 12/7 = -1.5/7 = -3/14$.
+    - Absolute value $3/14$. Bound $3/14$.
+    - It matches exactly.
+    - **Conclusion**: Correct.
+- **B3**: Teacher logits $[500, -500]$.
+    - $p = [1, 0]$.
+    - `logp` calculated as `st - logsumexp(st)`.
+    - `st = [500, -500]`. `logsumexp` is approx 500.
+    - `logp = [0, -1000]`.
+    - `p * logp = [0, 0]`? No, `p=[1, 0]`.
+    - `p[0]*logp[0] = 1*0 = 0`.
+    - `p[1]*logp[1] = 0*(-1000) = 0`.
+    - So `term` is `0` where `p=0`.
+    - The explanation in B3 is very precise: "logp is finite, so no NaN from 0 * -inf". This is a high-quality pedagogical point.
+
+## 2. 問題與建議
+
+1.  **B1 題目描述**：
+    - 原句：「B1. 把 `quantize_symmetric` 改成逐行（對 $W\in\mathbb{R}^{D_{\mathrm{in}}\times D_{\mathrm{out}}}$ 沿第 1 軸 $D_{\mathrm{out}}$ reduction）版本...」
+    - 解答 B1：「逐列版本的 critical 行是 `max_abs = np.max(np.abs(W), axis=1, keepdims=True)`... 誤差界：對第 $i$ 列...」
+    - **矛盾**：題目說「逐行」且沿 axis 1 (output) reduction，這其實是對每一行（輸入通道）計算一個 scale？不，沿 axis 1 reduction 會得到 shape `(Din, 1)`。這意味著每一行（input channel）對應一個 scale？
+    - 在深度學習中，通常 `W` 是 `(In, Out)`。
+    - `axis=0` 是沿 Input 維度 reduction，得到 `(1, Out)`。這通常是 **Per-Output-Channel** (Per-Column in matrix terms, if Out is columns).
+    - `axis=1` 是沿 Output 維度 reduction，得到 `(In, 1)`。這通常是 **Per-Input-Channel** (Per-Row in matrix terms).
+    - 題目說「逐行... 沿第 1 軸 $D_{\mathrm{out}}$ reduction」。
+    - 如果 $W$ 是 `(Din, Dout)`。
+    - Axis 1 是 Dout。
+    - Reduction along Axis 1 會 collapse Dout。結果是 `(Din, 1)`。
+    - 這意味著每個 `i` (Input index) 有一個 scale。
+    - 解答 B1 說：「對第 $i$ 列，$max_j |W_{ij} - W_{r,ij}| \le s_i/2$」。
+    - 這裡的「第 $i$ 列」如果是指 Matrix Row $i$ (Input Channel)，那麼 $s_i$ 是該行的 scale。
+    - 但題目稱之為「逐行」。
+    - 然而，解答 B1 開頭寫「**逐列版本**的 critical 行...」。
+    - 這產生了術語混淆。題目說「逐行」，解答說「逐列」。
+    - 在中文語境下，Matrix Row 是「行」，Column 是「列」。
+    - `W (Din, Dout)`。
+    - Axis 0 是行索引 (Input)。Axis 1 是列索引 (Output)。
+    - `axis=1` reduction -> 對每一行 (Row) 的 Output 部分做 max。得到每行的 max。Shape `(Din, 1)`。
+    - 這應該叫 **Per-Row** (逐行) 或 **Per-Input-Channel**。
+    - 解答 B1 卻稱之為「**逐列版本**」，並且說「對第 $i$ 列...」。如果 $i$ 是行索引，應該說「對第 $i$ 行」。
+    - **建議**：統一術語。題目 B1 應明確說「逐行 (Per-Row, 對每一行計算一個 scale)」。解答 B1 應將「逐列」改為「逐行」，並將「對第 $i$ 列」改為「對第 $i$ 行」。
+
+2.  **定義 26.1 中的術語**：
+    - 「若把同一條公式套到矩陣... 的每一欄（輸出通道）上... 這就是「逐通道量化」... 反之，逐列量化才沿第 1 軸 reduction...」
+    - 這裡「每一欄」指 Output Channel。
+    - 通常 Output Channel 在 `(In, Out)` 矩陣中是「列」(Columns)。
+    - 所以「逐欄」(Per-Column) 對應 Output Channel。
+    - 文中說「逐通道量化」...「反之，逐列量化」。
+    - 如果「欄」= Column = Output。
+    - 那麼「逐列」應該是 Input Channel (Rows)。
+    - 這裡的「欄」和「列」在中文裡有時混用。
+    - 建議明確使用 **Per-Output-Channel** (逐輸出通道) 和 **Per-Input-Channel** (逐輸入通道) 來避免歧義，或者在首次出現時定義「本卷以 Output 為列 (Column)」。
+    - 目前文中說「每一欄（輸出通道）」。如果輸出通道是「欄」，那麼「逐列」就是輸入通道。
+    - 但 B1 題目說「逐行」，解答說「逐列」。
+    - **最小修法**：
+        - 在 B1 解答中，將「逐列版本」改為「逐行版本」，將「對第 $i$ 列」改為「對第 $i$ 行」。
+        - 或者，如果作者定義 Output 為「列」，則 B1 題目應改為「逐列」，解答保持一致。
+        - 鑑於題目 B1 明確寫了「逐行... 沿第 1 軸」，解答應配合題目改為「逐行」。
+
+3.  **其他**：
+    - 程式碼檢查無誤。
+    - 數學推導無誤。
+    - 測試案例覆蓋充分。
+    - 沒有捏造 Benchmark。
+    - 資料切分說明清晰。
+
+## 3. 結論
+
+章節整體質量很高，數學推導嚴謹，程式碼實作考慮了數值穩定性（如 `np.where` 的 eager evaluation 特性）。主要問題在於 B1 習題解答中的術語不一致（題目「逐行」，解答「逐列」），這可能引起讀者對 Axis 0/1 與 Row/Column 對應關係的困惑。
+
+**VERDICT: REVISE**

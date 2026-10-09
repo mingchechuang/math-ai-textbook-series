@@ -1,0 +1,47 @@
+<<<PATCH 24-01>>>
+<<<OLD>>>
+例如，定義 $f_n: [0,1] \to \mathbb{R}$ 為：
+$$ f_n(x) = \begin{cases} 1 - n x, & 0 \le x \le \frac{1}{n} \\ 0, & \frac{1}{n} < x \le 1 \end{cases} $$
+對任何固定 $x \in (0,1]$，當 $n > 1/x$ 時 $f_n(x)=0$，故逐點極限為 $f(x)=0$（連續）。但 $\sup_{x \in [0,1]} |f_n(x)| = f_n(0) = 1$，故不一致收斂。
+<<<NEW>>>
+例如，定義連續三角尖峰 $f_n: [0,1] \to \mathbb{R}$ 為（先設 $n \ge 2$）：
+$$ f_n(x) = \begin{cases} n x, & 0 \le x \le \frac{1}{n}, \\ 2 - n x, & \frac{1}{n} < x \le \frac{2}{n}, \\ 0, & \frac{2}{n} < x \le 1 \end{cases} $$
+（$n=1$ 時可補定義 $f_1(x)=0$。）則對任何固定 $x \in (0,1]$，當 $n > 2/x$ 時 $f_n(x)=0$，故逐點極限為 $f(x)=0$（連續）。但 $\sup_{x \in [0,1]} |f_n(x)| = 1$（於 $x=1/n$ 取得），故不一致收斂。
+<<<END>>>
+
+<<<PATCH 24-02>>>
+<<<OLD>>>
+3.  **[反例/證明]** 證明：若 $\{h_n\}$ 在 $[a,b]$ 上可微，$h_n'$ 一致收斂於 $g$，且 $h_n$ 在 $[a,b]$ 上逐點收斂，則 $h_n$ 必一致收斂。
+    *提示*：利用微積分基本定理將 $h_n(x)$ 表示為 $h_n(a) + \int_a^x h_n'(t) dt$。
+<<<NEW>>>
+3.  **[反例/證明]** 證明：若 $\{h_n\} \subset C^1([a,b])$（即每個 $h_n$ 可微且 $h_n'$ 連續），$h_n'$ 一致收斂於 $g$，且 $h_n$ 在 $[a,b]$ 上逐點收斂，則 $h_n$ 必一致收斂。
+    *提示*：利用微積分基本定理將 $h_n(x)$ 表示為 $h_n(a) + \int_a^x h_n'(t) dt$。
+<<<END>>>
+
+<<<PATCH 24-03>>>
+<<<OLD>>>
+    -   取 sup norm：
+        $$ \sup_x |h_n(x) - h_m(x)| \le |h_n(a) - h_m(a)| + \int_a^x |h_n'(t) - h_m'(t)| dt $$
+        $$ \le |h_n(a) - h_m(a)| + (b-a) \sup_t |h_n'(t) - h_m'(t)| $$
+<<<NEW>>>
+    -   取 sup norm：
+        $$ \sup_x |h_n(x) - h_m(x)| \le |h_n(a) - h_m(a)| + \sup_x \left| \int_a^x (h_n'(t) - h_m'(t)) dt \right| $$
+        $$ \le |h_n(a) - h_m(a)| + (b-a) \sup_t |h_n'(t) - h_m'(t)| $$
+<<<END>>>
+
+<<<PATCH 24-04>>>
+<<<OLD>>>
+故 $F'(t) = \int_a^b \frac{\partial f}{\partial t}(x,t) \, dx$。$\blacksquare$
+
+## 逐步手算例題
+<<<NEW>>>
+故 $F'(t) = \int_a^b \frac{\partial f}{\partial t}(x,t) \, dx$。$\blacksquare$
+
+**定理 24.8 (函數級數逐項微分)** 設 $f_n \in C^1([a,b])$。若數值級數 $\sum_{n=1}^\infty f_n(c)$ 在某點 $c \in [a,b]$ 收斂，且導數級數 $\sum_{n=1}^\infty f_n'$ 在 $[a,b]$ 上一致收斂，則函數級數 $\sum_{n=1}^\infty f_n$ 在 $[a,b]$ 上一致收斂，其和函數 $S(x) = \sum_{n=1}^\infty f_n(x)$ 在 $[a,b]$ 上可微，且
+$$ S'(x) = \sum_{n=1}^\infty f_n'(x). $$
+**證明：** 令 $S_N = \sum_{n=1}^N f_n$，則 $S_N \in C^1([a,b])$，$S_N' = \sum_{n=1}^N f_n'$。由假設 $\sum f_n(c)$ 收斂，故 $\{S_N(c)\}$ 收斂。由假設 $\sum f_n'$ 一致收斂，故 $\{S_N'\}$ 一致收斂於 $g = \sum f_n'$。將定理 24.5 套用於函數列 $\{S_N\}$，得 $\{S_N\}$ 一致收斂於某可微函數 $S$，且 $S' = g$，即得結論。$\blacksquare$
+
+**注意**：僅有原級數 $\sum f_n$ 一致收斂不足以逐項微分。例如 $f_n(x) = \frac{\sin(nx)}{n}$ 在 $[0,\pi]$ 上，由 M-判準（$|f_n| \le 1/n$）知 $\sum f_n$ 一致收斂，但 $\sum f_n' = \sum \cos(nx)$ 不一致收斂，故不能逐項微分。
+
+## 逐步手算例題
+<<<END>>>

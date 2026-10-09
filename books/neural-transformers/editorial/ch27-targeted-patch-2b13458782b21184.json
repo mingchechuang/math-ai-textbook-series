@@ -1,0 +1,11 @@
+{
+  "key": "2b13458782b21184bc7da23ea212337646e6c4e70fba9478f9a7bfb03f5f6c6c",
+  "person": {
+    "id": "v5_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 184,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\nimport random\nimport numpy as np\n<<<NEW>>>\nimport math\nimport random\nimport numpy as np\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n    if sigma <= 0 or window < 0:\n        raise ValueError(\"sigma須為正且window須為非負\")\n<<<NEW>>>\n    if (not math.isfinite(sigma) or not math.isfinite(window)\n            or sigma <= 0 or window < 0):\n        raise ValueError(\"sigma須為有限正數且window須為有限非負數\")\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n    if temperature <= 0:\n        raise ValueError(\"temperature須為正\")\n<<<NEW>>>\n    if not math.isfinite(temperature) or temperature <= 0:\n        raise ValueError(\"temperature須為有限正數\")\n<<<END>>>\n<<<PATCH 04>>>\n<<<OLD>>>\n    test_extreme_finite_time_scale()\n    return report\n<<<NEW>>>\n    test_extreme_finite_time_scale()\n\n    h = torch.tensor([[[1.0]]], dtype=DTYPE)\n    times = torch.tensor([[0.0]], dtype=DTYPE)\n    mask = torch.tensor([[True]])\n    tau = torch.tensor([0.0], dtype=DTYPE)\n    for sigma, window in (\n        (float(\"nan\"), 1.0),\n        (float(\"inf\"), 1.0),\n        (0.0, 1.0),\n        (1.0, float(\"nan\")),\n        (1.0, float(\"inf\")),\n        (1.0, -1.0),\n    ):\n        expect_value_error(\n            lambda sigma=sigma, window=window: aligned_pool(\n                h, times, mask, tau, sigma, window\n            ),\n            \"sigma須為有限正數且window須為有限非負數\",\n        )\n\n    a = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=DTYPE)\n    valid = torch.tensor([True, True])\n    for temperature in (float(\"nan\"), float(\"inf\"), 0.0, -1.0):\n        expect_value_error(\n            lambda temperature=temperature: pair_loss(\n                a, a, valid, valid, temperature\n            ),\n            \"temperature須為有限正數\",\n        )\n    return report\n<<<END>>>"
+}

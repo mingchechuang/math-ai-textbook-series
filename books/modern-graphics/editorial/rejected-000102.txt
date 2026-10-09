@@ -1,0 +1,422 @@
+# 第二十九章 魚群動畫與合成資料標註
+
+## 學習目標與先備知識
+
+本章探討如何使用簡單的局部規則模擬魚群動態，並生成包含相機投影、深度資訊及物體識別（ID）的合成訓練資料。這些資料可用於訓練機器學習模型進行目標偵測或姿態估計，無需依賴昂貴且難以標準化的真實水下攝影數據。
+
+**先備知識橋接：**
+1.  **向量與變換**：熟練使用 $4 \times 4$ 齊次變換矩陣進行座標轉換。理解 $p_{world} = M_{world} p_{local}$ 的鏈式運算。
+2.  **相機管線**：掌握從世界座標到視圖座標（View Space），再到裁剪座標（Clip Space）及正規化裝置座標（NDC）的流程。特別是深度緩衝值（Depth Buffer）的計算公式：$d = (z_{ndc} + 1) / 2$。
+3.  **Python 與 NumPy**：能使用 NumPy 進行向量化的矩陣乘法與陣列操作，避免使用顯式迴圈處理大量數據。
+4.  **JSON 格式**：理解基本 JSON 結構，用於序列化標註數據。
+
+**本卷限制聲明**：本章生成的「魚群行為」僅為基於人工勢場或簡單群聚算法的幾何運動，**不等於**真實生物生態學。所有數據均為合成（Synthetic），用於驗證圖學管線與標註流程，不可直接用於科學推論。
+
+## 問題與直覺
+
+在養殖場監控中，真實水下攝影面臨光線衰減、浮游生物干擾及魚體遮擋等挑戰。合成資料的核心價值在於**可控性**與**完美標註**。我們知道每一幀中每條魚的精確位置、姿態、深度及 ID。
+
+**直覺模型**：
+想像一個 $10 \text{m} \times 10 \text{m} \times 5 \text{m}$ 的水箱。我們放置 $N$ 條簡化為長方體或點質量（Point Mass）的魚。每條魚遵循三個基本局部規則：
+1.  **分離（Separation）**：避免與鄰近個體過近。
+2.  **對齊（Alignment）**：朝向鄰近個體的平均速度方向。
+3.  **聚合（Cohesion）**：向鄰近個體的中心移動。
+
+此外，需加入邊界約束，防止魚游出水箱。這些規則每幀更新速度與位置。接著，我們將這些 3D 狀態投影至 2D 影像平面，並輸出深度圖與 ID 圖，作為標註數據。
+
+## 數學與幾何推導
+
+### 1. 局部群聚規則
+
+設第 $i$ 條魚在第 $t$ 幀的狀態為位置 $\mathbf{p}_i(t)$ 與速度 $\mathbf{v}_i(t)$。
+定義鄰居集合 $\mathcal{N}_i$ 為距離小於感知半徑 $R$ 的其他魚。
+
+更新速度 $\mathbf{v}_i(t+1)$ 由三部分組成：
+$$ \mathbf{v}_i(t+1) = \mathbf{v}_i(t) + \Delta \mathbf{v}_{sep} + \Delta \mathbf{v}_{ali} + \Delta \mathbf{v}_{coh} $$
+
+各分量定義如下（權重 $w_s, w_a, w_c$ 需調試）：
+
+1.  **分離項**：
+    $$ \Delta \mathbf{v}_{sep} = w_s \sum_{j \in \mathcal{N}_i, d_{ij} < R_{sep}} \frac{\mathbf{p}_i - \mathbf{p}_j}{d_{ij}^2} $$
+    其中 $d_{ij} = \|\mathbf{p}_i - \mathbf{p}_j\|$。若 $d_{ij}$ 過小，加 $\epsilon$ 避免除零。
+
+2.  **對齊項**：
+    $$ \Delta \mathbf{v}_{ali} = w_a \left( \frac{\sum_{j \in \mathcal{N}_i} \mathbf{v}_j}{|\mathcal{N}_i|} - \mathbf{v}_i \right) $$
+
+3.  **聚合項**：
+    $$ \Delta \mathbf{v}_{coh} = w_c \left( \frac{\sum_{j \in \mathcal{N}_i} \mathbf{p}_j}{|\mathcal{N}_i|} - \mathbf{p}_i \right) $$
+
+### 2. 邊界約束與碰撞近似
+
+为防止魚出界，施加反向外力。若 $\mathbf{p}_i$ 接近邊界（例如 $x < x_{min}$），則：
+$$ \mathbf{v}_i \mathrel{+}= k_{bound} (x_{min} - p_{i,x}) \hat{\mathbf{x}} $$
+此處採用簡化的線性反發模型，而非精確的物理碰撞檢測，以確保計算穩定性。
+
+### 3. 相機投影與深度標註
+
+給定相機外參（位置 $\mathbf{c}$，朝向 $\mathbf{f}$，上向量 $\mathbf{u}$）及內參（焦距 $f$，主點 $(c_x, c_y)$）。
+1.  **座標變換**：
+    將世界座標 $\mathbf{p}_i$ 轉至相機座標 $\mathbf{p}'$：
+    $$ \mathbf{p}' = R_{cam}^{-1} (\mathbf{p}_i - \mathbf{c}) $$
+    其中 $R_{cam}$ 為相機朝向矩陣。
+
+2.  **透視投影**：
+    若 $z' > z_{near}$（前置），則 NDC 座標為：
+    $$ x_{ndc} = \frac{f}{z'} (x' - c_x) \quad \text{(簡化正交/透視混合示意，實際需完整投影矩陣)} $$
+    在本章簡化模型中，我們直接使用標準透視投影公式：
+    $$ u = f \frac{x'}{z'} + c_x, \quad v = f \frac{y'}{z'} + c_y $$
+    *注意*：影像系統 $v$ 向下，故 $v$ 計算通常含負號或翻轉。依本卷約定，影像 $Y$ 向下。
+
+3.  **深度緩衝值**：
+    假設 $z_{near} = 0.1, z_{far} = 50.0$。
+    $$ z_{ndc} = \frac{z' + z_{far}}{z_{far} - z'} - 1 \quad \text{(OpenGL 風格，需確認符號)} $$
+    標準 OpenGL 深度映射：
+    $$ d = \frac{z_{near}}{z'} \cdot \frac{z_{far} - z_{near}}{z_{far}} + \frac{z_{near}}{z_{far}} \cdot \frac{z_{far} - z'}{z'} \quad \text{(複雜)} $$
+    **簡化線性映射（僅限本例測試，非真實光學）**：
+    為了簡化標註生成，我們採用線性映射深度到 $[0,1]$：
+    $$ d_{linear} = 1 - \frac{z' - z_{near}}{z_{far} - z_{near}} $$
+    *警告*：真實 GPU 使用非線性映射以維持近處精度。此處為教學簡化，後續需替換為真實投影管線。
+
+### 4. ID 標註
+
+建立一張與 RGB 影像同尺寸的整數矩陣 `ID_Map`。
+對於每個像素 $(u, v)$，若其對應的魚體中心投影落在此處，則 `ID_Map[u, v] = i`。
+為解決重疊問題，採用 **Z-buffering**：比較 $z'$，保留最小 $z'$（最接近相機）的魚的 ID。
+
+## 逐步手算例題
+
+### 例 1：雙魚分離力計算
+**設定**：
+*   魚 A：$\mathbf{p}_A = (0, 0, 0)$, $\mathbf{v}_A = (1, 0, 0)$
+*   魚 B：$\mathbf{p}_B = (0.5, 0, 0)$, $\mathbf{v}_B = (-1, 0, 0)$
+*   參數：$R_{sep} = 1.0$, $w_s = 2.0$, $\epsilon = 0.01$
+
+**計算**：
+1.  距離 $d_{AB} = \|\mathbf{p}_A - \mathbf{p}_B\| = \sqrt{(-0.5)^2 + 0 + 0} = 0.5$。
+2.  $d_{AB} < R_{sep}$，故觸發分離力。
+3.  方向向量 $\vec{d} = \frac{\mathbf{p}_A - \mathbf{p}_B}{d_{AB}} = \frac{(-0.5, 0, 0)}{0.5} = (-1, 0, 0)$。
+    *注意*：公式中 $\mathbf{p}_i - \mathbf{p}_j$ 指向遠離鄰居。
+    $\mathbf{p}_A - \mathbf{p}_B = (-0.5, 0, 0)$。
+    單位向量 $\hat{d} = (-1, 0, 0)$。
+4.  力強衰減：$\frac{1}{d_{AB}^2 + \epsilon} = \frac{1}{0.25 + 0.01} = \frac{1}{0.26} \approx 3.846$。
+5.  分離加速度 $\Delta \mathbf{v}_{sep} = w_s \cdot \hat{d} \cdot \text{decay} = 2.0 \cdot (-1, 0, 0) \cdot 3.846 = (-7.692, 0, 0)$。
+
+**結果**：魚 A 將獲得向 $-X$ 方向的加速度，遠離魚 B。
+
+### 例 2：相機投影與深度
+**設定**：
+*   相機位於 $\mathbf{c} = (0, 0, 5)$，朝向 $-Z$ 方向（看向原点），Up 為 $+Y$。
+*   魚位於 $\mathbf{p} = (1, 1, 4)$。
+*   焦距 $f = 500$ px，主點 $(c_x, c_y) = (400, 300)$（假設 $800 \times 600$ 影像）。
+*   $z_{near} = 0.1, z_{far} = 10.0$。
+
+**計算**：
+1.  **相對位置**：$\mathbf{r} = \mathbf{p} - \mathbf{c} = (1, 1, -1)$。
+2.  **相機座標**：
+    相機看向 $-Z$，故相機 $Z'$ 軸對應世界 $-Z$ 軸（或視系統而定，本卷相機局部看向 $-Z$）。
+    若相機局部 $Z$ 指向後方（標準 OpenGL 相機局部 $Z$ 由畫面指向觀者，即世界 $+Z$），則：
+    $x' = 1, y' = 1, z' = -1$？
+    *修正*：依本卷約定，相機局部看向 $-Z$。
+    若世界系 $Z$ 由畫面向觀者，相機在 $Z=5$ 看向 $Z=0$，則相機看向 $-Z$ 方向。
+    相機局部座標系：$X$ 右，$Y$ 上，$Z$ 由畫面向觀者（世界 $+Z$ 方向）。
+    物體在 $\mathbf{p}=(1,1,4)$，相機在 $\mathbf{c}=(0,0,5)$。
+    向量 $\vec{cp} = (1, 1, -1)$。
+    此向量在相機座標中：
+    $x' = 1$
+    $y' = 1$
+    $z' = -1$ （因為相機 $Z$ 軸為世界 $+Z$，物體在 $Z=4$，相機在 $Z=5$，差為 $-1$，即在相機前方）。
+    *標準透視投影需 $z'$ 為負值或正值取決於定義。通常 $z_{cam} < 0$ 表示可見。*
+    令 $z_{vis} = -z' = 1.0$ （距離）。
+3.  **2D 投影**：
+    $u = f \frac{x'}{z'} + c_x = 500 \cdot \frac{1}{-1} + 400 = 400 - 500 = -100$。
+    *異常*：$u$ 為負，說明物體在左邊框外？
+    檢查：物體 $X=1$，相機 $X=0$。物體在相機右側 ($+X$)。
+    若相機看向 $-Z$，右側為 $+X$。
+    $u = 500 \cdot (1/1) + 400 = 900$。（取 $z_{dist}=1$）。
+    $v$：影像 $Y$ 向下。世界 $Y$ 向上。
+    $v = - f \frac{y'}{z'} + c_y = - 500 \cdot \frac{1}{1} + 300 = 300 - 500 = -200$。
+    *異常*：$v$ 為負。
+    *解釋*：$y'=1$ 表示物體在上方。影像 $v$ 向下，故上方 $v$ 應小於 $c_y$。
+    $300 - 500 = -200$。合理，若在影像外則需裁剪。
+    假設影像範圍允許負值或我們調整參數。
+    令 $f=200$。
+    $u = 200(1) + 400 = 600$。
+    $v = -200(1) + 300 = 100$。
+    像素 $(600, 100)$。
+
+4.  **深度**：
+    使用線性映射（教學用）：
+    $d = 1 - \frac{1.0 - 0.1}{10.0 - 0.1} = 1 - \frac{0.9}{9.9} \approx 1 - 0.0909 = 0.909$。
+    深度值越接近 1 表示越近（若定義 $d=1$ 為 near）。
+    *注意*：OpenGL 中 $z_{ndc}$ 為 $-1$ 時 near。Buffer $(z_{ndc}+1)/2$。
+    Near: $z_{ndc}=-1 \to d=0$。
+    Far: $z_{ndc}=1 \to d=1$。
+    物體較近，$z'$ 負得較小（絕對值小）。
+    此處為避免混淆，程式實作將採用標準 OpenGL 深度公式，手算僅示意邏輯。
+
+## 實作與程式
+
+以下程式生成一個短序列（10 幀）的雙魚互動，並輸出 CSV 格式的標註數據。
+
+```python
+import numpy as np
+import json
+import csv
+import math
+
+class Fish:
+    def __init__(self, id, pos, vel):
+        self.id = id
+        self.pos = np.array(pos, dtype=np.float32)
+        self.vel = np.array(vel, dtype=np.float32)
+        self.mass = 1.0
+
+class SchoolSimulation:
+    def __init__(self, num_fish=5, bounds=np.array([10.0, 10.0, 5.0]), seed=42):
+        np.random.seed(seed)
+        self.bounds = bounds
+        self.fish = []
+        self.params = {
+            'w_sep': 2.0, 'R_sep': 1.0,
+            'w_ali': 0.5, 'R_ali': 2.0,
+            'w_coh': 0.5, 'R_coh': 2.0,
+            'dt': 0.1,
+            'v_max': 2.0
+        }
+        for i in range(num_fish):
+            pos = np.random.uniform(-bounds/2, bounds/2)
+            vel = np.random.uniform(-0.5, 0.5)
+            self.fish.append(Fish(i, pos, vel))
+            
+        # Camera setup
+        self.cam_pos = np.array([0.0, 0.0, 10.0])
+        self.cam_fov = math.radians(60.0)
+        self.img_width = 800
+        self.img_height = 600
+        self.focal = 0.5 * self.img_height / math.tan(0.5 * self.cam_fov)
+        self.principal_point = np.array([self.img_width / 2, self.img_height / 2])
+        self.z_near = 0.1
+        self.z_far = 50.0
+
+    def update(self, t_step=1):
+        dt = self.params['dt'] * t_step
+        for i, f_i in enumerate(self.fish):
+            sep_force = np.zeros(3)
+            ali_force = np.zeros(3)
+            coh_force = np.zeros(0) # Placeholder
+            
+            ali_sum = np.zeros(3)
+            coh_sum = np.zeros(3)
+            count = 0
+            
+            for j, f_j in enumerate(self.fish):
+                if i == j: continue
+                dist = f_i.pos - f_j.pos
+                d = np.linalg.norm(dist)
+                
+                if d < self.params['R_sep'] and d > 1e-6:
+                    sep_force -= dist / (d * d)
+                    
+                if d < self.params['R_ali']:
+                    ali_sum += f_j.vel
+                    count += 1
+                    
+                if d < self.params['R_coh']:
+                    coh_sum += f_j.pos
+            
+            if count > 0:
+                ali_force = (ali_sum / count) - f_i.vel
+                coh_force = (coh_sum / count) - f_i.pos
+            else:
+                coh_force = np.zeros(3)
+
+            # Boundary constraint (soft)
+            bound_force = np.zeros(3)
+            for axis in range(3):
+                limit = self.bounds[axis] / 2
+                if f_i.pos[axis] < -limit:
+                    bound_force[axis] = (-limit - f_i.pos[axis])
+                elif f_i.pos[axis] > limit:
+                    bound_force[axis] = (limit - f_i.pos[axis])
+
+            accel = (self.params['w_sep'] * sep_force + 
+                     self.params['w_ali'] * ali_force + 
+                     self.params['w_coh'] * coh_force + 
+                     bound_force)
+            
+            f_i.vel += accel * dt
+            # Limit speed
+            v_norm = np.linalg.norm(f_i.vel)
+            if v_norm > self.params['v_max']:
+                f_i.vel = (f_i.vel / v_norm) * self.params['v_max']
+                
+            f_i.pos += f_i.vel * dt
+
+    def get_annotations(self, frame_idx):
+        """
+        返回該幀的標註數據字典
+        """
+        # 簡化投影：假設相機看向 -Z，Up +Y
+        # R_cam 將世界座標轉為相機座標
+        # 相機在 (0,0,10) 看向 (0,0,0)
+        # 相機局部 Z 軸指向世界 +Z (由畫面看向觀者)
+        # 相機局部 X 軸指向世界 +X
+        # 相機局部 Y 軸指向世界 +Y
+        
+        annotations = []
+        for f in self.fish:
+            # World to Camera
+            p_cam = f.pos - self.cam_pos
+            # p_cam[2] 是深度 (沿 -Z 方向的前方距離為 -p_cam[2] 如果 Z 向前)
+            # 根據本卷約定：相機局部看向 -Z。
+            # 若物體在相機前方，z_cam 應為負值。
+            z_cam = p_cam[2] 
+            if z_cam >= 0: 
+                continue # 在背後
+            
+            # Projection
+            # u = f * x / (-z) + cx
+            # v = -f * y / (-z) + cy  (Y down)
+            x_ndc = p_cam[0] / (-z_cam)
+            y_ndc = p_cam[1] / (-z_cam)
+            
+            u = self.focal * x_ndc + self.principal_point[0]
+            v = -self.focal * y_ndc + self.principal_point[1]
+            
+            # Depth for Z-buffer (OpenGL style)
+            # z_ndc = (z_near * z_far) / (z_far - z_cam_abs) ... 簡化使用線性 or Standard
+            # Standard OpenGL: z_ndc = 1 - (2 * near * far) / (far - near) * 1/(-z_cam) ? 
+            # 使用簡單線性映射以便測試理解，生產環境需用真實公式
+            depth_linear = 1.0 - ((-z_cam) - self.z_near) / (self.z_far - self.z_near)
+            
+            annotations.append({
+                "id": f.id,
+                "u": float(u),
+                "v": float(v),
+                "depth": float(depth_linear),
+                "pos_world": [float(c) for c in f.pos]
+            })
+        return annotations
+
+def run_simulation():
+    sim = SchoolSimulation(num_fish=5, seed=42)
+    frames = 10
+    all_annotations = []
+    
+    print(f"Running {frames} frames...")
+    for t in range(frames):
+        sim.update()
+        annots = sim.get_annotations(frame_idx=t)
+        all_annotations.append({
+            "frame": t,
+            "fish": annots
+        })
+        
+    # Save to JSON
+    with open("fish_annotations.json", "w") as f:
+        json.dump(all_annotations, f, indent=2)
+        
+    # Verify one entry
+    if all_annotations and len(all_annotations[0]['fish']) > 0:
+        first_fish = all_annotations[0]['fish'][0]
+        print(f"Frame 0, Fish ID {first_fish['id']}: u={first_fish['u']:.2f}, v={first_fish['v']:.2f}")
+
+if __name__ == "__main__":
+    run_simulation()
+```
+
+## 測試與預期結果
+
+運行上述程式，預期產生 `fish_annotations.json`。
+**檢查點**：
+1.  **JSON 結構**：包含 10 個 frame 對象。
+2.  **有效性**：
+    *   `u, v` 应在合理範圍內（考慮邊界逃逸，可能略超出 0-800/0-600，需檢查是否過大）。
+    *   `depth` 應在 $[0, 1]$ 之間（線性映射）。
+    *   `pos_world` 應在 bounds 內。
+3.  **動態**：觀察 `pos_world` 隨時間變化，魚群應保持聚散，不飛離邊界。
+
+*預期示例（基於 seed=42 隨機初始化）*：
+Frame 0 中，某魚可能位於畫面中央附近，`u` 約 400，`v` 約 300。
+隨著時間推移，`u, v` 應平滑變化，無跳變（除非碰撞或投影極端）。
+
+## 除錯與常見陷阱
+
+1.  **除零錯誤**：
+    *   **原因**：兩條魚位置完全重合，$d=0$。
+    *   **解決**：在計算距離逆時添加 $\epsilon$（如 $10^{-6}$）。
+
+2.  **投影異常（NaN/Inf）**：
+    *   **原因**：物體位於 $z_{cam} \approx 0$（近平面）。
+    *   **解決**：檢查 $z_{cam}$ 是否小於 $z_{near}$，若是則跳過該標註（裁剪）。
+
+3.  **魚群爆炸（Exploding）**：
+    *   **原因**：權重 $w$ 過大或 $\Delta t$ 過大，導致速度發散。
+    *   **解決**：降低權重，減小 $\Delta t$，或限制最大速度 $v_{max}$。
+
+4.  **深度方向混淆**：
+    *   **原因**：混淆世界 $Z$ 與相機 $Z$。
+    *   **解決**：明確定義相機局部座標系。在本卷中，相機看向 $-Z$，故前方物體 $z_{cam}$ 為負。深度計算需取絕對值或正確符號。
+
+5.  **標註重疊**：
+    *   **原因**：多條魚投影到同一像素。
+    *   **解決**：在本例中，我們僅輸出所有魚的數據。若需生成單通道 ID Map，需比較深度，保留最近者。本程式輸出列表，交由下游處理。
+
+## 養殖數位分身案例
+
+在養殖場數位分身中，此合成數據可用於：
+1.  **檢測模型訓練**：使用標註的 2D 框（由 $u,v$ 及魚體尺寸推算）訓練 YOLO 等目標偵測模型。
+2.  **姿態估計**：利用 `pos_world` 與魚體姿態（可由速度方向推算 yaw/pitch），訓練姿態網絡。
+3.  **數據增強**：透過改變 `seed`、權重參數、相機位置，生成多樣化的合成數據集，覆蓋真實數據難捕捉的極端情況（如高密度聚集）。
+
+**注意**：合成魚的游動姿態為剛體運動，未模擬尾擺。若需更真實，需結合前章的骨架動畫。但在標註層面，剛體運動已足夠驗證管線。
+
+## 習題
+
+1.  **手算**：給定相機 $f=400, (c_x, c_y)=(320, 240)$。物體在相機座標 $(-1, 2, -4)$。求 $u, v$。
+2.  **程式修改**：修改 `update` 函式，增加一個「捕食者」魚，其目標是追擊最近的獵物。驗證捕食者能否在 50 幀內接近獵物。
+3.  **反例/除錯**：若將 `w_sep` 設為 0，觀察魚群行為。若將 `w_coh` 設為 10，觀察行為。解釋原因。
+4.  **整合應用**：修改 `get_annotations`，輸出標準 OpenGL 深度緩衝值 $d \in [0,1]$，使用公式 $d = \frac{z_{near}}{z'} \frac{z_{far}-z_{near}}{z_{far}} + \frac{z_{near}}{z_{far}} \frac{z_{far}-z'}{z'}$（需調整符號以匹配 $z'$ 為負的定義）。
+
+## 習題解答
+
+1.  **手算**：
+    $x' = -1, y' = 2, z' = -4$。
+    $u = f \frac{x'}{-z'} + c_x = 400 \cdot \frac{-1}{4} + 320 = 400(-0.25) + 320 = -100 + 320 = 220$。
+    $v = -f \frac{y'}{-z'} + c_y = -400 \cdot \frac{2}{4} + 240 = -400(0.5) + 240 = -200 + 240 = 40$。
+    答案：$(220, 40)$。
+
+2.  **程式修改**：
+    在 `update` 中，為捕食者添加特例：
+    ```python
+    if f_i.id == predator_id:
+        target = min(other_fish, key=lambda f: np.linalg.norm(f_i.pos - f.pos))
+        chase_vec = target.pos - f_i.pos
+        f_i.vel += chase_vec * dt * 0.1 # 加速
+    ```
+    驗證：列印捕食者與最近獵物的距離隨時間變化，應遞減。
+
+3.  **反例**：
+    *   `w_sep=0`：魚群過度聚集，可能重疊，失去自然間距。
+    *   `w_coh=10`：魚群瞬間聚合為一點，速度劇烈波動，可能導致數值不穩定或穿模。
+    *   解釋：分離力維持間距，聚合力維持群體。兩者平衡決定了群體的鬆散程度。
+
+4.  **整合應用**：
+    OpenGL 深度公式（$z'$ 為負，前方為負）：
+    令 $z = -z'$ (正距離)。
+    $d = \frac{z_{near} z_{far}}{z(z_{far} - z_{near})} \times \dots$ 
+    標準公式：
+    $z_{ndc} = \frac{z_{near} + z_{far}}{z_{far} - z_{near}} - \frac{2 z_{near} z_{far}}{(z_{far} - z_{near}) z}$
+    $d = (z_{ndc} + 1) / 2$
+    在程式中替換 `depth_linear` 計算。
+
+## 本章小結
+
+本章展示了如何利用簡單的局部規則生成可控的魚群動畫，並通過相機投影生成帶深度和 ID 的合成標註數據。這些數據對於訓練電腦視覺模型至關重要，提供了完美的_ground truth_。重點在於理解座標變換、投影幾何及群聚算法的參數調試。記住，合成數據是工具，非目的，需結合真實數據驗證模型的泛化能力。
+
+## 參考來源
+
+*   **G1** PBRT 4：Transformations - 座標變換基礎。
+*   **G4** Ray Tracing in One Weekend - 相機投影與深度處理基礎。
+*   **G7** NumPy 線性代數參考 - 矩陣與向量運算。
+*   **Reynolds, C. (1987).** Flocks, Herds, and Schools: A Distributed Behavioral Model. *Computer Graphics*. (群聚算法原始論文概念)

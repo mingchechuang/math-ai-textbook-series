@@ -1,0 +1,11 @@
+{
+  "key": "f772bc03d1013d786a08b4030038ec63ef8b9b7a050d6ac0208b56bbf226efe8",
+  "person": {
+    "id": "v5_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 457,
+  "result": "<<<PATCH 26>>>\n<<<OLD>>>\n`np.where(p > 0, p * (logp - logq), 0.0)` 這一行用來讓零機率項的輸出為零：當某個教師機率在浮點下下溢為嚴格 $0$ 時，$p_k\\log p_k$ 的極限值是 $0$，但 `0.0 * -inf` 在 IEEE 754 下會是 NaN。須注意 NumPy 的 `np.where` **不是**「先判斷再乘」：它會先完整計算兩個分支的運算式，再按遮罩選值；因此 `p=0` 位置的乘積仍會被求值，但該位置的 NaN 會被選為 `0.0` 而不出現在結果中。若連中間運算都不得產生 NaN，須改以有效索引取值再相乘，而非只依賴 `np.where`。此外，`softmax_temp` 只保證原始 logits 與 $T$ 有限，`z/T` 仍可能溢位；在 $p>0$ 且 `logp`、`logq` 皆為有限的情況下，乘積才可正常計算。\n<<<NEW>>>\n`np.where(p > 0, p * (logp - logq), 0.0)` 用來明確實作 $p_k=0$ 時 KL 項定義為零。在本程式中，`logp` 與 `logq` 是直接以縮放 logits 減去 logsumexp 計算；只要縮放 logits 有限，這些對數值也通常有限，即使 softmax 機率在浮點下溢為嚴格 $0$，`p * (logp - logq)` 也不會因此必然產生 NaN。須注意 NumPy 的 `np.where` **不是**「先判斷再乘」：它會先完整計算兩個分支的運算式，再按遮罩選值。因此若未選分支含有非有限中間值，`np.where` 不會阻止該運算發生；若連中間運算都不得產生非有限值，須改以有效索引取值再相乘。`softmax_temp` 會拒絕非有限輸入及非有限的 `z/T`，但有限的縮放 logits 相減仍可能在極端數值下溢出，故不可把 `np.where` 當作所有數值故障的防護。\n<<<END>>>"
+}

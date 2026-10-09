@@ -1,0 +1,11 @@
+{
+  "key": "bf13d18e73725b057ab4bff8ed9ff2dd266eb4d2c445f60c5aa1de2b5bb4412c",
+  "person": {
+    "id": "v5_editor_32",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "author"
+  },
+  "call": 531,
+  "result": "<<<PATCH 15>>>\n<<<OLD>>>\n    for bad_mask in (\n        np.zeros((3, 3), dtype=bool),\n        np.ones(3, dtype=bool),\n        np.ones((3, 2), dtype=bool),\n    ):\n        try:\n            attention(x, x, x, bad_mask)\n        except ValueError:\n            pass\n        else:\n            raise AssertionError(\"非法遮罩應被拒絕\")\n<<<NEW>>>\n    for bad_mask in (\n        np.zeros((3, 3), dtype=bool),\n        np.ones(3, dtype=bool),\n        np.ones((3, 2), dtype=bool),\n    ):\n        rejected = False\n        try:\n            attention(x, x, x, bad_mask)\n        except ValueError:\n            rejected = True\n        if not rejected:\n            raise AssertionError(\"非法遮罩應被拒絕\")\n<<<END>>>\n\n<<<PATCH 15>>>\n<<<OLD>>>\n    try:\n        masked_token_mean(\n            np.array([0.2, 0.4]), np.array([False, False])\n        )\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"零有效 token 應被拒絕\")\n<<<NEW>>>\n    rejected = False\n    try:\n        masked_token_mean(\n            np.array([0.2, 0.4]), np.array([False, False])\n        )\n    except ValueError:\n        rejected = True\n    if not rejected:\n        raise AssertionError(\"零有效 token 應被拒絕\")\n<<<END>>>\n\n<<<PATCH 15>>>\n<<<OLD>>>\n    huge = np.array([[1e308]])\n    try:\n        attention(huge, huge, np.array([[1.0]]),\n                  np.array([[True]]))\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(\"非有限注意力分數應被拒絕\")\n<<<NEW>>>\n    huge = np.array([[1e308]])\n    rejected = False\n    try:\n        attention(huge, huge, np.array([[1.0]]),\n                  np.array([[True]]))\n    except ValueError:\n        rejected = True\n    if not rejected:\n        raise AssertionError(\"非有限注意力分數應被拒絕\")\n<<<END>>>"
+}

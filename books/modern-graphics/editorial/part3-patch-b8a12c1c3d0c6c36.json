@@ -1,0 +1,70 @@
+{
+  "key": "b8a12c1c3d0c6c36369869fb4a8603be7f58ada4d7685ea630b3b5f32f9af81f",
+  "person": {
+    "id": "v2_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 217,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "本章要把前一章的局部照明推向可比較、可量測的物理材質。讀者應先掌握第14章的 Lambert 模型與立體角概念、第15章的 UV 與貼圖座標，以及第一卷的向量內積、外積與有限差分思維。",
+        "new": "本章把局部照明推向可比較的物理材質。讀者應先掌握第14章的 UV 與貼圖座標，以及第15章的 Lambert 模型、立體角與 BRDF 基礎；也需具備第一卷的向量內積、外積與基本微積分概念。"
+      },
+      {
+        "chapter": 16,
+        "old": "第一卷第14章的 Lambert 材質只有一個參數：反照率。它的 BRDF 是常數 $f_r = \\rho/\\pi$，與觀察角度無關。真實魚鱗在背光下只閃一小圈高光，在掠射角幾乎像鏡子；同一片材質只要改變觀察幾何，反射強度、顏色與高光寬度都會變。Lambert 無法表示任何一個這類現象。",
+        "new": "第15章的 Lambert 材質只有一個主要材質參數：反照率。它的 BRDF 是常數 $f_r = \\rho/\\pi$，與觀察角度無關。真實魚鱗在背光下可能出現高光，在掠射角也可能呈現較強反射；同一片材質只要改變觀察幾何，反射強度、顏色與高光寬度都會變。Lambert 模型無法表示這些方向性現象。"
+      },
+      {
+        "chapter": 16,
+        "old": "分母 $4(N\\cdot V)(N\\cdot L)$ 常被當作「背下來」的公式，其實它是把單位半球上的微面立體角 $\\mathrm{d}\\omega_h$ 轉到巨觀入射立體角 $\\mathrm{d}\\omega_i$ 的 Jacobian。推導分三步：\n\n1. 微面鏡面反射使 $\\omega_i$ 與 $\\omega_o$ 關於 $h$ 對稱：$\\omega_o = 2(\\omega_i\\cdot h)h - \\omega_i$。\n2. 給定入射方向 $\\omega_i$，出射方向的微分由 $h$ 的微分決定。對 $\\omega_o$ 關於 $h$ 取微分可得映射 $\\mathrm{d}\\omega_o = 4\\,(\\omega_i\\cdot h)\\,\\mathrm{d}\\omega_h$。\n3. 由互易性，把出射側的立體角轉到入射側，並將 $\\omega_i\\cdot h$ 用 $N$ 投影表示。在半角定義下 $\\omega_i\\cdot h = \\omega_o\\cdot h$，配合投影分解可得\n\n$$\\mathrm{d}\\omega_i = \\frac{4\\,(N\\cdot h)^2}{(N\\cdot\\omega_o)(N\\cdot\\omega_i)}\\,\\mathrm{d}\\omega_h.$$\n\n在 BRDF 推導裡，對「可見微面」求期望時，$N\\cdot h$ 會被微面投影項消去一部分，最終留下的就是 $1/\\left[4(N\\cdot\\omega_i)(N\\cdot\\omega_o)\\right]$ 前的係數。要點在於：微面朝向的隱式分布 $D(h)$ 積分到巨觀方向時，面積元素改變了，因此 BRDF 不可能只是 $F\\,D\\,G$，必須除以這個 Jacobian。若要具體驗證這個 Jacobian 的完整性，可以想像 $D(h)$ 收斂為狄拉克分佈（$\\alpha\\to0$）時，鏡面項應退化為「$\\omega_o$ 是 $\\omega_i$ 對 $N$ 的正反射方向才非零」的鏡面反射機率密度；少掉 Jacobian，這個極限不會成立。",
+        "new": "分母 $4(N\\cdot\\omega_i)(N\\cdot\\omega_o)$ 來自微面反射幾何中的立體角轉換，以及微面投影與可見性項的合併。先看半角向量 $h=\\operatorname{normalize}(\\omega_i+\\omega_o)$。固定入射方向時，微面法線與反射方向的立體角關係為\n\n$$\nd\\omega_h=\\frac{d\\omega_o}{4|\\omega_o\\cdot h|}.\n$$\n\n$D(h)$ 則描述微面法線相對巨觀表面的分布；微面是否可見、是否被遮蔽，另由幾何項 $G$ 處理。把微面分布、Fresnel、遮蔽與上述反射方向的 Jacobian 合併，得到常用的鏡面微表面 BRDF：\n\n$$\nf_r^{\\mathrm{spec}}(\\omega_i,\\omega_o)\n=\n\\frac{F(\\omega_i,h)D(h)G(\\omega_i,\\omega_o)}\n{4|N\\cdot\\omega_i||N\\cdot\\omega_o|}.\n$$\n\n這是推導綱要，而不是從單一立體角等式直接推出完整結果；各項如何分配也取決於 $D$、$G$ 的定義。對外側半球方向，兩個巨觀點積為正，絕對值可省略。若省略分母而直接把 $F D G$ 當作 BRDF，會漏掉微面到巨觀方向的幾何轉換。"
+      },
+      {
+        "chapter": 16,
+        "old": "def ggx_d(n_dot_h, roughness):\n    alpha = roughness * roughness\n    a2 = alpha * alpha\n    denom = (n_dot_h ** 2) * (a2 - 1.0) + 1.0\n    return a2 / (np.pi * denom * denom)\n\ndef smith_g1(n_dot_x, roughness):\n    alpha = roughness * roughness\n    a2 = alpha * alpha\n    ndx = np.clip(n_dot_x, 1e-6, 1.0)\n    return 2.0 * ndx / (ndx + np.sqrt(a2 + (1.0 - a2) * ndx * ndx))",
+        "new": "def checked_roughness(roughness):\n    r = float(roughness)\n    if not np.isfinite(r) or not 0.0 <= r <= 1.0:\n        raise ValueError(\"roughness 必須是 [0, 1] 內的有限純量\")\n    # alpha = r^2；以正下限避免 r=0 時 GGX 峰值形成 0/0。\n    return max(r * r, 1e-4)\n\ndef ggx_d(n_dot_h, roughness):\n    alpha = checked_roughness(roughness)\n    a2 = alpha * alpha\n    nh = np.clip(n_dot_h, 0.0, 1.0)\n    denom = (nh ** 2) * (a2 - 1.0) + 1.0\n    return a2 / (np.pi * denom * denom)\n\ndef smith_g1(n_dot_x, roughness):\n    alpha = checked_roughness(roughness)\n    a2 = alpha * alpha\n    ndx = np.clip(n_dot_x, 1e-6, 1.0)\n    return 2.0 * ndx / (ndx + np.sqrt(a2 + (1.0 - a2) * ndx * ndx))"
+      },
+      {
+        "chapter": 16,
+        "old": "def cook_torrance(N, V, L, albedo, roughness, metallic):\n    N = normalize(np.asarray(N, float))\n    V = normalize(np.asarray(V, float))\n    L = normalize(np.asarray(L, float))\n    H = normalize(V + L)\n    nv = max(np.dot(N, V), 1e-6)\n    nl = max(np.dot(N, L), 1e-6)\n    nh = max(np.dot(N, H), 0.0)\n    vh = max(np.dot(V, H), 0.0)\n    f0 = 0.04 * (1.0 - metallic) + albedo * metallic\n    F = fresnel_schlick(vh, f0)\n    D = ggx_d(nh, roughness)\n    G = smith_g1(nv, roughness) * smith_g1(nl, roughness)\n    spec = F * D * G / (4.0 * nv * nl)\n    kd = (1.0 - F) * (1.0 - metallic)\n    diff = kd * albedo / np.pi\n    return diff + spec, diff, spec",
+        "new": "def cook_torrance(N, V, L, albedo, roughness, metallic):\n    N = normalize(np.asarray(N, dtype=float))\n    V = normalize(np.asarray(V, dtype=float))\n    L = normalize(np.asarray(L, dtype=float))\n    albedo = np.asarray(albedo, dtype=float)\n    metallic = float(metallic)\n    if albedo.ndim > 1 or not np.all(np.isfinite(albedo)):\n        raise ValueError(\"albedo 須為有限純量或 RGB 向量\")\n    if not 0.0 <= metallic <= 1.0:\n        raise ValueError(\"metallic 必須在 [0, 1]\")\n    checked_roughness(roughness)\n\n    nv_raw = float(np.dot(N, V))\n    nl_raw = float(np.dot(N, L))\n    zero = np.zeros_like(albedo, dtype=float)\n    if nv_raw <= 0.0 or nl_raw <= 0.0:\n        return zero, zero, zero\n\n    half_sum = V + L\n    if np.linalg.norm(half_sum) < 1e-12:\n        return zero, zero, zero\n    H = normalize(half_sum)\n    nv, nl = nv_raw, nl_raw\n    nh = max(float(np.dot(N, H)), 0.0)\n    vh = max(float(np.dot(V, H)), 0.0)\n\n    f0 = 0.04 * (1.0 - metallic) + albedo * metallic\n    F = fresnel_schlick(vh, f0)\n    D = ggx_d(nh, roughness)\n    G = smith_g1(nv, roughness) * smith_g1(nl, roughness)\n    spec = F * D * G / (4.0 * nv * nl)\n    kd = (1.0 - F) * (1.0 - metallic)\n    diff = kd * albedo / np.pi\n    return diff + spec, diff, spec"
+      },
+      {
+        "chapter": 15,
+        "old": "$$\nI_{\\mathrm{Phong}}\n=k_d\\max(0,\\mathbf n\\cdot\\mathbf l)\n+k_s\\max(0,\\mathbf r\\cdot\\mathbf v)^s.\n$$\n\n\\(k_d,k_s\\) 是調色用係數，\\(s\\) 控制高光集中程度。依本章方向慣例，入射光的傳播方向是 \\(-\\mathbf l\\)，其鏡面反射方向為\n\n$$\n\\mathbf r=-\\mathbf l-2\\mathbf n\\bigl(\\mathbf n\\cdot(-\\mathbf l)\\bigr).\n$$",
+        "new": "\\(k_d,k_s\\) 是調色用係數，\\(s\\) 控制高光集中程度。依本章方向慣例，入射光的傳播方向是 \\(-\\mathbf l\\)，其鏡面反射方向為\n\n$$\n\\mathbf r=-\\mathbf l-2\\mathbf n\\bigl(\\mathbf n\\cdot(-\\mathbf l)\\bigr).\n$$\n\n對本章的不透明單面局部照明，背面光源不得產生正面 Phong 高光。可寫為\n\n$$\nI_{\\mathrm{Phong}}=\n\\begin{cases}\nk_d(\\mathbf n\\cdot\\mathbf l)+k_s\\max(0,\\mathbf r\\cdot\\mathbf v)^s,\n&\\mathbf n\\cdot\\mathbf l>0,\\\\\n0,&\\mathbf n\\cdot\\mathbf l\\leq0.\n\\end{cases}\n$$\n\n這裡的鏡面項也受入射半球條件限制；若另要表示透射或雙面材質，必須另外定義其模型。"
+      },
+      {
+        "chapter": 17,
+        "old": "TBN 矩陣的三個**縱行**為\n\n$$\n\\mathbf M_{\\rm TBN}\n=\n\\begin{bmatrix}\n|&|&|\\\\\n\\mathbf T&\\mathbf B&\\mathbf N\\\\\n|&|&|\n\\end{bmatrix}.\n$$",
+        "new": "TBN 矩陣的三個**縱列（column）**依序為 $\\mathbf T,\\mathbf B,\\mathbf N$：\n\n$$\n\\mathbf M_{\\rm TBN}\n=\n\\begin{bmatrix}\n|&|&|\\\\\n\\mathbf T&\\mathbf B&\\mathbf N\\\\\n|&|&|\n\\end{bmatrix}.\n$$"
+      },
+      {
+        "chapter": 14,
+        "old": "本卷遵循 OpenGL 風格：貼圖原點 $(0,0)$ 位於左下角，V 軸向上。然而，影像檔像素原點通常位於左上角，Y 軸向下。",
+        "new": "本章使用紋素中心映射 $x=uW-0.5$、$y=(1-v)H-0.5$；與第13章的邊緣對齊映射 $x=u(W-1)$、$y=(1-v)(H-1)$ 不同。此處貼圖原點 $(0,0)$ 位於左下角，V 軸向上；影像陣列的像素原點位於左上角，列索引向下。因而第13章與本章的 $u=0$ 對應不同取樣位置：本章會依 clamp 或 repeat 邊界規則混合邊界兩側 texel。跨章沿用程式時，須同步轉換映射公式與邊界模式，不能只複製雙線性取樣函式。"
+      },
+      {
+        "chapter": 14,
+        "old": "write_ppm(\"fish_pc.ppm\", img_pc)\n    write_ppm(\"fish_affine.ppm\", img_affine)\n    write_ppm(\"fish_checker_pc.ppm\", img_checker_pc)\n    write_ppm(\"fish_checker_affine.ppm\", img_checker_affine)",
+        "new": "write_ppm(\"fish_pc_linear.ppm\", img_pc)\n    write_ppm(\"fish_affine_linear.ppm\", img_affine)\n    write_ppm(\"fish_checker_pc_linear.ppm\", img_checker_pc)\n    write_ppm(\"fish_checker_affine_linear.ppm\", img_checker_affine)"
+      },
+      {
+        "chapter": 15,
+        "old": "with open(\"lambert_sphere.ppm\", \"w\", encoding=\"ascii\") as f:",
+        "new": "with open(\"lambert_sphere_linear.ppm\", \"w\", encoding=\"ascii\") as f:"
+      },
+      {
+        "chapter": 16,
+        "old": "## 參考來源\n\n- [G1] PBRT 4：Transformations，https://pbr-book.org/4ed/Geometry_and_Transformations/Transformations\n- [G2] PBRT 4：Reflection Models，https://pbr-book.org/4ed/Reflection_Models\n- [G3] PBRT 4：The Light Transport Equation，https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/The_Light_Transport_Equation\n- [G4] Ray Tracing in One Weekend，https://raytracing.github.io/books/RayTracingInOneWeekend.html\n- [G5] LearnOpenGL：Transformations，https://learnopengl.com/Getting-started/Transformations\n- [G6] Blender Manual：Skinning Introduction，https://docs.blender.org/manual/en/latest/animation/armatures/skinning/introduction.html\n- [G7] NumPy 線性代數參考，https://numpy.org/doc/stable/reference/routines.linalg.html\n- [G8] Khronos glTF 2.0 規格，https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html\n\n以上來源僅作為回查入口，本章所有公式皆為自行推導與重新表達；未複製來源文字，也未宣稱任何外部頁面已逐條驗證。",
+        "new": "## 參考來源\n\n- [G2] PBRT 4：Reflection Models，https://pbr-book.org/4ed/Reflection_Models\n- [G3] PBRT 4：The Light Transport Equation，https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/The_Light_Transport_Equation\n\n以上作為反射模型與光傳輸的延伸閱讀；列出來源不表示本章每個推導步驟已逐條外部查核。"
+      }
+    ],
+    "reason": "修正跨章章號依賴、微表面立體角推導與背面照明邊界，讓程式落實粗糙度下限並處理背面方向及零半角；統一 TBN 矩陣術語，明示第13、14章 UV 映射差異，並為直接量化線性 RGB 的 PPM 檔名加上線性標記。"
+  }
+}

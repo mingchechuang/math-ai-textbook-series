@@ -1,0 +1,11 @@
+{
+  "key": "587e995f1f22876e2633675e5977f68a100c0285636f16d387533ca44e97e8c1",
+  "person": {
+    "id": "v5_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 331,
+  "result": "<<<PATCH 19>>>\n<<<OLD>>>\n    x_grad = torch.randint(1, V, (2, 5))\n    t_grad = torch.randint(1, V, (2, 5))\n    model.train()\n    _, loss_grad = model(x_grad, t_grad)\n<<<NEW>>>\n    x_grad = torch.tensor([[1, 2, 0]], dtype=torch.long)\n    t_grad = torch.tensor([[2, 3, 0]], dtype=torch.long)\n    model.train()\n    model.zero_grad(set_to_none=True)\n    _, loss_grad = model(x_grad, t_grad)\n<<<END>>>\n<<<PATCH 19>>>\n<<<OLD>>>\n    print(\"8. Fault Tests Passed.\")\n\n    print(\"All tests completed.\")\n<<<NEW>>>\n    print(\"8. Fault Tests Passed.\")\n\n    # 測試右側 PAD 契約及合法的序列結束\n    for xs, ys in [\n        ([1, 2, 0, 0], [2, 3, 0, 0]),\n        ([1, 2, 3], [2, 3, 0]),\n    ]:\n        _, checked_loss = model(torch.tensor([xs]), torch.tensor([ys]))\n        assert torch.isfinite(checked_loss)\n    for xs, ys, message in [\n        ([1, 0, 2, 0], None, \"right side\"),\n        ([1, 2, 3, 4], [2, 0, 3, 0], \"Target PAD\"),\n        ([1, 2, 0], [2, 3, 4], \"PAD input positions\"),\n    ]:\n        try:\n            model(torch.tensor([xs]),\n                  None if ys is None else torch.tensor([ys]))\n        except ValueError as error:\n            assert message in str(error)\n        else:\n            raise AssertionError(\"Invalid padding was accepted\")\n\n    print(\"All tests completed.\")\n<<<END>>>"
+}

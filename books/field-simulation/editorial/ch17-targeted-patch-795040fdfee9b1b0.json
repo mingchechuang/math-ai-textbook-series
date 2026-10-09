@@ -1,0 +1,14 @@
+{
+  "key": "795040fdfee9b1b0ba34bc44eb1cfbe5a0c225f4caf828b032a814da62ece343",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 304,
+  "result": {
+    "patches": [],
+    "reason": "審稿所列三處 `\\nu` 均由 JSON 換行跳脫 `\\n` 緊接字母 `u` 或 `u_h` 造成視覺誤讀。解碼後原稿公式已分別為 `u=g_D`、`u_h=\\sum_{a=1}^3U_aN_a`、`u=0`；沒有實際符號錯誤，故不改動正確內容。"
+  }
+}

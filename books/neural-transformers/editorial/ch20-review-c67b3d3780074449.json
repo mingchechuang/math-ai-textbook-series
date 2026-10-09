@@ -1,0 +1,11 @@
+{
+  "key": "c67b3d3780074449bb2ce7709428fbd7f22c0a42d75d256cfeb78a8755643183",
+  "person": {
+    "id": "v5_editor_39",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "reviewer"
+  },
+  "call": 79,
+  "result": "我先重算了上輪的阻擋點。修訂後，`dpre` 為 $(B,T,ff)$，`n2.reshape(-1,D).T @ dpre.reshape(-1,ff)` 為 $(D,ff)$，`dpre @ W1.T` 回到 $(B,T,D)$；`b1f` 亦沿 $(B,T)$ 求和。FFN 反傳的 shape 與鏈式法則現在相符。`forward` 也已先查 `ndim` 再解包 shape；先前兩項問題已修正，不應再據此拒稿。\n\n資料流程與計算亦大致自洽：群組先切分，詞表只由 train 建立，各文件才切窗；相鄰窗口在邊界共用一個詞元作下一窗輸入，但不重複計入同一目標對。loss 的詞彙軸計算、有效 $(B,T)$ 位置加總與 token 數分母相符；測試 NLL 以各批平均乘有效數還原總和。單頭模型已在章內提供完整前向、反向及訓練 loop，不能僅因它不是多頭或不是 PyTorch 而認定「省略模型」。手算兩例、小命題證明、保留集用途及未執行聲明亦成立。\n\n**目前剩下一處須修的故障測試缺口。**原句：\n\n> `bad_logits = np.array([[np.nan, 0.0]])`  \n> `lambda: (_ for _ in ()).throw(ValueError(\"logits 含非有限值\")) if not np.isfinite(bad_logits).all() else None`\n\n這段確實會因 `bad_logits` 含 NaN 而拋出預期訊息，但例外是**測試本身人工拋出的**，沒有呼叫 `TinyDecoder.loss_and_grads()` 的「`logits 含非有限值`」檢查。即使刪掉模型內的拒絕分支，該測試仍會通過，因而不能支持正文「`expected_tests()`包含……非有限值拒絕」的說法。這不同於單純少一個測試案例：它把未受測的核心故障策略呈現成已有可執行的契約測試。**最小修法：**暫時使模型的一個輸出參數（例如 `bout` 的一項）為 `np.nan`，以現有有效 `ids, targets, mask` 呼叫 `model.loss_and_grads(...)`，用 `expect_value_error` 核對模型實際拋出的訊息；測後恢復原參數。也可另抽出由模型實際呼叫的 logits-loss 檢查函式，對該函式注入 NaN。不要由測試 lambda 自行製造預期例外。\n\n建議順手把正文所列「未錯位目標」「PAD納入loss」等故障檢查與現有斷言區分為「待加入的測試」：目前 `expected_tests()` 有文件 ID 互斥與窗口等長檢查，卻未逐項斷言 `y[t]` 真是來源文件的下一詞元，也未注入 PAD 計數故障。這些描述作測試規格沒有錯，但不宜讓「包含部分可執行斷言」被讀成所列故障均已由程式捕獲。\n\n本章沒有虛構執行、訓練結果或已核對的延伸來源。完成上述最小修正後，現存問題不需要重寫模型或章稿。\n\nVERDICT: REVISE"
+}

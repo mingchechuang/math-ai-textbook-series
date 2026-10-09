@@ -1,0 +1,452 @@
+```markdown
+# 19 射線、交點與數值穩健性
+
+## 19.1 學習目標與先備知識
+
+本章建立 CPU 端的最小射線光追基礎，重點是**正確判定幾何相交**與**處理數值邊界**。讀者應已熟悉：
+- 向量內積、外積、正規化（Volume I 及本章之前內容）。
+- 3D 齊次座標與 TRS 矩陣。
+- 基本 Python 與 NumPy 運算。
+
+**核心技能目標：**
+1. 定義標準射線參數 $r(t) = o + t d$，$t \in \mathbb{R}$。
+2. 推導射線與球面、平面、三角形的解析解。
+3. 理解 $t$ 的符號與範圍對「命中」意義的影響（前方、後方、自相交）。
+4. 實作 $\epsilon$（epsilon）偏移以避免自相交誤判。
+
+**單位約定：** 長度單位為公尺（m），時間未涉及。所有座標為右手系。
+
+## 19.2 問題與直覺
+
+**為什麼射線光追需要數值穩健？**
+在光柵化中，我們「畫三角形」；在光追中，我們「發射射線找交點」。若射線與同一網格的面發生數值錯誤的交點，會導致：
+- **自相交（Self-Intersection）：** 射線從面 A 射線而出時，因浮點誤差立即又命中面 A，導致顏色錯誤（通常是黑色或閃爍）。
+- **相切（Tangency）：** 射線恰好擦過球面或三角形邊緣，二次方程誤差可能導致無解或雙解。
+- **平行（Parallel）：** 射線與平面平行時，分母趨近零，除法爆炸。
+
+**直覺模型：**
+想像你用雷射筆照向鏡子。如果雷射筆貼著鏡子表面發射，理論上它不該「打到」鏡子背面。但在電腦裡，$0.0000001$ 公尺的誤差可能讓雷射筆「穿牆」。我們需要一個「安全邊界」（$\epsilon$），告訴演算法：「剛起飛的那一段不算數」。
+
+## 19.3 數學與幾何推導
+
+### 19.3.1 射線參數化
+
+定義射線為：
+$$ \mathbf{r}(t) = \mathbf{o} + t \mathbf{d}, \quad t \in \mathbb{R} $$
+其中 $\mathbf{o} \in \mathbb{R}^3$ 為起點，$\mathbf{d} \in \mathbb{R}^3$ 為單位方向向量（$\|\mathbf{d}\|=1$），$t$ 為參數。
+- $t > 0$：射線前方的點。
+- $t < 0$：射線後方的點。
+- $t = 0$：起點 $\mathbf{o}$。
+
+**注意：** 若 $\mathbf{d}$ 未正規化，$t$ 的單位不再是公尺。本章假設 $\mathbf{d}$ 已正規化。
+
+### 19.3.2 射線與球面求交
+
+球心 $\mathbf{c}$，半徑 $R$。點 $\mathbf{p}$ 在球面上滿足：
+$$ \|\mathbf{p} - \mathbf{c}\|^2 = R^2 $$
+代入 $\mathbf{p} = \mathbf{o} + t\mathbf{d}$：
+$$ \| \mathbf{o} + t\mathbf{d} - \mathbf{c} \|^2 = R^2 $$
+令 $\mathbf{m} = \mathbf{o} - \mathbf{c}$，則：
+$$ \| \mathbf{m} + t\mathbf{d} \|^2 = R^2 $$
+$$ (\mathbf{m} + t\mathbf{d}) \cdot (\mathbf{m} + t\mathbf{d}) = R^2 $$
+$$ \mathbf{m}\cdot\mathbf{m} + 2t(\mathbf{m}\cdot\mathbf{d}) + t^2(\mathbf{d}\cdot\mathbf{d}) = R^2 $$
+因 $\|\mathbf{d}\|=1$，$\mathbf{d}\cdot\mathbf{d}=1$。整理為標準二次方程：
+$$ at^2 + bt + c = 0 $$
+其中：
+$$ a = 1 $$
+$$ b = 2 \mathbf{m}\cdot\mathbf{d} $$
+$$ c = \mathbf{m}\cdot\mathbf{m} - R^2 $$
+判別式 $\Delta = b^2 - 4ac$。
+- $\Delta < 0$：無交點（射線未觸及球）。
+- $\Delta = 0$：相切，1 個交點。
+- $\Delta > 0$：2 個交點 $t_{near}$ 和 $t_{far}$。
+$$ t = \frac{-b \pm \sqrt{\Delta}}{2a} $$
+**穩健性提示：** 當 $b$ 為負時，使用 $\frac{-b - \sqrt{\Delta}}{2a}$ 可能導致抵消誤差。更穩定的解法（Kahan 技巧）：
+$$ t_{near} = \frac{-b - \text{sign}(b)\sqrt{\Delta}}{2a} \quad \text{或更常用：} \quad t_1 = \frac{-b - \sqrt{\Delta}}{2a}, \quad t_2 = \frac{c}{a t_1} \quad (\text{若 } t_1 \neq 0) $$
+但對於教學，標準公式搭配足夠大的 $\epsilon$ 通常已夠。
+
+### 19.3.3 射線與平面求交
+
+平面由法線 $\mathbf{n}$ 與常數 $d$ 定義：$\mathbf{n}\cdot\mathbf{p} + d = 0$。
+$$ \mathbf{n}\cdot(\mathbf{o} + t\mathbf{d}) + d = 0 $$
+$$ t = -\frac{\mathbf{n}\cdot\mathbf{o} + d}{\mathbf{n}\cdot\mathbf{d}} $$
+**分母檢查：** 若 $\mathbf{n}\cdot\mathbf{d} \approx 0$，射線與平面平行。需設容差 $\tau_{parallel}$（例如 $10^{-6}$）。若 $|\mathbf{n}\cdot\mathbf{d}| < \tau_{parallel}$，視為無交點。
+
+### 19.3.4 射線與三角形求交
+
+三角形頂點 $\mathbf{v}_0, \mathbf{v}_1, \mathbf{v}_2$。
+**Möller–Trumbore 演算法**（基於向量外積，避免顯式平面方程）：
+1. 計算 $\mathbf{e}_1 = \mathbf{v}_1 - \mathbf{v}_0$，$\mathbf{e}_2 = \mathbf{v}_2 - \mathbf{v}_0$。
+2. 計算 $\mathbf{p} = \mathbf{d} \times \mathbf{e}_2$。
+3. 計算 $det = \mathbf{e}_1 \cdot \mathbf{p}$。
+   - 若 $|det| < \epsilon$，三角形退化或射線平行，返回無交點。
+   - $det$ 的符號決定射線朝向面之正面或背面。若需雙面命中，繼續；若僅正面，檢查符號。
+4. 計算 $invDet = 1.0 / det$。
+5. 計算 $\mathbf{t} = \mathbf{o} - \mathbf{v}_0$。
+6. 計算重心座標參數：
+   $$ u = \text{sign}(det) \cdot (\mathbf{t} \cdot \mathbf{p}) \cdot invDet $$
+   $$ \mathbf{q} = \mathbf{t} \times \mathbf{e}_1 $$
+   $$ v = (\mathbf{d} \cdot \mathbf{q}) \cdot invDet $$
+   $$ t = (\mathbf{e}_2 \cdot \mathbf{q}) \cdot invDet $$
+7. 檢查條件：
+   - $u \ge 0, v \ge 0, u + v \le 1$：在三角形內。
+   - $t > \epsilon$：在射線前方。
+
+### 19.3.5 $\epsilon$ 的作用
+
+在光追中，當射線從交點 $\mathbf{p}$ 沿法線 $\mathbf{n}$ 或反射方向 $\mathbf{r}$ 射出發新射線時，新射線的起點應設為：
+$$ \mathbf{o}_{new} = \mathbf{p} + \epsilon \mathbf{n} $$
+其中 $\epsilon$ 是一個小正數（例如 $10^{-4}$ m 或依場景尺度調整）。這確保新射線不會立即與產生該交點的同一幾何體相交。
+
+## 19.4 逐步手算例題
+
+### 例題 19.1：射線與球面（相切與穿越）
+
+**場景：**
+- 球心 $\mathbf{c} = (0, 0, 0)$，半徑 $R = 1$。
+- 射線起點 $\mathbf{o} = (0, 0, -5)$。
+- 射線方向 $\mathbf{d} = (0, 0, 1)$。
+
+**計算：**
+$\mathbf{m} = \mathbf{o} - \mathbf{c} = (0, 0, -5)$。
+$a = 1$。
+$b = 2 \mathbf{m}\cdot\mathbf{d} = 2 (0\cdot0 + 0\cdot0 + (-5)\cdot1) = -10$。
+$c = \mathbf{m}\cdot\mathbf{m} - R^2 = (0+0+25) - 1 = 24$。
+$\Delta = (-10)^2 - 4(1)(24) = 100 - 96 = 4$。
+$\sqrt{\Delta} = 2$。
+$t = \frac{10 \pm 2}{2}$。
+$t_1 = \frac{10-2}{2} = 4$。
+$t_2 = \frac{10+2}{2} = 6$。
+**結果：** 兩個交點。$t=4$ 為近點（進入球），$t=6$ 為遠點（離開球）。交點座標：
+$\mathbf{p}_1 = (0,0,-5) + 4(0,0,1) = (0,0,-1)$。
+$\mathbf{p}_2 = (0,0,-5) + 6(0,0,1) = (0,0,1)$。
+
+**變體：相切**
+若 $\mathbf{o} = (1, 0, 0)$，$\mathbf{d} = (0, 1, 0)$。
+$\mathbf{m} = (1, 0, 0)$。
+$b = 2(1\cdot0 + 0\cdot1 + 0\cdot0) = 0$。
+$c = 1 - 1 = 0$。
+$\Delta = 0$。
+$t = 0$。
+交點在 $t=0$，即起點。這表示起點在球面上。若起點在球內或外但相切，邏輯相同。
+
+### 例題 19.2：射線與三角形（Möller–Trumbore）
+
+**場景：**
+- 三角形頂點：$\mathbf{v}_0 = (0,0,0)$, $\mathbf{v}_1 = (1,0,0)$, $\mathbf{v}_2 = (0,1,0)$。
+- 射線起點 $\mathbf{o} = (0.2, 0.2, -1)$。
+- 射線方向 $\mathbf{d} = (0, 0, 1)$。
+
+**計算：**
+$\mathbf{e}_1 = (1, 0, 0)$。
+$\mathbf{e}_2 = (0, 1, 0)$。
+$\mathbf{p} = \mathbf{d} \times \mathbf{e}_2 = (0,0,1) \times (0,1,0) = (-1, 0, 0)$。
+$det = \mathbf{e}_1 \cdot \mathbf{p} = (1,0,0)\cdot(-1,0,0) = -1$。
+$invDet = -1$。
+$\mathbf{t} = \mathbf{o} - \mathbf{v}_0 = (0.2, 0.2, -1)$。
+$u = \text{sign}(-1) \cdot (\mathbf{t}\cdot\mathbf{p}) \cdot invDet = (-1) \cdot ((0.2)(-1) + 0 + 0) \cdot (-1) = (-1)(-0.2)(-1) = -0.2$。
+等等，手算容易出錯，重新檢查公式：
+$u = (\mathbf{t} \cdot \mathbf{p}) / det$ （若不使用 sign 版本，直接除）
+$\mathbf{t}\cdot\mathbf{p} = -0.2$。
+$u = -0.2 / -1 = 0.2$。
+$\mathbf{q} = \mathbf{t} \times \mathbf{e}_1 = (0.2, 0.2, -1) \times (1, 0, 0) = (0, 0, 0.2)$。
+$v = (\mathbf{d} \cdot \mathbf{q}) / det = ((0,0,1)\cdot(0,0,0.2)) / -1 = 0.2 / -1 = -0.2$。
+這裡 $v$ 為負，表示交點不在三角形內？
+讓我們檢查幾何：射線打向 $(0.2, 0.2, 0)$。三角形是 $x\ge0, y\ge0, x+y\le1$。$(0.2, 0.2)$ 滿足 $x+y=0.4 \le 1$，且在第一象限。應該在內。
+錯誤在於 $v$ 的公式推導方向。
+標準實現中：
+$v = (\mathbf{d} \cdot \mathbf{q}) / det$ 是正確的嗎？
+回顧推導：
+$t_{ray} = (\mathbf{e}_2 \cdot \mathbf{q}) / det$
+$v = (\mathbf{d} \cdot \mathbf{q}) / det$
+$u = (\mathbf{t} \cdot \mathbf{p}) / det$
+若 $det < 0$，代表法線朝向與射線相反。
+在此例中，$\mathbf{n} = \mathbf{e}_1 \times \mathbf{e}_2 = (0,0,1)$（指向 +Z）。射線 $\mathbf{d}=(0,0,1)$ 指向 +Z。射線從 -Z 來，打向 +Z 面。射線方向與法線同向？不，射線從 -Z 來，法線朝 +Z，射線是「從背面打」還是「從正面打」？
+法線朝 +Z。觀察者在 +Z 看是正面。射線從 -Z 來，即從背面來。
+因此，$det$ 應該為負（如果我們定義正面為法線朝向）。
+$u = 0.2$。
+$v$：$\mathbf{d}\cdot\mathbf{q} = 0.2$。$det = -1$。$v = -0.2$。
+$u+v = 0$。
+條件 $u \ge 0, v \ge 0$ 失敗（$v$ 為負）。
+這意味著交點在三角形外？
+座標 $(0.2, 0.2)$。
+三角形頂點 $(0,0), (1,0), (0,1)$。
+點 $(0.2, 0.2)$ 確實位於三角形內。
+哪裡出錯？
+$\mathbf{q} = \mathbf{t} \times \mathbf{e}_1$。
+$\mathbf{t} = (0.2, 0.2, -1)$。
+$\mathbf{e}_1 = (1, 0, 0)$。
+$\mathbf{t} \times \mathbf{e}_1 = \begin{vmatrix} i & j & k \\ 0.2 & 0.2 & -1 \\ 1 & 0 & 0 \end{vmatrix} = i(0) - j(1) + k(-0.2) = (0, -1, -0.2)$。
+我之前算錯 $\mathbf{q}$ 了。
+$\mathbf{q} = (0, -1, -0.2)$。
+$v = (\mathbf{d} \cdot \mathbf{q}) / det = (0\cdot0 + 0\cdot(-1) + 1\cdot(-0.2)) / -1 = -0.2 / -1 = 0.2$。
+現在 $u=0.2, v=0.2$。
+$u \ge 0, v \ge 0, u+v = 0.4 \le 1$。條件滿足。
+$t_{ray} = (\mathbf{e}_2 \cdot \mathbf{q}) / det = ((0,1,0)\cdot(0,-1,-0.2)) / -1 = -1 / -1 = 1$。
+$1 > \epsilon$。
+**結果：** 命中，$t=1$，交點 $(0.2, 0.2, 0)$。
+
+## 19.5 實作與程式
+
+以下程式提供一個最小化的 CPU Ray Caster，包含球體和三角形求交，並演示 $\epsilon$ 的作用。
+
+```python
+import numpy as np
+from typing import Optional, Tuple
+
+class Ray:
+    def __init__(self, origin: np.ndarray, direction: np.ndarray):
+        self.origin = origin
+        # 正規化方向
+        self.direction = direction / np.linalg.norm(direction)
+    
+    def at(self, t: float) -> np.ndarray:
+        return self.origin + t * self.direction
+
+class Sphere:
+    def __init__(self, center: np.ndarray, radius: float):
+        self.center = center
+        self.radius = radius
+
+class Triangle:
+    def __init__(self, v0: np.ndarray, v1: np.ndarray, v2: np.ndarray):
+        self.v0 = v0
+        self.v1 = v1
+        self.v2 = v2
+
+def intersect_sphere(ray: Ray, sphere: Sphere, epsilon: float = 1e-4) -> Optional[float]:
+    """
+    返回最小的正 t 值，若無交點或交點在後方則返回 None。
+    """
+    m = ray.origin - sphere.center
+    a = np.dot(ray.direction, ray.direction)  # 通常為 1
+    b = 2.0 * np.dot(m, ray.direction)
+    c = np.dot(m, m) - sphere.radius**2
+    
+    delta = b*b - 4*a*c
+    if delta < 0:
+        return None
+    
+    sqrt_delta = np.sqrt(delta)
+    
+    # 計算兩個根
+    # 使用穩定公式避免抵消
+    if b > 0:
+        t1 = (-b - sqrt_delta) / (2 * a)
+    else:
+        t1 = (-b + sqrt_delta) / (2 * a)
+    
+    # 檢查 t1 是否有效
+    if t1 > epsilon:
+        return t1
+    
+    # 如果 t1 無效，檢查 t2
+    t2 = c / (a * t1) if t1 != 0 else 0.0
+    if t2 > epsilon:
+        return t2
+        
+    return None
+
+def intersect_triangle(ray: Ray, tri: Triangle, epsilon: float = 1e-4) -> Tuple[Optional[float], Optional[Tuple[float, float, float]]]:
+    """
+    返回 (t, (u, v, w)) 或 (None, None)。
+    u, v, w 為重心座標。
+    """
+    e1 = tri.v1 - tri.v0
+    e2 = tri.v2 - tri.v0
+    
+    p = np.cross(ray.direction, e2)
+    det = np.dot(e1, p)
+    
+    # 平行或退化
+    if abs(det) < 1e-8:
+        return None, None
+    
+    inv_det = 1.0 / det
+    t = ray.origin - tri.v0
+    
+    u = np.dot(t, p) * inv_det
+    
+    q = np.cross(t, e1)
+    v = np.dot(ray.direction, q) * inv_det
+    
+    # 檢查是否在三角形內
+    if u < -epsilon or v < -epsilon or (u + v) > 1.0 + epsilon:
+        return None, None
+    
+    t_ray = np.dot(e2, q) * inv_det
+    
+    # 檢查是否在射線前方
+    if t_ray > epsilon:
+        w = 1.0 - u - v
+        return t_ray, (u, v, w)
+    
+    return None, None
+
+def demo_epsilon():
+    # 1. 射線與球：從球表面發出
+    center = np.array([0.0, 0.0, 0.0])
+    radius = 1.0
+    sphere = Sphere(center, radius)
+    
+    # 起點在球北極 (0, 1, 0)，方向朝下 (0, -1, 0)
+    # 理論上射線應該進入球體內部，但在表面發射時，
+    # 若不設 epsilon，t=0 會被視為命中。
+    origin = np.array([0.0, 1.0, 0.0])
+    direction = np.array([0.0, -1.0, 0.0])
+    ray = Ray(origin, direction)
+    
+    # 無 epsilon (模擬標準求根)
+    t_no_eps = intersect_sphere(ray, sphere, epsilon=0.0)
+    # 有 epsilon
+    t_with_eps = intersect_sphere(ray, sphere, epsilon=1e-4)
+    
+    print(f"Sphere intersection from surface:")
+    print(f"  t (no eps): {t_no_eps}")
+    print(f"  t (with eps): {t_with_eps}")
+    # 預期：no eps 可能返回極小正數或 0（取決於浮點誤差），with eps 返回一個較大的 t（進入球體内部的深度）
+    
+    # 2. 射線與三角形：自相交測試
+    v0 = np.array([0.0, 0.0, 0.0])
+    v1 = np.array([1.0, 0.0, 0.0])
+    v2 = np.array([0.0, 1.0, 0.0])
+    tri = Triangle(v0, v1, v2)
+    
+    # 從三角形中心 (0.33, 0.33, 0) 沿法線 (0,0,1) 發射
+    origin = np.array([0.33, 0.33, 0.0])
+    direction = np.array([0.0, 0.0, 1.0])
+    ray = Ray(origin, direction)
+    
+    t_self = intersect_triangle(ray, tri, epsilon=1e-4)
+    print(f"\nTriangle self-intersection check:")
+    print(f"  Hit t: {t_self[0]}")
+    # 預期：None，因為射線起點在三角形上且沿法線離開，epsilon 應排除 t≈0 的誤判
+
+if __name__ == "__main__":
+    demo_epsilon()
+```
+
+## 19.6 測試與預期結果
+
+執行上述 `demo_epsilon()`：
+
+1. **球體測試：**
+   - 起點 $(0,1,0)$，方向 $(0,-1,0)$。
+   - $m = (0,1,0)$。$b = 2(0\cdot0 + 1\cdot(-1) + 0\cdot0) = -2$。$c = 1 - 1 = 0$。
+   - $\Delta = 4$。$\sqrt{\Delta}=2$。
+   - $t_1 = (-(-2) - 2)/2 = 0$。
+   - $t_2 = 0/0$ (除零)。
+   - 在程式中，若 `epsilon=0`，`t1` 計算為 0。條件 `t1 > 0` 為 False。
+   - 接著計算 `t2`。若 `t1` 接近 0，`c/(a*t1)` 可能不穩定。
+   - 標準實現中，若 `t1` 無效，我們檢查 `t2`。
+   - 在此案例，射線從表面切入。實際命中點應在球體另一側（如果射線穿過）。
+   - 但此處方向是朝中心，會穿過球體到 $(0,-1,0)$。
+   - 預期 `t_with_eps` 應接近 2.0 (距離 $(0,-1,0)$)。
+   - 預期 `t_no_eps` 可能因浮點誤差返回一個極小值或 None。若返回極小值，表示誤判為「在表面命中」。
+
+2. **三角形測試：**
+   - 起點在三角形上，方向垂直向外。
+   - $det$ 非零。
+   - $t_{ray}$ 計算值接近 0。
+   - 條件 $t_{ray} > \epsilon$ ($10^{-4}$) 為 False。
+   - 預期輸出 `Hit t: None`。
+
+**關鍵驗證：**
+- 若移除 $\epsilon$，自相交測試會錯誤地報告命中。
+- 若 $\epsilon$ 過大（例如 1.0），射線會「跳過」靠近表面的真實交點。$\epsilon$ 應小於場景中物體間的最小間距，但大於浮點誤差。
+
+## 19.7 除錯與常見陷阱
+
+1. **浮點精度丟失：**
+   - 當計算 $t = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$ 時，若 $b$ 為負且 $\sqrt{\Delta} \approx -b$，則 $-b + \sqrt{\Delta}$ 會發生抵消。
+   - **解決：** 使用維基百科或 PBRT 推薦的穩定二次方程解法。
+
+2. **方向未正規化：**
+   - 若 $\mathbf{d}$ 未正規化，$t$ 的單位不再是公尺，$\epsilon$ 的意義也改變。
+   - **解決：** 在 `Ray` 初始化時強制正規化 $\mathbf{d}$。
+
+3. **$\epsilon$ 選值不當：**
+   - **太小：** 浮點誤差仍導致自相交。
+   - **太大：** 射線穿過薄物體（如紙片），漏掉交點。
+   - **建議：** 根據場景尺度選擇。對於 1m 尺度場景，$10^{-4}$ 到 $10^{-6}$ 通常安全。對於毫米級細節，需更小。
+
+4. **三角形繞序錯誤：**
+   - Möller–Trumbore 依賴 $det$ 的符號。若三角形頂點順序錯誤（順時針 vs 逆時針），法線方向反轉，導致 $det$ 符號改變，可能誤判前後。
+   - **解決：** 確保網格資料的三角形繞序一致（通常為逆時針為正面）。
+
+5. **平行平面：**
+   - $\mathbf{n}\cdot\mathbf{d} \approx 0$ 時，除法不穩定。
+   - **解決：** 在求交前檢查分母絕對值是否小於容差。
+
+## 19.8 養殖數位分身案例
+
+在養殖池數位分身中，射線光追可用於：
+1. **水下能見度模擬：** 模擬光線在水中的衰減（吸收與散射）。射線與虛擬「水體體積」求交，計算光強。
+2. **遮蔽分析：** 計算池底或魚群某點是否被網具、遮陽棚遮擋。發射射線向天空，若命中遮擋物，該點為陰影。
+3. **感測器視野模擬：** 模擬水下攝影機或光學感測器的視野（FOV）。每個像素發射射線，檢查是否命中魚群或雜質，生成模擬影像。
+
+**應用場景：**
+- 檢查魚群是否過於靠近池壁（發射射線從魚中心向池壁，若距離過小，警報）。
+- 模擬不同光線角度下的水體渾濁度對感測器讀數的影響。
+
+**注意：** 此處僅使用幾何相交，未涉及複雜的光學傳播（如多次散射），需搭配 Beer–Lambert 律等模型。
+
+## 19.9 習題
+
+1. **手算：** 給定射線 $\mathbf{o}=(1, -1, -1)$, $\mathbf{d}=(0, 0, 1)$，球心 $\mathbf{c}=(0,0,0)$, $R=1$。求交點 $t$ 值。
+2. **程式測試：** 修改 `intersect_sphere`，使其返回所有 $t > 0$ 的交點（不僅最小者）。測試射線穿過球體前後兩個交點。
+3. **反例／除錯：** 當射線起點在球體內時，`intersect_sphere` 的 $t$ 值如何解釋？若我們只想要「離開球體」的交點，應如何修改邏輯？
+4. **整合應用：** 設計一個函數 `shadow_test(p, light_pos, scene_objects)`，判斷點 $p$ 是否被 `scene_objects` 中的任何物體遮擋光源。使用本章的求交函數。
+
+## 19.10 習題解答
+
+1. **手算：**
+   $\mathbf{m} = (1, -1, -1)$。
+   $a = 1$。
+   $b = 2(1\cdot0 + (-1)\cdot0 + (-1)\cdot1) = -2$。
+   $c = (1+1+1) - 1 = 2$。
+   $\Delta = 4 - 8 = -4 < 0$。
+   **結果：** 無交點。射線未觸及球體。
+
+2. **程式測試：**
+   修改邏輯：收集所有 $t > \epsilon$ 的根。
+   若 $\Delta > 0$，計算 $t_1, t_2$。若兩者均大於 $\epsilon$，返回 `[t_1, t_2]`（排序後）。
+   測試：$\mathbf{o}=(0,0,-2), \mathbf{d}=(0,0,1)$。預期返回 $[1, 3]$（進入和離開）。
+
+3. **反例／除錯：**
+   若起點在球體內，$c < 0$。$\Delta > 0$。一個 $t$ 為負（後方），一個 $t$ 為正（前方，離開點）。
+   若只想要「離開」交點，應返回最大的正 $t$。
+   修改：`return max(t for t in roots if t > epsilon)`。
+
+4. **整合應用：**
+   ```python
+   def shadow_test(p: np.ndarray, light_pos: np.ndarray, objects: list) -> bool:
+       d = light_pos - p
+       ray = Ray(p, d)
+       for obj in objects:
+           if isinstance(obj, Sphere):
+               t = intersect_sphere(ray, obj, epsilon=1e-4)
+               if t is not None and t < np.linalg.norm(d):
+                   return True
+           elif isinstance(obj, Triangle):
+               t, bary = intersect_triangle(ray, obj, epsilon=1e-4)
+               if t is not None and t < np.linalg.norm(d):
+                   return True
+       return False
+   ```
+   **注意：** 需確保 $p$ 不在任何物體表面，否則需額外 $\epsilon$ 處理。
+
+## 19.11 本章小結
+
+- 射線參數化 $o + td$ 是光追的核心。
+- 二次方程解出球體交點，注意判別式與數值穩定。
+- Möller–Trumbore 算法是三角形求交的標準。
+- $\epsilon$ 偏移是避免自相交的關鍵，需依場景尺度調校。
+- 數值穩健性涉及容差、正規化與避免浮點抵消。
+
+## 19.12 參考來源
+
+1. G1: PBRT 4: Transformations.
+2. G4: Ray Tracing in One Weekend.
+3. G7: NumPy Linear Algebra Reference.
+```

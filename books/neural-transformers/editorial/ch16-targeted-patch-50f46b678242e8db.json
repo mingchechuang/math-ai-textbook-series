@@ -1,0 +1,11 @@
+{
+  "key": "50f46b678242e8db7762993e0cb1347d7d4c35e6f209751ce46f073e7cd2c5da",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 548,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n- **參數數量**：一般情況含偏置共 `3D^2 + 3D + D·D_out + D_out` 個參數；當 `D_out = D` 時，化為 `4(D^2 + D)`。在總投影寬度固定為 `D` 時，改變頭數 `H` 本身不改變參數總數。\n<<<NEW>>>\n- **參數數量**：上述標準結構預設每頭 value 寬度 `dv=dh`，含偏置共 `3D^2 + 3D + D·D_out + D_out` 個參數；當 `D_out = D` 時，化為 `4(D^2 + D)`。在總投影寬度固定為 `D` 時，改變頭數 `H` 本身不改變參數總數。若使用程式提供的 `dv≠dh`，令 value 總寬度為 `H·dv`，參數數量則是 `2D^2 + D(H·dv) + (H·dv)D_out + 2D + H·dv + D_out`，不能沿用前式。\n<<<END>>>"
+}

@@ -1,0 +1,658 @@
+# 第20章 下一詞元訓練與合成日誌資料
+
+## 學習目標與先備知識
+
+本章把下一詞元預測接到一套可檢查的訓練流程：建立合成日誌、按文件切分資料、用訓練文件建立詞彙表、建立錯一位的輸入與目標、遮罩PAD、訓練小型CPU decoder-only Transformer，並以保留資料評估。
+
+完成本章後，你應能：
+
+- 說明輸入與目標錯位一格的含義。
+- 分辨文件、窗口、詞元與有效監督位置。
+- 先按文件或群組切分，再建詞彙表及切窗，避免重疊內容洩漏。
+- 寫清logits、targets、遮罩與loss的shape、reduction軸及平均方式。
+- 用有效目標詞元總數計算平均NLL與困惑度。
+- 實作並檢查小型因果Transformer的合成資料訓練流程。
+
+先備知識為矩陣乘法、softmax交叉熵、embedding、LayerNorm與因果遮罩。本章程式使用標準庫與NumPy，不載入前章模組、不下載資料或權重。程式未在本章執行，所有測試結果均標示為預期，不代表已訓練或已驗證。
+
+## 問題與直覺
+
+給定詞元序列$(x_0,x_1,\ldots,x_{L-1})$，下一詞元訓練使用：
+
+$$
+\text{輸入}=(x_0,\ldots,x_{L-2}),\qquad
+\text{目標}=(x_1,\ldots,x_{L-1}).
+$$
+
+在輸入位置$t$，模型預測$x_{t+1}$。最後一個輸入位置沒有序列內的下一個詞元，因此每份長度為$L$的文件產生$L-1$個目標位置，而不是$L$個。
+
+這個錯位涉及幾個必須分清的邊界：
+
+1. **文件邊界**：不把一份文件末尾接到另一份文件開頭，製造不存在的相鄰詞元對。
+2. **窗口邊界**：長文件可在文件內切成窗口；同一文件的窗口必須留在同一資料集合。
+3. **填充邊界**：PAD只用來讓批次長度一致，不是模型應預測的目標。
+4. **平均邊界**：不同批次應按有效目標詞元數加權，不是等權平均每批的平均loss。
+
+資料處理順序是：生成文件與其group、time等標記；按文件、群組或時間切分train、valid、test；只用train文件建立詞彙表；再各自切窗與批次化。先切窗再隨機拆分，會讓重疊窗口把近乎相同的內容放進train與test，測試不再代表未見文件。
+
+本章日誌是人工設計的合成文字，例如群組、時段、槽別與狀態標記。它們不是現場量測、操作建議或安全閾值。合成資料可用來檢查管線，不足以證明模型理解真實養殖資料，也不可用作設備控制依據。
+
+## 定義、定理與推導
+
+### 目標函數與張量形狀
+
+自回歸模型將文件機率分解為：
+
+$$
+p(x_0,\ldots,x_{L-1})
+=\prod_{t=0}^{L-1}p(x_t\mid x_0,\ldots,x_{t-1}).
+$$
+
+若詞彙大小為$V$、批次大小為$B$、輸入長度為$T$，模型logits的shape為$(B,T,V)$，目標及有效詞元遮罩的shape為$(B,T)$。交叉熵沿最後的詞彙軸$V$計算；之後沿批次軸$B$及時間軸$T$加總有效位置，再除以有效目標詞元總數。
+
+令$z_{b,t,v}$為logit，$y_{b,t}$為正確目標，單一位置的負對數似然為：
+
+$$
+\ell_{b,t}
+=\log\sum_{v=0}^{V-1}\exp(z_{b,t,v})-z_{b,t,y_{b,t}}.
+$$
+
+穩定計算時令$m=\max_v z_{b,t,v}$，則：
+
+$$
+\ell_{b,t}
+=\log\sum_v\exp(z_{b,t,v}-m)+m-z_{b,t,y_{b,t}}.
+$$
+
+令$a_{b,t}\in\{0,1\}$代表目標是否有效，則詞元平均loss為：
+
+$$
+\mathcal L
+=\frac{\sum_{b=0}^{B-1}\sum_{t=0}^{T-1}a_{b,t}\ell_{b,t}}
+{\sum_{b=0}^{B-1}\sum_{t=0}^{T-1}a_{b,t}}.
+$$
+
+分母為零時平均沒有定義，程式應拒絕計算。不能將短序列與長序列先各自平均，再無權重地平均序列loss；那是不同的序列加權目標。
+
+### PAD、UNK與困惑度
+
+PAD是補齊標記，不能與EOS混為一談。EOS屬於文件內容，可成為模型預測目標；PAD只供批次對齊。padding目標須在loss分子與分母都排除。
+
+詞彙表只由訓練文件建立，另外保留PAD及UNK。未在訓練詞彙表中的詞元映射為UNK。用valid或test資料擴充詞彙表違反本章的資料契約，即使沒有直接洩漏標籤，也會讓測試分布參與訓練流程。
+
+令測試集合有效目標的總NLL為$S$，有效詞元數為$N>0$，則困惑度為：
+
+$$
+\mathrm{PPL}=\exp(S/N).
+$$
+
+此處使用自然對數，NLL單位為nats。必須先加總所有有效token的NLL及計數，再相除；不能把不同token數批次的困惑度等權平均。$N=0$時PPL未定義。困惑度描述指定tokenization及測試分布下的預測不確定性，不等同流暢度、正確性或安全性。
+
+### 小命題：錯位一格涵蓋全部相鄰預測對
+
+**命題。** 對詞元序列$(x_0,\ldots,x_{L-1})$，令輸入為$(x_0,\ldots,x_{L-2})$、目標為$(x_1,\ldots,x_{L-1})$。此構造恰好涵蓋原序列所有一步相鄰預測對，各一次。
+
+**證明。** 輸入位置$t$是$x_t$，同位置目標是$x_{t+1}$，因此形成相鄰對$(x_t,x_{t+1})$。索引$t$依序取$0,\ldots,L-2$，產生$(x_0,x_1),\ldots,(x_{L-2},x_{L-1})$。每個相鄰對的左側索引唯一決定$t$，故不重複；原序列每個一步相鄰對的左側索引都在此範圍內，故不遺漏。證畢。
+
+這個命題只保證標籤構造正確，不代表模型會泛化或理解語義。
+
+### 因果遮罩與Transformer區塊
+
+本章使用單頭簡化decoder-only Transformer。輸入embedding後加上可訓練位置embedding，經pre-norm自注意力與pre-norm前饋網路，最後線性投影到詞彙表。張量形狀如下：
+
+- token IDs：$(B,T)$；
+- embedding與hidden state：$(B,T,D)$；
+- 單頭$Q,K,V$：$(B,T,D)$；
+- scores：$(B,T,T)$，softmax沿最後的key軸；
+- logits：$(B,T,V)$。
+
+位置$t$只可注意位置$s\le t$。布林遮罩在本章定義為True=允許注意。即使PAD位置不納入loss，因果遮罩與loss遮罩仍是不同機制；通用批次程式還須另處理padding key與輸出策略。
+
+## 逐步手算例題
+
+### 例一：錯位與窗口
+
+文件詞元為：
+
+$$
+[\text{BOS},\ \text{槽A},\ \text{狀態平穩},\ \text{EOS}].
+$$
+
+移除輸入最後一項、移除目標第一項：
+
+| 位置$t$ | 輸入 | 目標 |
+|---:|---|---|
+| 0 | BOS | 槽A |
+| 1 | 槽A | 狀態平穩 |
+| 2 | 狀態平穩 | EOS |
+
+逐步核對：
+
+1. 原長度$L=4$。
+2. 輸入長度$L-1=3$。
+3. 目標長度同樣為3。
+4. 有效目標數為3，不是4。
+5. 若文件太長而需切窗，只能在此文件內處理，不得接上另一文件的第一個詞元。
+
+### 例二：PAD遮罩下的平均與困惑度
+
+三個位置中前兩個有效，最後一個是PAD。假設正確類別機率分別為$1/2$、$1/4$；PAD位置即使有loss也應遮掉。
+
+1. 第一個有效位置NLL為$\ln2$。
+2. 第二個有效位置NLL為$\ln4=2\ln2$。
+3. 有效NLL總和為$3\ln2$。
+4. 有效詞元數為2，平均NLL是$3\ln2/2$ nats。
+5. PPL為$\exp(3\ln2/2)=2^{3/2}$。
+
+若只把PAD錯算進分母，loss會成為$(3\ln2)/3=\ln2$ nats，而不是正確的$3\ln2/2$。這是平均值被補齊長度扭曲的例子。
+
+## 實作與程式
+
+以下程式以NumPy實作單頭因果decoder-only Transformer，包含合成文件生成、群組切分、訓練詞彙表、文件內切窗、PAD批次、穩定logits loss、反向傳播、SGD訓練及保留集評估。它是教學用小型模型，不是生產級Transformer，亦未使用外部權重。程式未在本章執行，不能宣稱已訓練或已通過測試。
+
+有限logits下，loss直接使用logsumexp減去目標logit；softmax機率僅供梯度計算。非有限logits則明確拒絕。
+
+```python
+import numpy as np
+
+PAD = "<PAD>"
+UNK = "<UNK>"
+EOS = "<EOS>"
+
+
+def make_documents(n_groups=18, per_group=6, seed=17):
+    rng = np.random.default_rng(seed)
+    docs = []
+    for group in range(n_groups):
+        for time in range(per_group):
+            trend = ("平穩", "觀察")[int(rng.integers(0, 2))]
+            docs.append({
+                "id": f"g{group}_t{time}",
+                "group": group,
+                "time": time,
+                "tokens": [
+                    "日誌", f"群{group}", f"時段{time}",
+                    f"槽{group % 3}", trend, "記錄", EOS
+                ],
+            })
+    return docs
+
+
+def split_documents(docs):
+    train, valid, test = [], [], []
+    for doc in docs:
+        if doc["group"] < 12:
+            train.append(doc)
+        elif doc["group"] < 15:
+            valid.append(doc)
+        else:
+            test.append(doc)
+    return train, valid, test
+
+
+def build_vocab(train_docs):
+    words = sorted({
+        token for doc in train_docs for token in doc["tokens"]
+        if token not in (PAD, UNK)
+    })
+    vocab = {PAD: 0, UNK: 1}
+    vocab.update({word: i + 2 for i, word in enumerate(words)})
+    return vocab
+
+
+def make_windows(docs, vocab, window=16):
+    if window < 1:
+        raise ValueError("window 必須至少為 1")
+    examples = []
+    for doc in docs:
+        ids = [vocab.get(tok, vocab[UNK]) for tok in doc["tokens"]]
+        for start in range(0, len(ids) - 1, window):
+            chunk = ids[start:start + window + 1]
+            if len(chunk) >= 2:
+                examples.append({
+                    "doc_id": doc["id"],
+                    "x": chunk[:-1],
+                    "y": chunk[1:],
+                })
+    return examples
+
+
+def make_batch(examples, indices):
+    if len(indices) == 0:
+        raise ValueError("不可建立空批次")
+    rows = [examples[i] for i in indices]
+    width = max(len(row["x"]) for row in rows)
+    x = np.full((len(rows), width), 0, dtype=np.int64)
+    y = np.full((len(rows), width), 0, dtype=np.int64)
+    valid = np.zeros((len(rows), width), dtype=bool)
+    for b, row in enumerate(rows):
+        n = len(row["x"])
+        x[b, :n] = row["x"]
+        y[b, :n] = row["y"]
+        valid[b, :n] = True
+    return x, y, valid
+
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mu = x.mean(axis=-1, keepdims=True)
+    var = ((x - mu) ** 2).mean(axis=-1, keepdims=True)
+    inv = 1.0 / np.sqrt(var + eps)
+    xhat = (x - mu) * inv
+    return xhat * gamma + beta, (xhat, inv, gamma)
+
+
+def layer_norm_backward(dout, cache):
+    xhat, inv, gamma = cache
+    d = dout * gamma
+    dx = inv * (d - d.mean(axis=-1, keepdims=True)
+                - xhat * (d * xhat).mean(axis=-1, keepdims=True))
+    dgamma = (dout * xhat).sum(axis=(0, 1))
+    dbeta = dout.sum(axis=(0, 1))
+    return dx, dgamma, dbeta
+
+
+class TinyDecoder:
+    """單頭、pre-norm、因果decoder-only教學模型，NumPy CPU。"""
+
+    def __init__(self, vocab_size, max_len=32, d=16, ff=32, seed=23):
+        if d < 2 or ff < 1 or max_len < 1:
+            raise ValueError("模型維度與長度必須為正，且 d 至少為 2")
+        rng = np.random.default_rng(seed)
+        self.V, self.max_len, self.d, self.ff = vocab_size, max_len, d, ff
+
+        def weight(shape, fan):
+            return rng.normal(0.0, 1.0 / np.sqrt(fan), shape)
+
+        self.p = {
+            "E": rng.normal(0, 0.08, (vocab_size, d)),
+            "P": rng.normal(0, 0.03, (max_len, d)),
+            "Wq": weight((d, d), d), "Wk": weight((d, d), d),
+            "Wv": weight((d, d), d), "Wo": weight((d, d), d),
+            "g1": np.ones(d), "b1": np.zeros(d),
+            "W1": weight((d, ff), d), "b1f": np.zeros(ff),
+            "W2": weight((ff, d), ff), "b2f": np.zeros(d),
+            "g2": np.ones(d), "b2": np.zeros(d),
+            "Wout": weight((d, vocab_size), d),
+            "bout": np.zeros(vocab_size),
+        }
+
+    def forward(self, ids):
+        if ids.ndim != 2:
+            raise ValueError("token IDs 必須是 (B,T)")
+        B, T = ids.shape
+        if T > self.max_len:
+            raise ValueError("輸入長度超出模型位置表")
+        p = self.p
+        emb = p["E"][ids] + p["P"][None, :T, :]
+        n1, c1 = layer_norm(emb, p["g1"], p["b1"])
+        q, k, v = n1 @ p["Wq"], n1 @ p["Wk"], n1 @ p["Wv"]
+        scores = q @ k.transpose(0, 2, 1) / np.sqrt(self.d)
+        causal = np.tril(np.ones((T, T), dtype=bool))
+        if not causal.any(axis=-1).all():
+            raise ValueError("出現全遮罩query列")
+        scores = np.where(causal[None, :, :], scores, -np.inf)
+        scores -= scores.max(axis=-1, keepdims=True)
+        att = np.exp(scores)
+        att /= att.sum(axis=-1, keepdims=True)
+        ctx = att @ v
+        a = emb + ctx @ p["Wo"]
+
+        n2, c2 = layer_norm(a, p["g2"], p["b2"])
+        pre = n2 @ p["W1"] + p["b1f"]
+        u = np.sqrt(2.0 / np.pi) * (pre + 0.044715 * pre**3)
+        gelu = 0.5 * pre * (1.0 + np.tanh(u))
+        h = a + gelu @ p["W2"] + p["b2f"]
+        logits = h @ p["Wout"] + p["bout"]
+
+        cache = (ids, emb, n1, c1, q, k, v, att, ctx, a,
+                 n2, c2, pre, gelu, h)
+        return logits, cache
+
+    def loss_and_grads(self, ids, targets, valid):
+        if ids.ndim != 2 or targets.shape != ids.shape or valid.shape != ids.shape:
+            raise ValueError("ids、targets、valid 必須同為 (B,T)")
+        count = int(valid.sum())
+        if count == 0:
+            raise ValueError("批次沒有有效目標詞元")
+
+        logits, cache = self.forward(ids)
+        if not np.isfinite(logits).all():
+            raise ValueError("logits 含非有限值")
+        B, T, V = logits.shape
+        if np.any(targets[valid] < 0) or np.any(targets[valid] >= V):
+            raise ValueError("有效目標索引超出詞彙範圍")
+
+        m = logits.max(axis=-1, keepdims=True)
+        shifted = logits - m
+        lse = np.log(np.exp(shifted).sum(axis=-1)) + m[..., 0]
+        rows, cols = np.nonzero(valid)
+        nll = lse[rows, cols] - logits[rows, cols, targets[rows, cols]]
+        loss = float(nll.sum() / count)
+
+        probs = np.exp(shifted)
+        probs /= probs.sum(axis=-1, keepdims=True)
+        dz = probs
+        dz[rows, cols, targets[rows, cols]] -= 1.0
+        dz *= valid[..., None] / count
+
+        (ids, emb, n1, c1, q, k, v, att, ctx, a,
+         n2, c2, pre, gelu, h) = cache
+        p = self.p
+        g = {name: np.zeros_like(value) for name, value in p.items()}
+
+        g["Wout"] = h.reshape(-1, self.d).T @ dz.reshape(-1, V)
+        g["bout"] = dz.sum(axis=(0, 1))
+        dh = dz @ p["Wout"].T
+
+        # 前饋網路：先回傳至GELU輸出，再計算W2及其偏置梯度。
+        da = dh.copy()
+        g["W2"] = gelu.reshape(-1, self.ff).T @ dh.reshape(-1, self.d)
+        g["b2f"] = dh.sum(axis=(0, 1))
+        dgelu = dh @ p["W2"].T
+
+        tanh_u = np.tanh(np.sqrt(2.0 / np.pi)
+                         * (pre + 0.044715 * pre**3))
+        dgelu_dpre = 0.5 * (1.0 + tanh_u) + (
+            0.5 * pre * (1.0 - tanh_u**2)
+            * np.sqrt(2.0 / np.pi)
+            * (1.0 + 3.0 * 0.044715 * pre**2)
+        )
+        dpre = dgelu * dgelu_dpre
+
+        # W1 的shape為(D,ff)，偏置沿B、T加總。
+        g["W1"] = n2.reshape(-1, self.d).T @ dpre.reshape(-1, self.ff)
+        g["b1f"] = dpre.sum(axis=(0, 1))
+        dn2 = dpre @ p["W1"].T
+        dn2, g["g2"], g["b2"] = layer_norm_backward(dn2, c2)
+        da += dn2
+
+        # 注意力輸出投影與第一個殘差。
+        demb = da.copy()
+        dctx = da @ p["Wo"].T
+        g["Wo"] = ctx.reshape(-1, self.d).T @ da.reshape(-1, self.d)
+        datt = dctx @ v.transpose(0, 2, 1)
+        dv = att.transpose(0, 2, 1) @ dctx
+        ds = att * (datt - (datt * att).sum(axis=-1, keepdims=True))
+        causal = np.tril(np.ones((T, T), dtype=bool))
+        ds = np.where(causal[None, :, :], ds, 0.0)
+        dq = ds @ k / np.sqrt(self.d)
+        dk = ds.transpose(0, 2, 1) @ q / np.sqrt(self.d)
+        dn1 = dq @ p["Wq"].T + dk @ p["Wk"].T + dv @ p["Wv"].T
+        g["Wq"] = n1.reshape(-1, self.d).T @ dq.reshape(-1, self.d)
+        g["Wk"] = n1.reshape(-1, self.d).T @ dk.reshape(-1, self.d)
+        g["Wv"] = n1.reshape(-1, self.d).T @ dv.reshape(-1, self.d)
+        dn1, g["g1"], g["b1"] = layer_norm_backward(dn1, c1)
+        demb += dn1
+
+        np.add.at(g["E"], ids.reshape(-1), demb.reshape(-1, self.d))
+        g["P"][:T] = demb.sum(axis=0)
+        if not np.isfinite(loss) or any(
+            not np.isfinite(value).all() for value in g.values()
+        ):
+            raise FloatingPointError("loss或梯度含非有限值")
+        return loss, g
+
+    def step(self, grads, lr):
+        if not np.isfinite(lr) or lr <= 0:
+            raise ValueError("learning rate 必須為有限正數")
+        for name in self.p:
+            self.p[name] -= lr * grads[name]
+
+
+def batches(examples, batch_size, rng, shuffle):
+    if batch_size < 1:
+        raise ValueError("batch_size 必須至少為 1")
+    order = np.arange(len(examples))
+    if shuffle:
+        rng.shuffle(order)
+    for start in range(0, len(order), batch_size):
+        idx = order[start:start + batch_size]
+        yield make_batch(examples, idx)
+
+
+def evaluate(model, examples, batch_size=8):
+    if not examples:
+        raise ValueError("評估集合沒有樣本")
+    total_nll, total_tokens = 0.0, 0
+    for ids, targets, valid in batches(
+        examples, batch_size, np.random.default_rng(0), False
+    ):
+        loss, _ = model.loss_and_grads(ids, targets, valid)
+        n = int(valid.sum())
+        total_nll += loss * n
+        total_tokens += n
+    if total_tokens == 0:
+        raise ValueError("評估集合沒有有效目標")
+    return total_nll / total_tokens, total_tokens
+
+
+def train_demo(epochs=4):
+    docs = make_documents()
+    train_docs, valid_docs, test_docs = split_documents(docs)
+    vocab = build_vocab(train_docs)
+    train = make_windows(train_docs, vocab)
+    valid = make_windows(valid_docs, vocab)
+    test = make_windows(test_docs, vocab)
+
+    model = TinyDecoder(len(vocab), max_len=16)
+    rng = np.random.default_rng(41)
+    history = []
+    for epoch in range(epochs):
+        for ids, targets, mask in batches(train, 8, rng, True):
+            _, grads = model.loss_and_grads(ids, targets, mask)
+            model.step(grads, lr=0.01)
+        val_nll, val_count = evaluate(model, valid)
+        history.append((epoch + 1, val_nll, val_count))
+
+    test_nll, test_count = evaluate(model, test)
+    return {
+        "history": history,
+        "test_nll": test_nll,
+        "test_tokens": test_count,
+        "test_perplexity": float(np.exp(test_nll)),
+    }
+
+
+def expect_value_error(function, message_part):
+    caught = False
+    try:
+        function()
+    except ValueError as exc:
+        caught = message_part in str(exc)
+    assert caught, f"預期收到包含 {message_part!r} 的 ValueError"
+
+
+def expected_tests():
+    """契約測試；本章未執行，結果只列預期。"""
+    docs = make_documents(n_groups=18, per_group=2, seed=3)
+    train_docs, valid_docs, test_docs = split_documents(docs)
+    parts = (train_docs, valid_docs, test_docs)
+    id_sets = [{d["id"] for d in part} for part in parts]
+    assert id_sets[0].isdisjoint(id_sets[1])
+    assert id_sets[0].isdisjoint(id_sets[2])
+    assert id_sets[1].isdisjoint(id_sets[2])
+
+    vocab = build_vocab(train_docs)
+    assert vocab.get("測試未見詞", vocab[UNK]) == vocab[UNK]
+    train_examples = make_windows(train_docs, vocab, window=3)
+    assert all(e["doc_id"] in id_sets[0] for e in train_examples)
+    assert all(len(e["x"]) == len(e["y"]) for e in train_examples)
+
+    model = TinyDecoder(len(vocab), max_len=16, d=4, ff=7, seed=2)
+    ids, targets, mask = make_batch(
+        train_examples, range(min(2, len(train_examples)))
+    )
+    loss, grads = model.loss_and_grads(ids, targets, mask)
+    assert np.isfinite(loss)
+    assert all(np.isfinite(g).all() for g in grads.values())
+
+    # FFN隱層寬度與模型寬度不同；兩組權重均應有非零梯度。
+    assert model.p["W1"].shape == (4, 7)
+    assert model.p["W2"].shape == (7, 4)
+    assert np.linalg.norm(grads["W1"]) > 0.0
+    assert np.linalg.norm(grads["b1f"]) > 0.0
+
+    expect_value_error(
+        lambda: model.loss_and_grads(ids, targets, np.zeros_like(mask)),
+        "沒有有效目標",
+    )
+    expect_value_error(
+        lambda: model.forward(np.zeros((2,), dtype=np.int64)),
+        "必須是 (B,T)",
+    )
+
+    # 有限但極端的目標logit差：穩定NLL應有限且恰為1000。
+    z = np.array([[0.0, -1000.0]])
+    m = z.max(axis=-1, keepdims=True)
+    stable_lse = np.log(np.exp(z - m).sum(axis=-1)) + m[:, 0]
+    extreme_nll = stable_lse[0] - z[0, 1]
+    assert np.isfinite(extreme_nll) and extreme_nll == 1000.0
+
+    bad_logits = np.array([[np.nan, 0.0]])
+    expect_value_error(
+        lambda: (_ for _ in ()).throw(
+            ValueError("logits 含非有限值")
+        ) if not np.isfinite(bad_logits).all() else None,
+        "非有限值",
+    )
+```
+
+前向中，$Q,K,V$ shape皆為$(B,T,D)$，scores為$(B,T,T)$，softmax沿最後的key軸。因果遮罩使用下三角矩陣，保證位置$t$不讀取$s>t$的token。反向傳播中，embedding查表可能有重複索引，故以`np.add.at`累加梯度。
+
+前饋網路的shape也值得逐項核對：$n2$與`W1`分別為$(B,T,D)$及$(D,ff)$；`pre`與`dpre`為$(B,T,ff)$；`W1`梯度為$(D,ff)$，由$n2^\top dpre$沿$B,T$聚合；傳回LayerNorm的梯度是$dpre W1^\top$，shape回到$(B,T,D)$。這裡`ff`可與$D$不同，程式測試特別採用不同維度，避免錯誤廣播被偶然掩蓋。
+
+程式中的每個批次loss與梯度都除以該批有效目標數。若把不同大小微批的梯度累積，應乘回各自有效詞元數、加總，再除以總有效詞元數。驗證NLL同理，以批次平均乘有效數還原總NLL後再除以總token數。
+
+`expected_tests()`包含文件互斥、UNK、窗口、空有效批次、錯誤輸入維度、有限極端logits、非有限值拒絕及FFN梯度shape與非零檢查。測試尚未執行；預期結果不是實際通過紀錄。
+
+### 訓練與評估的界線
+
+`train_demo()`以train文件更新參數、以valid文件記錄模型選擇資訊，最後在test文件回報評估。若根據test分數調整epoch、超參數或詞彙表，test就不再是未參與選擇的保留集。
+
+固定seed有助於重現資料生成與初始化，但不保證不同NumPy版本、硬體或浮點運算順序逐位一致。程式未檢查本機NumPy版本、CPU或dtype設定，也未宣稱任何實測耗時或分數。
+
+## 測試與預期結果
+
+以下列出正常、邊界及故障測試。程式包含部分可執行斷言；本章沒有執行它們，因此所有結果都是預期。
+
+### 正常測試
+
+1. 對長度$L$的文件，輸入與目標長度均為$L-1$；每個目標等於原文件下一個詞元。
+2. train、valid、test的文件ID應互斥；同一群組不得跨本章採用的群組切分。
+3. 窗口應保留來源文件ID，且只包含該文件的詞元。
+4. PAD位置不增加有效token數；重複token的embedding梯度應累加。
+5. 同一批有效位置整批與分批計算，還原總NLL後按總有效數求平均，預期在浮點容差內一致。
+6. 未見詞元編碼時，預期回傳訓練詞彙表中的UNK ID。
+7. 當$ff\ne D$時，前饋網路的梯度shape仍應與相應參數一致；`W1`與`b1f`梯度一般不應全為零。
+
+### 邊界測試
+
+- **空有效批次**：遮罩全False時預期拋出`ValueError`。
+- **極短文件**：長度小於2的文件沒有相鄰目標，預期產生零窗口。
+- **空文件**：不應產生窗口，也不可進入空批次。
+- **窗口長度非法**：`window < 1`預期拒絕。
+- **批次大小一**：輸入shape仍是$(1,T)$，不得用`squeeze`移除batch軸。
+- **有限極端logits**：目標logit比最大值低1000時，logits版穩定NLL應有限。
+- **全遮罩query列**：本程式的因果下三角遮罩每列至少允許自身注意；若改成額外遮罩而出現全遮罩列，必須拒絕或明確定義輸出，不能讓NaN流入。
+
+### 故障測試
+
+- **未錯位目標**：若令目標等於輸入，位移斷言應失敗。
+- **先切窗再拆分**：若同一文件的窗口落入不同集合，文件ID互斥檢查應失敗。
+- **PAD納入loss**：把padding目標加入分子或分母，token計數測試應發現錯誤。
+- **跨文件串接**：把文件末尾接到下一文件開頭會生成虛假相鄰目標，文件來源追蹤檢查應失敗。
+- **非有限logits**：NaN或無限值應在loss計算前拒絕，不以epsilon或忽略錯誤掩蓋。
+- **測試詞彙表洩漏**：把test專有詞加入詞彙表應違反「只由train擬合」契約。
+- **FFN梯度錯誤**：若把$dpre$直接送入LayerNorm反傳，當$ff\ne D$時shape測試應失敗；若漏算`W1`或`b1f`，非零梯度檢查應發現。
+- **重複除數**：若梯度已除以批次有效數，累積後又除以總數，更新會被額外縮小；若loss完全不除，更新尺度則隨批次長度變動。
+
+## 反例與常見陷阱
+
+**低訓練loss不是能力證據。** 合成模板可讓模型記住固定詞序。訓練loss低只表示模型適配訓練目標；對未見資料的表現要用未參與詞彙表擬合及模型選擇的保留集合檢查。即使保留測試表現良好，也只支持對該合成分布的有限結論。
+
+**重疊窗口先切分會洩漏。** 相鄰窗口共享多數詞元，隨機把它們分到train與test會使測試窗口近似訓練副本。最小修正是先按文件、群組或時間切分，再分別切窗。
+
+**EOS不等於PAD。** EOS是文件內容，能成為預測目標；PAD只補齊批次。若兩者共用ID，模型無法分辨文件結束與填充。若忽略EOS，模型也失去明確的文件終止監督訊號。
+
+**目標錯位及未來洩漏。** 若輸入與目標同位置，模型可能複製當前詞元；若注意力看見未來目標，loss下降也可能只是作弊。應檢查人工小例、因果遮罩索引及「改動未來token不影響過去輸出」的性質。
+
+**平均方式不明。** 必須寫出reduction軸、sum或mean與遮罩。詞元加權任務的總平均是有效NLL總和除以有效token總數；不能將不同token數批次的平均loss直接等權平均。
+
+**穩定softmax仍須穩定loss。** 減去最大logit可防止指數溢位，但有限精度下小機率仍可能下溢成零。若再對該機率取log，會得到無限loss。loss應直接由logits的logsumexp公式計算，非有限logits則拒絕。
+
+**有限梯度不等於正確梯度。** 錯誤反傳可能產生shape可容納但數值錯誤的梯度，也可能產生全零梯度，而這些值仍是有限的。除shape及有限值檢查外，關鍵參數還應以有限差分或小例手算驗證。
+
+## AI、幾何與養殖案例
+
+合成日誌中的「群4、時段2、槽1、觀察」只代表生成器依規則組成一行文字，不代表真有量測或現場狀況。詞元經embedding成向量，再經注意力、前饋網路與輸出投影形成logits；交叉熵更新參數，使目標詞元相對其他詞元取得較高分數。表示空間距離本身不是因果證據，模型輸出也不是現場觀測。
+
+切分方式應對應評估問題：
+
+- **新文件泛化**：以文件ID或來源群組互斥切分。
+- **新群組泛化**：將完整群組留出，檢查模型是否只記住群組標記。
+- **較晚時間泛化**：用較早資料訓練、較晚資料驗證與測試。
+- **模板偏移**：保留未見模板或詞元，檢查UNK處理及資料分布變化。
+
+這些評估回答不同問題，應分開報告。測試專有槽別被映射成UNK，只能說明管線遵守詞彙表邊界，不能說模型理解該新槽別。真實日誌另涉及資料權限、匿名化、量測品質與專業審查；本章未提供真實資料或現場判斷流程。
+
+生成模型可能產生錯誤或不存在的記錄。下游系統應把輸出視為待核對內容，不得視為資料庫事實或操作命令。本章不控制泵浦、曝氣、投餌、加藥、財務或任何外部設備。
+
+## 習題
+
+### 一、手算題
+
+1. 詞元序列為`[A, B, C, D, E]`，寫出輸入、目標及有效目標數。若窗口最多容納3個目標詞元，寫出不遺漏相鄰目標對的窗口，並說明能否跨文件補足。
+2. 三個目標位置的正確類別機率為$1/2$、$1/8$與PAD位置任意值，遮罩為$(1,1,0)$。求有效token平均NLL與PPL。若錯將PAD只計入分母，結果是多少？
+
+### 二、程式題
+
+3. 修改合成生成器，保留文件ID、group、time及四個文字欄位。先做文件級切分，再只用train建詞彙表，對未見詞映射UNK，最後逐split切窗。寫斷言檢查同一文件ID不跨split。
+4. 加入logits、loss及梯度的有限值檢查。設計同一批有效位置的整批與分批比較，還原總NLL及token數，比較詞元平均；另外以有限差分檢查`W1`的至少一個元素。
+
+### 三、反例題
+
+5. 某人先把長文件切成重疊窗口，再隨機把窗口分成train與test。給一個洩漏例子，說明為何測試結果可能樂觀，並提出最小修正。
+6. 某實作者說：「PAD位置也計算交叉熵，這樣平均比較穩定。」指出至少兩個問題，並寫出正確分子、分母。
+
+### 四、整合題
+
+7. 設計合成日誌的「新文件」與「較晚時間」兩種評估。交代切分單位、詞彙表資料範圍、窗口次序、loss與PPL分母，以及不能從合成結果推論的事項。
+8. 微批一有2個有效目標、平均loss為$L_1$；微批二有6個、平均loss為$L_2$。寫出合併平均，說明為何$(L_1+L_2)/2$一般錯誤，並說明梯度累積如何加權。
+
+## 習題解答
+
+### 一、手算題解答
+
+1. 輸入為`[A,B,C,D]`，目標為`[B,C,D,E]`，共4個有效目標。第一窗輸入`[A,B,C]`、目標`[B,C,D]`；第二窗輸入`[D]`、目標`[E]`。第二窗從前一窗最後一個目標開始，保留相鄰對$(D,E)$。不得跨文件補足。若採其他切塊策略，必須明確定義上下文重置及邊界目標，不能默默漏掉或接續另一份文件。
+2. NLL分別為$\ln2$與$\ln8=3\ln2$。PAD遮罩為0，不進分子。正確平均為$4\ln2/2=2\ln2$ nats，PPL為4。若只把PAD計入分母，則為$(4\ln2)/3$ nats；PAD的loss若也納入分子，則變成依PAD預測機率而定的錯誤目標。
+
+### 二、程式題解答
+
+3. 為每份文件保留唯一ID以及group、time和四欄文字。先用文件ID或group分割，再只從train收集詞元建詞彙表；未知詞映射UNK。對每個集合逐文件切窗，並在窗口保留來源ID。以集合文件ID交集為空的斷言檢查無跨集合文件；若是時間評估，先依時間段切分而非隨機打散。
+4. 對logits、loss及每個梯度使用`np.isfinite(...).all()`；logits非有限時在softmax前拒絕。用相同有效位置先算整批NLL總和$S$及數量$N$；分成微批後以各自平均$L_i$乘有效數$n_i$還原總NLL。比較$S/N$與$\sum_i n_iL_i/\sum_i n_i$，容許浮點誤差。梯度也按微批有效數加權後除以總有效數。有限差分可取某一`W1[i,j]`，用小擾動$\epsilon$計算$(\mathcal L(W1+\epsilon)-\mathcal L(W1-\epsilon))/(2\epsilon)$，再與反向梯度同元素比較；計算時固定其他參數、資料與遮罩。
+
+### 三、反例題解答
+
+5. 一份長文件的窗口$w_1,w_2$共享大多數詞元；若$w_1$在train而$w_2$在test，模型已見過測試內容的大部分，測試NLL不代表未見文件。修正是先按整份文件、group或指定時間切分，再在每個集合內切窗並只用train建詞彙表。
+6. PAD不是目標；其loss會把模型推向預測填充符。把PAD納入分母會令loss依批次補齊長度改變。正確分子是$\sum_{b,t}a_{b,t}\ell_{b,t}$，分母是$\sum_{b,t}a_{b,t}$，且分母須大於零；全無效批次應拒絕。
+
+### 四、整合題解答
+
+7. 新文件評估以文件ID或來源group互斥切分；較晚時間評估以早期train、較晚valid、最晚test分段。先切分，再只用train建詞彙表，最後在各集合內逐文件切窗。平均NLL是有效目標總NLL除以有效目標總數，PPL是其指數。合成資料不能證明真實量測有效、現場因果關係、安全性或跨分布泛化。
+8. 合併平均為$(2L_1+6L_2)/8$。直接平均兩批loss會把2個目標與6個目標等權，除非有效數相同才正確。若$g_i$是各微批平均梯度，累積時用$(2g_1+6g_2)/8$；若累積未平均梯度總和，最後只除一次總有效數8。
+
+## 本章小結
+
+下一詞元訓練以同一文件錯位一格，令每個有效位置預測原序列的下一詞元。文件、群組或時間先切分，詞彙表只由train擬合，窗口再在各集合內逐文件建立，才能避免重疊內容洩漏。
+
+logits的shape為$(B,T,V)$，loss沿詞彙軸計算，再依有效token遮罩在$B,T$位置加總並除以有效目標數。PAD不參與loss；困惑度是有效token平均NLL的指數。有限logits仍可能令softmax的小機率下溢，故loss應用logits與logsumexp直接計算，非有限logits則明確拒絕。Transformer前反傳亦須逐層核對shape與參數梯度；有限但錯誤或全零的梯度仍可能通過有限值檢查。
+
+本章自足NumPy小型因果decoder-only Transformer提供CPU訓練介面與合成日誌流程，但程式未執行，沒有已訓練或已通過的結果。合成資料上的指標只能支持對指定生成規則的有限觀察，不能替代真實資料驗證或現場專業判斷。
+
+## 參考來源
+
+1. Vaswani et al., “Attention Is All You Need,” <https://arxiv.org/abs/1706.03762>。提供Transformer背景；本章程式為獨立教學實作，未宣稱逐項重現論文設定。
+2. NumPy broadcasting使用指南：<https://numpy.org/doc/stable/user/basics.broadcasting.html>。延伸入口，尚未逐條核對。
+3. PyTorch reproducibility說明：<https://docs.pytorch.org/docs/stable/notes/randomness.html>。延伸入口，尚未逐條核對。
+
+本章未執行程式、未安裝套件、未下載語料或權重；訓練、測試及數值結果均未實測。

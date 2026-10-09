@@ -1,0 +1,76 @@
+## 審稿報告
+
+**1. 數學與證明核對**
+*   **定義 26.1**：對稱均勻量化。尺度 $s = \max|x| / q_{max}$。
+*   **命題 26.1**：誤差界 $|x - \hat{x}| \le s/2$。
+    *   **證明檢查**：
+        *   $x_i/s \in [-q_{max}, q_{max}]$。
+        *   $\text{round}(x_i/s)$ 產生整數 $m_i$。
+        *   若 $x_i/s$ 在 $[-q_{max}, q_{max}]$ 內，$\text{round}$ 後的值不會超出此範圍（因為端點是整數，round會保持在端點或內部）。
+        *   Clip 是恆等映射。
+        *   $|x_i - s \cdot m_i| = s |x_i/s - m_i| \le s \cdot 0.5$。
+        *   **結論**：證明邏輯正確。
+*   **定義 26.2**：溫度化 softmax 與 KL。
+*   **命題 26.2**：梯度 $\frac{\partial \text{KL}}{\partial z_{s,j}} = \frac{q_j - p_j}{T}$。
+    *   **證明檢查**：
+        *   $\text{KL} = \sum p \log p - \sum p \log q$。
+        *   $\frac{\partial}{\partial z_j} (-\sum p_k \log q_k) = -\sum p_k \frac{1}{q_k} \frac{\partial q_k}{\partial z_j}$。
+        *   $\frac{\partial q_k}{\partial z_j} = \frac{1}{T} q_k (\delta_{kj} - q_j)$。
+        *   $-\sum p_k \frac{1}{T} (\delta_{kj} - q_j) = -\frac{1}{T} (p_j - q_j \sum p_k) = -\frac{1}{T} (p_j - q_j) = \frac{q_j - p_j}{T}$。
+        *   **結論**：公式正確。
+
+**2. 程式碼與實作核對**
+*   **Shape/Broadcast**：
+    *   `quantize_per_column`: `W` is `(Din, Dout)`. `max_abs` along `axis=0` is `(1, Dout)`. Correct.
+    *   `distill_kl_and_grad`: `z_t, z_s` are `(N, C)`. `logp, logq` are `(N, C)`. `term` is `(N, C)`. `kl_per_sample` is `(N,)`. `grad` is `(N, C)`. Correct.
+*   **Gradient Check**：
+    *   `manual_grads`: `dW = X.T @ dz`. `dz` includes `1/N`. So `dW` is correct for the averaged loss.
+    *   `fd_grad`: Central difference. Correct.
+*   **NaN Handling**：
+    *   `np.where(p > 0, p * (logp - logq), 0.0)`.
+    *   **關鍵檢查**：NumPy 的 `np.where` 是 eager evaluation。如果 `logp` 或 `logq` 是 `-inf`（例如直接對 softmax 結果取 log 且結果為 0），會產生 NaN。但這裡 `logp` 是透過 log-sum-exp 公式計算的，通常保持有限，除非輸入極端。
+    *   程式碼中明確檢查 `np.isfinite(logp)` 和 `logq`，並拋出錯誤。這比依賴 `np.where` 的副作用更安全，因為如果中間產生 NaN，`np.where` 仍會計算該分支（即使遮罩為 False），可能觸發警告或污染（雖然 NumPy 通常只選取遮罩為 True 的值，但計算仍發生）。
+    *   文檔說明：「`np.where` **不是**「先判斷再乘」... 若連中間運算都不得產生非有限值，須改以有效索引取值再相乘。」這段說明非常準確且專業，指出了 NumPy 的潛在陷阱。
+    *   `grad = (q - p) / (T * N)`。符合平均損失的梯度定義。
+*   **B1 題意與解答一致性**：
+    *   題目 B1：「把 `quantize_symmetric` 改成逐行（對 $W$ 沿第 1 軸 $D_{out}$ reduction）版本...」。
+    *   解答 B1：「逐行版本的 critical 行是 `max_abs = ... axis=1`...」。
+    *   定義 26.1 中：「反之，逐行量化才沿第 1 軸 reduction...」。
+    *   **一致性檢查**：
+        *   $W$ shape $(D_{in}, D_{out})$。
+        *   Axis 1 是 $D_{out}$。
+        *   Reduction along Axis 1 collapses $D_{out}$，留下 $D_{in}$。
+        *   Shape becomes $(D_{in}, 1)$。
+        *   這對應於「每一行 (Row)」有一個 scale。
+        *   因此稱之為「逐行量化」(Per-Row Quantization) 是正確的。
+        *   相比之下，Axis 0 reduction (collapse $D_{in}$) 會留下 $D_{out}$，Shape $(1, D_{out})$，這對應於「每一列/通道 (Column/Output Channel)」有一個 scale。文中稱為「逐通道量化」(Per-Channel/Column)。
+        *   術語使用一致且正確。
+
+**3. 手算與測試**
+*   **手算 26.1**：
+    *   $x=[-1.2, 0.4, 0.9, -0.3]$, $b=3, q_{max}=3$.
+    *   $s=1.2/3=0.4$.
+    *   $x/s = [-3, 1, 2.25, -0.75]$.
+    *   Round: $[-3, 1, 2, -1]$.
+    *   Dequant: $[-1.2, 0.4, 0.8, -0.4]$.
+    *   Error: $[0, 0, 0.1, 0.1]$. Max error $0.1 \le 0.2$. Correct.
+*   **手算 26.2**：
+    *   $z_t=[2,1,0], z_s=[0,1,2], T=2$.
+    *   $p \approx [0.506, 0.307, 0.186]$.
+    *   $q \approx [0.186, 0.307, 0.506]$.
+    *   Grad: $(q-p)/2 \approx [-0.16, 0, 0.16]$.
+    *   **直觀檢查**：
+        *   Index 0: $q < p$. Grad negative. Descent increases $z$. Correct.
+        *   Index 2: $q > p$. Grad positive. Descent decreases $z$. Correct.
+    *   **結論**：計算與直觀檢查正確。
+
+**4. 其他檢查**
+*   **資料切分**：明確指出校準集來自訓練/驗證集，非測試集。符合規範。
+*   **效率證據**：明確區分設計事實、量測結果、評估結果。無捏造 Benchmark。
+*   **格式**：公式、程式碼、章節結構符合規範。
+*   **字數**：約 5500 字，在合理範圍內（目標 4500，但內容充實）。
+
+**結論**：
+章節內容嚴謹，數學推導正確，程式碼實作穩健，特別是對 NumPy `np.where` 的 eager evaluation 特性的說明非常到位。B1 的術語（逐行 vs 逐通道）定義清晰且一致。無發現錯誤。
+
+VERDICT: APPROVE

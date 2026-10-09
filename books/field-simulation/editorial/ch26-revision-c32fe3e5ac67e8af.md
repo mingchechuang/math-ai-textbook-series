@@ -1,0 +1,460 @@
+# 第26章 能量泛函與變分梯度流
+
+## 學習目標與先備知識
+
+本章要處理一個在相場、材料、以及許多連續介質模型中反覆出現的問題：**當一個系統的物理被寫成自由能泛函的最小化問題時，如何推導出它的演化方程式？** 更精細地說，我們要能區分「系統在 L2 度量下最快的能量下降方向」與「系統在 H^{-1} 度量下最快的能量下降方向」——這兩種選擇給出不同的守恆性質與不同的數值實現。
+
+學完本章，你應該能夠：
+
+1. 對給定的自由能泛函 $F[\phi]$，計算**第一變分** $\delta F / \delta \phi$，並從邊界條件辨識何者為**自然邊界條件**（natural boundary condition），何者須另外施加。
+2. 定義**化學勢** $\mu := \delta F / \delta \phi$，並正確寫出本卷相場橋接約定下的 $\mu = \phi^3 - \phi - \kappa \Delta \phi$。
+3. 寫下 **L2 梯度流**（即 Allen–Cahn 型）與 **H^{-1} 梯度流**（即 Cahn–Hilliard 型），推導連續能量耗散率 $\mathrm{d}F/\mathrm{d}t \le 0$，並指出各自守恆與不守恆的量。
+4. 對離散版本，用**離散能量對有限差分梯度**做數值檢查，區分**連續耗散**、**半離散耗散**、**全離散（時間離散）能量行為**。
+5. 辨識常見錯誤：把非守恆與守恆方程搞混；用裁零（clipping）假造成能量下降；只用平滑圖就宣稱能量已下降。
+
+先備知識：第 01 章的場與單位、第 03 章的分部積分與散度定理、第 06 章的收斂與穩定性、第 24 章的自由能與序參量、第 25 章的 Poisson 與零空間。本章不重複這些內容，需要時明列所倚賴的前章結果。
+
+## 問題與直覺
+
+在很多物理問題裡，我們不是直接寫出「演化方程式」，而是先寫下系統的**自由能**——一個純量泛函 $F[\phi]$，然後假設系統沿某種「能量下降方向」演化。這有兩個好處。第一，物理假設（界面能量、雙井勢、梯度群的形狀）比演化方程本身更容易實驗觀察。第二，一旦能量泛函寫定，就自動保證某些性質（能量單調下降、特定守恆律），這些可以作為數值實作的驗證工具。
+
+但有兩個選擇必須做，而且結果不同：
+
+- **選擇度量**：在什麼「距離」意義下能量下降最快？最自然的選擇是 $\int (\partial\phi/\partial t)^2 dV$ 的 L2 度量。另一個常見選擇是 H^{-1} 度量，它天然與守恆律相容。
+- **選擇邊界條件**：邊界上的通量是否為零？$\phi$ 是否固定？還是允許自由？邊界條件的選擇直接影響自然邊界條件的形成與能量耗散律的推導。
+
+為了讓直覺清楚，考慮一個畫面。設想 $\phi$ 代表局部成分濃度（無因次），$W(\phi) = (\phi^2-1)^2/4$ 有兩個極小值 $\phi=\pm 1$。領域中每一點都想回到 $\pm 1$ 中的一個（體自由能下降），但界面處鄰居互相約束（梯度能量），兩者的競爭形成平衡的界面厚度。能量泛函 $F$ 就是這個競爭的數學寫法。
+
+**L2 梯度流**：每個點「不受守恆律限制」地直接朝下坡走。因為 $\phi$ 可以局域產生或消失，總量 $\int \phi\, dV$ 不守恆。這就是 Allen–Cahn 方程。
+
+**H^{-1} 梯度流**：總量 $\int \phi\, dV$ 被強制守恆，只得透過通量重新分布。這就是 Cahn–Hilliard 方程。
+
+**能量在兩種流中都單調下降**，但下降速率不同、其他守恆量不同。數值實作要一一驗證，不能因為「看起來能量在下降」就宣稱格式正確；往往需要同時檢查：質量守恆與否、空間收斂階、時間離散的能量行為。
+
+## 數學與物理推導
+
+### 自由能泛函、尺度選定與化學勢
+
+**尺度宣告**：本章所有推導、程式與測試皆採用**無因次元組**。序參量 $\phi$ 無因次，空間座標以參考長度 $L_\mathrm{ref} = 1\,\mathrm{m}$ 無因次化，時間以參考時間尺度 $\tau_\mathrm{ref}$ 無因次化，能量以參考能量 $F_\mathrm{ref}$ 無因次化。在此元組下，$\kappa$、$M$、$F$ 均無因次。若讀者需要回到有因次的版本（例如把 $\phi$ 對應到 $\mathrm{kg/m^3}$ 的真實濃度），必須依第 01 章的步驟重新填入參考尺度並重列所有單位；量綱不能靠「從無因次公式硬讀出來」或「事後貼單位標籤」補回。
+
+在此無因次元組下，自由能泛函為
+
+$$
+F[\phi] = \int_\Omega \left[ W(\phi) + \frac{\kappa}{2} |\nabla \phi|^2 \right] dV,
+\quad W(\phi) = \frac{(\phi^2 - 1)^2}{4},
+\quad \kappa > 0.
+$$
+
+$W$ 為雙井勢，極小值在 $\phi = \pm 1$、$W(\pm 1) = 0$。
+
+對泛函做第一變分（取 $\phi \to \phi + \epsilon \psi$，$\psi$ 為任意光滑測試函數，邊界條件另定）：
+
+$$
+F[\phi + \epsilon \psi] - F[\phi]
+= \epsilon \int_\Omega \left[ W'(\phi) \psi + \kappa \nabla \phi \cdot \nabla \psi \right] dV
++ O(\epsilon^2).
+$$
+
+用分部積分處理第二項：
+
+$$
+\int_\Omega \nabla \phi \cdot \nabla \psi \, dV
+= - \int_\Omega (\Delta \phi) \psi \, dV + \oint_{\partial \Omega} \psi \, \partial_n \phi \, dS,
+$$
+
+其中 $\partial_n \phi := \nabla \phi \cdot \mathbf{n}$ 為外法向導數。代入得
+
+$$
+F[\phi + \epsilon \psi] - F[\phi]
+= \epsilon \int_\Omega \left[ W'(\phi) - \kappa \Delta \phi \right] \psi \, dV
++ \epsilon \oint_{\partial \Omega} \kappa \psi \, \partial_n \phi \, dS
++ O(\epsilon^2).
+$$
+
+**定義化學勢** $\mu := \delta F / \delta \phi = W'(\phi) - \kappa \Delta \phi$。本卷 $W'(\phi) = \phi(\phi^2 - 1) = \phi^3 - \phi$，故
+
+$$
+\mu = \phi^3 - \phi - \kappa \Delta \phi.
+$$
+
+**自然邊界條件**來自表面積分 $\oint \kappa \psi \, \partial_n \phi \, dS$。若我們**不**施加任何邊界條件到 $\phi$，這個積分只有在 $\partial_n \phi = 0$ 於 $\partial\Omega$ 成立時才對所有 $\psi$ 消失，所以**齊次 Neumann 是自然邊界條件**。若我們**施加** Dirichlet 條件（在邊界固定 $\phi$），則邊界上的 $\psi$ 必須為零，表面項亦消失，但這不是自然邊界。以下討論預設**自然邊界**：$\partial_n \phi|_{\partial \Omega} = 0$，或週期邊界（週期下表面項自動抵消）。
+
+### L2 梯度流：Allen–Cahn
+
+L2 梯度流設定
+
+$$
+\frac{\partial \phi}{\partial t} = -M \, \mu,
+\quad M > 0,
+$$
+
+$M$ 為遷移率（mobility），本元組下無因次。代入 $\mu = \phi^3 - \phi - \kappa \Delta \phi$，得 Allen–Cahn 方程
+
+$$
+\frac{\partial \phi}{\partial t} = -M \left( \phi^3 - \phi - \kappa \Delta \phi \right).
+$$
+
+推導能量變化率：
+
+$$
+\frac{\mathrm{d}F}{\mathrm{d}t}
+= \int_\Omega \left[ W'(\phi) - \kappa \Delta \phi \right] \frac{\partial \phi}{\partial t} \, dV
+= \int_\Omega \mu \cdot (-M\, \mu) \, dV
+= -M \int_\Omega \mu^2 \, dV \le 0.
+$$
+
+耗散率為 $-M \|\mu\|_{L^2}^2$。若此為零則 $\mu \equiv 0$ 於 $\Omega$，退化為平衡態。AC 明確依賴 $M>0$ 以及自然或週期邊界。
+
+**守恆性質**：對 $\int_\Omega \phi \, dV$ 求時間導數：
+
+$$
+\frac{\mathrm{d}}{\mathrm{d}t} \int_\Omega \phi \, dV = \int_\Omega \partial_t \phi \, dV = -M \int_\Omega \mu \, dV.
+$$
+
+一般 $\int_\Omega \mu\, dV \neq 0$（除非特殊對稱或穩態），所以 **AC 不守恆總 $\phi$**。這不是錯誤，是此模型的物理選擇。
+
+### H^{-1} 梯度流：Cahn–Hilliard
+
+H^{-1} 梯度流設定
+
+$$
+\frac{\partial \phi}{\partial t} = \nabla \cdot \left( M \nabla \mu \right),
+\quad M > 0.
+$$
+
+這是 Cahn–Hilliard 方程。**核心性質**是守恆：
+
+$$
+\frac{\mathrm{d}}{\mathrm{d}t} \int_\Omega \phi \, dV = \oint_{\partial \Omega} M \, \partial_n \mu \, dS + \text{（若週期則邊界項為零）}.
+$$
+
+若 $\partial_n \mu = 0$ 於 $\partial \Omega$（即 $M\partial_n \mu$ 通量為零），則總量守恆。這是**第二個自然邊界條件**，與 $\partial_n \phi = 0$ 並存。Cahn–Hilliard 需要**兩組邊界條件**：$\partial_n \phi = 0$ 與 $\partial_n \mu = 0$。
+
+能量耗散：
+
+$$
+\frac{\mathrm{d}F}{\mathrm{d}t}
+= \int_\Omega \mu \, \partial_t \phi \, dV
+= \int_\Omega \mu \, \nabla \cdot (M \nabla \mu) \, dV
+= - \int_\Omega M |\nabla \mu|^2 \, dV
++ \oint_{\partial \Omega} \mu \, M \partial_n \mu \, dS.
+$$
+
+若 $\partial_n \mu = 0$（第二組邊界）或週期，則表面項為零，故
+
+$$
+\frac{\mathrm{d}F}{\mathrm{d}t} = - \int_\Omega M |\nabla \mu|^2 \, dV \le 0.
+$$
+
+**CH 能量以 $\|\nabla \mu\|^2$ 為耗散率**，而在 AC 中是 $\|\mu\|^2$。這是兩個流的主要差別。同樣要求 $M>0$。
+
+### 連續、半離散、全離散能量
+
+三種能量是不同層次：
+
+- **連續能量**：$F[\phi]$ 上方的 $\mathrm{d}F/\mathrm{d}t \le 0$ 為真。假設 $\phi$ 為 $C^2$、$\mu$ 為 $C^1$，邊界條件成立。
+- **半離散能量**：空間離散、但時間仍連續。若空間離散為保結構（如有限體積通量對通量、有限差分與分部求和的對應），可得離散能量 $\mathrm{d}F_h/\mathrm{d}t \le 0$。否則只能保證近似下降。
+- **時間離散能量**：時間使用歐拉顯式、Crank–Nicolson、後向歐拉、或是能量穩定格式時，行為完全不同。**歐拉顯式不保證能量下降，除非 $\Delta t$ 滿足特定條件**；後向歐拉（或凸分裂、穩定化格式）在這方面較好，但可能引入數值耗散。**不能用連續性質推斷時間離散能量下降**。
+
+這個層次區分很重要。本章的例題與程式都明示所處層次，並且**個別檢查**：連續半離散能量下降、時間離散能量是否下降、質量是否守恆、與解析解收斂階。
+
+### 離散能量與梯度檢查工具
+
+設離散能量 $F_h(\boldsymbol\phi)$（$\boldsymbol\phi \in \mathbb{R}^N$ 為所有格點 $\phi$ 的向量），離散能量梯度 $\nabla F_h$。則對任意方向 $\mathbf{v}$：
+
+$$
+\nabla F_h \cdot \mathbf{v} \approx \frac{F_h(\boldsymbol\phi + \epsilon \mathbf{v}) - F_h(\boldsymbol\phi - \epsilon \mathbf{v})}{2 \epsilon}
++ O(\epsilon^2).
+$$
+
+這個測試針對 $F_h$ 是否為真正梯度場（或至少梯度檢查通過）。它在下列情況會失敗：邊界項係數不一致、週期同步錯誤、雙計週期介面、有限差分算子 Laplacian 符號錯。所有這些都是相場實作中最容易出現的錯誤。
+
+## 逐步手算例題
+
+### 例題 1：一維雙井能量的駐點與界面
+
+考慮一維問題，使用本章的**無因次元組**。假設穩態 $\phi(x)$ 只依賴 $x$，邊界條件 $\phi(\infty) = +1$、$\phi(-\infty) = -1$，且無通量。能量泛函
+
+$$
+F[\phi] = \int_{-\infty}^{\infty} \left[ \frac{(\phi^2 - 1)^2}{4} + \frac{\kappa}{2} (\phi')^2 \right] dx.
+$$
+
+在此元組下 $F$ 為無因次能量，$\kappa > 0$ 為無因次係數。求界面解及界面能量。由歐拉–拉格朗日方程 $\mu = 0$：
+
+$$
+\phi^3 - \phi - \kappa \phi'' = 0.
+$$
+
+乘以 $\phi'$（標準技巧）：$\phi' \phi^3 - \phi'\phi - \kappa \phi'' \phi' = 0$，即 $\dfrac{\mathrm{d}}{\mathrm{d}x}\left[ \dfrac{\phi^4}{4} - \dfrac{\phi^2}{2} - \dfrac{\kappa}{2} (\phi')^2 \right] = 0$。因為 $\phi = \pm 1$ 時 $\phi' = 0$，積分常數為 $-W(1) = 0$。所以
+
+$$
+\frac{\kappa}{2} (\phi')^2 = W(\phi) = \frac{(\phi^2-1)^2}{4}.
+$$
+
+開方得 $\phi' = (1 - \phi^2)/\sqrt{2\kappa}$（取 $\phi' > 0$ 分支，$\phi \in (-1,1)$ 時 $|1-\phi^2| = 1-\phi^2$）。積分得 $\phi(x) = \tanh\left(x/\sqrt{2\kappa}\right)$。**界面厚度**尺度為 $\sqrt{2\kappa}$。此量以無因次長度（$L_\mathrm{ref}$）為單位；還原為有因次時須乘上 $L_\mathrm{ref}$。
+
+**界面總能量**（一維情況，即整條界面的能量，非「每單位面積」的任何量）：
+
+$$
+\sigma = \int_{-\infty}^{\infty} \left[ W(\phi) + \frac{\kappa}{2} (\phi')^2 \right] dx
+= \int_{-\infty}^{\infty} 2 W(\phi) \, dx
+= \int_{-1}^{1} 2 W(\phi) \, \frac{\mathrm{d}x}{\mathrm{d}\phi} \, d\phi.
+$$
+
+代入 $W = (1-\phi^2)^2/4$、$\mathrm{d}x/\mathrm{d}\phi = \sqrt{2\kappa}/(1-\phi^2)$（來自 $\phi' = (1-\phi^2)/\sqrt{2\kappa}$）：
+
+$$
+\sigma = \int_{-1}^1 2 \cdot \frac{(1-\phi^2)^2}{4} \cdot \frac{\sqrt{2\kappa}}{1-\phi^2} \, d\phi
+= \frac{\sqrt{2\kappa}}{2} \int_{-1}^1 (1 - \phi^2) \, d\phi
+= \frac{\sqrt{2\kappa}}{2} \cdot \frac{4}{3}
+= \frac{2\sqrt{2}}{3} \sqrt{\kappa}.
+$$
+
+在此無因次元組下，$\sigma$ 為無因次數值；係數 $\tfrac{2\sqrt{2}}{3} \approx 0.943$，而非 $4/3 \approx 1.333$。若要做有因次分析，必須回到參考尺度：$\sigma_\text{phys} = F_\mathrm{ref} \cdot \sigma / L_\mathrm{ref}$（一維總能量的單位是能量；如果二維每單位厚度，或以邊長截面積計，則需另乘長度）。**本章的公式不可直接混用 SI 單位**；所有後續比較都使用無因次值。
+
+### 例題 2：一維 AC 半離散能量下降驗證
+
+考慮一維週期網格 $N = 64$，$L = 1$（無因次），$\Delta x = 1/64$，$\kappa = 10^{-3}$，$M = 1$。初始資料 $\phi_i = \sin(2\pi i / N)$。分兩個層次驗證半離散能量單調性。
+
+**半離散能量**（空間離散、時間連續）：
+
+$$
+F_h(\boldsymbol\phi) = \sum_i \Delta x \left[ \frac{(\phi_i^2 - 1)^2}{4} + \frac{\kappa}{2} \left( \frac{\phi_{i+1} - \phi_i}{\Delta x} \right)^2 \right],
+$$
+
+其中索引以 $i+N \equiv i$ 週期取模。離散化學勢：$\mu_i = \phi_i^3 - \phi_i - \kappa \Delta_h \phi_i$，$\Delta_h$ 為週期中央二階。
+
+半離散 AC：$\mathrm{d}\phi_i/\mathrm{d}t = -M \mu_i$。能量導數
+
+$$
+\frac{\mathrm{d}F_h}{\mathrm{d}t}
+= \sum_i \Delta x \, \mu_i \frac{\mathrm{d}\phi_i}{\mathrm{d}t}
+= -M \Delta x \sum_i \mu_i^2 \le 0.
+$$
+
+在數值上可用 `np.allclose` 檢查 $\sum_i \mu_i (\mathrm{d}\phi_i/\mathrm{d}t) + M \sum_i \mu_i^2 \approx 0$，建立能量耗散率的離散恆等式。這是一個**代數恆等式**（除了浮點誤差外精確成立），可用作演算法驗證。
+
+**時間離散能量**：若使用歐拉顯式 $\phi_i^{n+1} = \phi_i^n - M \Delta t \, \mu_i^n$，將它代回 $F_h(\boldsymbol\phi^{n+1})$ 得到
+
+$$
+F_h^{n+1} - F_h^n
+= -M \Delta t \sum_i \Delta x \, (\mu_i^n)^2
++ \frac{1}{2} \sum_{i,j} \frac{\partial^2 F_h}{\partial \phi_i \partial \phi_j} (M \Delta t \mu_i^n)(M \Delta t \mu_j^n) + O(\Delta t^3).
+$$
+
+若 Hessian $\mathbf{H} = \partial^2 F_h / \partial \boldsymbol\phi^2$ 的最大特徵值 $\lambda_{\max}$ 滿足 $M \Delta t \lambda_{\max} < 2$，則二次項可保持有界；否則高頻不穩定、能量可能反而上升。這給出「時間離散能量」的具體判準：**歐拉顯式能量下降要求 $M \Delta t < 2/\lambda_{\max}(\mathbf{H})$**，比線性擴散 FTCS 的穩定條件更強。
+
+**$\lambda_{\max}$ 的數量級估算**（本章無因次元組）：$\mathbf{H}$ 由梯度能量與雙井勢組成。梯度項的離散 Laplacian 在週期下最大特徵值為 $4/\Delta x^2$（Nyquist 模態），貢獻 $\kappa \cdot 4/\Delta x^2$。代入 $\kappa = 10^{-3}$、$\Delta x = 1/64$：
+
+$$
+\frac{4}{\Delta x^2} = 4 \times 64^2 = 16384,
+\quad \kappa \cdot \frac{4}{\Delta x^2} = 10^{-3} \times 16384 \approx 16.4.
+$$
+
+雙井項 $W''(\phi) = 3\phi^2 - 1$，最大值在 $\phi = \pm 1$ 為 $2$。故
+
+$$
+\lambda_{\max} \lesssim 16.4 + 2 \approx 18.4.
+$$
+
+對應歐拉顯式能量下降的時間步限制為 $M \Delta t < 2/18.4 \approx 0.109$。**注意**：這是 $\lambda_{\max}$ 的粗略上界；若有空間變化更劇烈的模態，實際 $\lambda_{\max}$ 可能更大。
+
+高頻不穩的典型跡象：$\phi_i$ 出現劇烈振盪（Nyquist 模態），能量在前幾步可能下降但很快反彈。**不能用裁零（clipping）掩蓋**——一旦裁剪，能量記錄就失真，且 $\phi$ 不再服從原演化方程。程式必須記錄每步能量、質量與最大絕對值，供後續稽核。
+
+## 實作與程式
+
+以下程式自足，只用 Python 3.10+ 與 NumPy，示範一維週期 AC 的半離散能量下降、歐拉顯式的時間離散能量行為、以及離散能量梯度檢查。
+
+```python
+import numpy as np
+
+def free_energy_1d(phi, dx, kappa):
+    """W(phi) + kappa/2 * |grad phi|^2 with periodic boundaries."""
+    W = 0.25 * (phi ** 2 - 1.0) ** 2
+    grad = (np.roll(phi, -1) - phi) / dx
+    return dx * np.sum(W + 0.5 * kappa * grad ** 2)
+
+def chem_potential_1d(phi, dx, kappa):
+    """mu = phi^3 - phi - kappa * Delta phi, periodic, central 2nd-order."""
+    lap = (np.roll(phi, -1) - 2.0 * phi + np.roll(phi, 1)) / dx ** 2
+    return (phi ** 3 - phi) - kappa * lap
+
+def grad_check(F, phi, direction, eps=1e-6):
+    """Numerical directional derivative along a given vector.
+    F must accept a phi array and return a scalar."""
+    f_plus = F(phi + eps * direction)
+    f_minus = F(phi - eps * direction)
+    return (f_plus - f_minus) / (2.0 * eps)
+
+def run_ac(N=64, L=1.0, kappa=1e-3, M=1.0, dt=1e-3, nsteps=100):
+    """Allen-Cahn: phi_t = -M mu. Euler explicit, periodic."""
+    dx = L / N
+    x = np.arange(N) * dx
+    phi = np.sin(2.0 * np.pi * x / L)
+    hist = {"energy": [], "mass": [], "phi_max": [], "dt_mu2": []}
+    for n in range(nsteps):
+        mu = chem_potential_1d(phi, dx, kappa)
+        hist["energy"].append(free_energy_1d(phi, dx, kappa))
+        hist["mass"].append(dx * np.sum(phi))
+        hist["phi_max"].append(np.max(np.abs(phi)))
+        hist["dt_mu2"].append(-M * dx * np.sum(mu ** 2))
+        phi = phi - M * dt * mu
+    return x, phi, hist
+```
+
+**預期行為（未執行，依推導）**：
+
+- **半離散耗散率**：$\mathrm{d}F_h/\mathrm{d}t = -M \sum_i \Delta x \, \mu_i^2$ 為負（除非 $\boldsymbol\phi$ 已達穩態）。可在一次歐拉步驟後檢查 $F_h(\boldsymbol\phi^{n+1}) - F_h(\boldsymbol\phi^n) \approx \Delta t \cdot (-M \sum_i \Delta x \mu_i^2)$。
+- **質量**：AC 不守恆，$\sum_i \phi_i \Delta x$ 會隨時間變動，這是**正常**。
+- **能量**：在 $\Delta t$ 滿足 $M \Delta t \lambda_{\max} < 2$ 時單調下降；$\Delta t$ 過大時可能先升後降或劇振。以本章參數估算 $\lambda_{\max} \approx 18.4$ 為粗上界，$M\Delta t < 0.11$ 為安全操作的充分條件。
+- **梯度檢查**：對 `free_energy_1d` 在某個方向 $\mathbf{v}$ 上，數值方向導數應與 $\Delta x \cdot \boldsymbol\mu \cdot \mathbf{v}$ 相符到 $O(\epsilon^2)$。
+
+## 測試與預期結果
+
+**正常案例**：$N=64$、$\kappa = 10^{-3}$、$M=1$、$\Delta t = 10^{-3}$。依 $\lambda_{\max}$ 估算，$M\Delta t \lambda_{\max} \approx 0.0184 \ll 2$，**預期：能量單調下降、解平滑收斂到局部純相**。$\phi$ 的範圍應停留在 $[-1,1]$ 附近。這是進行下一步測試的基準。
+
+**邊界案例**：同樣參數但 $\Delta t = 0.1$，此時 $M\Delta t \lambda_{\max} \approx 1.84$，接近穩定邊界 $2$。預期：能量仍大致下降，但最高頻模態開始出現輕微振盪；$\max|\phi|$ 可能略微超過 1。讀者應能觀察到**能量序列不再嚴格單調**——這正是「時間離散能量」與「半離散能量」不同的具體證據，且不涉及任何不穩定或後處理。
+
+**邊界案例（$\kappa = 0$）**：能量退化為純雙井勢，$\mu = \phi^3 - \phi$ 是空間局域的。能量下降變為**每個格點各自下降**：$W(\phi_i^{n+1}) \le W(\phi_i^n)$ 若 $\phi_i^{n+1} = \phi_i^n - M\Delta t(\phi_i^3 - \phi_i)$ 且 $\Delta t$ 足夠小。$\lambda_{\max} = \max_i |3\phi_i^2 - 1|$，在 $\phi = 0$ 附近為 1，在 $|\phi|$ 大時可能非常大。測試應驗證：$\kappa = 0$ 時也守恆不成立（AC 本來就不守恆）、能量單調下降條件為 $M\Delta t \lambda_{\max} < 2$。
+
+**故障案例一：Laplacian 符號。** 若把 $\mu = \phi^3 - \phi - \kappa \Delta \phi$ 誤寫成 $\mu = \phi^3 - \phi + \kappa \Delta \phi$，則梯度能量「反向」。正號情形下 $W$ 的凹處變成鞍點，演化解向高頻不穩定。測試：梯度檢查會失敗，能量單調性被破壞，且在細網格下高頻模態被指數放大。因為 $+\kappa\Delta$ 使 $\lambda_{\max}$ 變成負值主導，時間步條件與原格式完全不同，會出現迅速發散。
+
+**故障案例二：強制不穩定。** 取 $\Delta t = 0.5$，遠超 $2/\lambda_{\max} \approx 0.11$。此時 $M\Delta t\lambda_{\max} \approx 9.2 \gg 2$，Nyquist 模態每步被放大約 8 倍。預期：能量在前幾步迅速上升，$\max|\phi|$ 快速超出 $[-1,1]$，數值解完全脫離物理。**這一測試的關鍵是不要後處理**：觀察到的失控就是事實，記錄下來，不要 clip。
+
+**故障案例三：週期介面雙計。** 在展開離散 Laplacian 時若採 `np.roll` 但除了 `sum` 之外也用到差分（例如兩處不一致的週期更新），會**雙計**週期介面通量。診斷：對常數場 $\phi_i \equiv 1$，離散能量應為 $\kappa$ 項的零；對線性場 $\phi_i = i \Delta x$，週期邊界下不是允許的（有跳躍），改用 $\phi_i = \sin(2\pi i / N)$ 會顯示能量與梯度檢查不符。
+
+**故障案例四：能量數字後製。** 若程式在每步 `phi = np.clip(phi, -1, 1)` 後才計算能量，能量自然單調，但這不是解原方程的解。質量、能量、穩定性資料都被篡改。**必須**在紀錄中標明是否套用了任何後處理。本卷禁止用 clip 掩蓋不穩定。
+
+**故障案例五：時間離散能量錯判。** 若使用 Crank–Nicolson 或後向歐拉，能量行為與歐拉顯式不同：後向歐拉對線性擴散為 L-stable，對非線性雙井也常能量下降（或有界），但實作需解非線性方程。若誤以為顯式結果能代表隱式，就會把穩定條件搞混。程式必須明示時間格式與其穩定性假設。
+
+## 除錯與常見陷阱
+
+1. **混淆 L2 與 H^{-1} 梯度流**：寫 $\phi_t = -M \mu$ 是 AC；寫 $\phi_t = \nabla \cdot (M \nabla \mu)$ 是 CH。兩者能量都單調下降，但守恆性質完全不同。_檢查_：CH 應 $\frac{\mathrm{d}}{\mathrm{d}t} \int \phi \, dV = 0$；AC 一般不成立。
+2. **邊界條件只寫一組**：CH 需要 $\partial_n \phi = 0$ 與 $\partial_n \mu = 0$，或週期。若只寫 $\partial_n \phi = 0$、缺 $\partial_n \mu = 0$，CH 總量變得不守恆。
+3. **自然邊界誤認為本質邊界**：$\partial_n \phi = 0$ 是**自然**邊界條件，來自分部積分後的表面項退化；不需人工施加。Dirichlet 或 Robin 為**本質**邊界，必須顯式施加。
+4. **離散能量梯度檢查搞錯方向**：梯度檢查的對象應是 $F_h(\boldsymbol\phi)$ 對 $\boldsymbol\phi$ 的梯度，不是對空間座標的梯度。函式簽章須明確。
+5. **高頻不穩誤以為「暫時」**：歐拉顯式在高頻上若 $M\Delta t \lambda_{\max} > 2$，Nyquist 模態指數放大。能量即使短暫下降也很快反彈，且值域會衝出 $[-1,1]$。不要用 clip 掩蓋。
+6. **忽略非線性求解容差**：隱式格式中非線性求解的容差過大，會使數值解實際上不是方程的根。能量下降的準確性依賴於此。
+7. **偽穩態**：若 $M$ 或 $\kappa$ 為 0，某些模態退化，形成零特徵值；能量對這些模態無限制。需檢查是否所有模態都受 $\mu$ 影響。
+8. **量綱胡亂回填**：本章所有數值皆為無因次元組下的結果。若把 $\kappa = 10^{-3}$ 直接標為 $\mathrm{J/m}$ 或其他 SI 單位，則後續數值與物理比較都會出錯。回到有因次必須依第 01 章的方法重新無因次化。
+9. **與溶氧管理閾值混為一談**：$\phi = \pm 1$ 的雙井是數學模型，不是現場物理相變。溶氧跨管理閾值不是相變，不可套用相場語言。合成資料亦不可宣稱為設備操作依據。
+
+## 養殖與相場案例
+
+考慮一個**合成**的兩相成分場，代表合成池域中某個成分在空間的分布。領域為無因次 $[0,1]\times[0,1]$，$\kappa = 5\times 10^{-4}$，$M = 1$（**合成無因次值**，非現場參數），$W$ 使用本卷標準雙井。$\phi = +1$ 表示成分富集區，$\phi = -1$ 表示貧化區。
+
+**Allen–Cahn 視角**：如果假設成分可以在局部產生或消失（例如生化反應），則 $\phi_t = -M \mu$ 是合理的。$\int \phi$ 不守恆，代表反應在改變總量。能量下降說明系統趨向「局部純相」。
+
+**Cahn–Hilliard 視角**：若假設成分總量守恆（僅擴散），則 $\phi_t = \nabla \cdot (M \nabla \mu)$ 更合適。**邊界條件**：$\partial_n \phi = \partial_n \mu = 0$（無通量）。$\int \phi$ 守恆。
+
+診斷：程式應輸出三個序列：
+
+- `energy[n] = F_h(\boldsymbol\phi^n)`，看是否下降；
+- `mass[n] = \sum \phi^n \Delta x \Delta y`，看是否守恆（AC 不守恆、CH 守恆）；
+- `phi_range[n] = (min, max)`，看 $\phi$ 是否可能超出 $[-1, 1]$。CH 可以超出 $[-1,1]$ 且**不**裁零；AC 在滿足 $M\Delta t \lambda_{\max} < 2$ 時通常待在 $[-1,1]$ 附近，但 $\Delta t$ 過大時也會溢出。
+
+**注意**：這裡的「相」是數值模型中的雙井勢選擇。溶氧管理閾值不是相變；若將 $\phi$ 直接對應到真實溶氧濃度，那是額外的模型假設，需要與量測校準分開處理（verification 與 validation 分開）。本卷不提供現場閾值。
+
+## 習題
+
+**習題 1（手算）** 對 $F[\phi] = \int_\Omega [\frac{1}{2}|\nabla \phi|^2 + V(\phi)] dV$，$V$ 為任意光滑函數（無因次元組），推導 L2 梯度流與 H^{-1} 梯度流的演化方程。說明為何 H^{-1} 梯度流自動守恆 $\int \phi \, dV$（在自然或週期邊界下），而 L2 一般不守恆。
+
+**習題 2（手算 + 程式）** 對一維 AC，$\kappa = 0$，$\phi_t = -M(\phi^3 - \phi)$，$M = 1$。這是**每個格點獨立的 ODE**。對 $\phi_0 \in (-1, 1)$ 且 $\phi_0 > 0$，求解析解 $\phi(t)$；並計算 $\phi \to 1$ 的時間與 $\phi \to 0^+$ 的極限行為。以 $\phi_0 = 0.5$ 用歐拉顯式手算前兩步（$\Delta t = 0.1$），比較與解析解。
+
+**習題 3（反例）** 有人主張：「只要能量序列 $F_h(\boldsymbol\phi^n)$ 單調下降，格式就是穩定的。」請設計兩個反例：(a) 格式的能量序列單調下降，但數值解與真解無關；(b) 能量序列不單調下降，但格式仍收斂到正確解（例如歐拉顯式接近穩定邊界時）。
+
+**習題 4（整合）** 對一維週期 Cahn–Hilliard，$\phi_t = \partial_x (M \partial_x \mu)$，$M = 1$，$\kappa = 10^{-3}$。設計一個離散格式，明示空間差分（中央二階）與時間積分（例如後向歐拉或凸分裂）。程式應輸出：質量 $\sum \phi_i \Delta x$、離散能量 $F_h$、$\|\mu\|_\infty$。測試：(a) 質量是否守恆至機器精度；(b) 能量是否單調下降；(c) 若把邊界換成 Dirichlet $\phi(0) = \phi(L) = 1$、$\mu(0) = \mu(L) = 0$，質量是否仍守恆？
+
+## 習題解答
+
+**習題 1 解答** 定義化學勢 $\mu := \delta F / \delta \phi = V'(\phi) - \Delta \phi$（本題 $\kappa$ 併入 $V$ 或單獨處理；兩者等價）。
+
+**L2 梯度流**：$\phi_t = -M \mu$，即 $\phi_t = -M(V'(\phi) - \Delta \phi)$。
+
+能量變化率：$\frac{\mathrm{d}F}{\mathrm{d}t} = \int \mu \phi_t \, dV = -M \int \mu^2 \, dV \le 0$。
+
+總量變化率：$\frac{\mathrm{d}}{\mathrm{d}t} \int \phi \, dV = -M \int \mu \, dV$，一般 $\neq 0$。
+
+**H^{-1} 梯度流**：$\phi_t = \nabla \cdot (M \nabla \mu)$。
+
+能量變化率：$\frac{\mathrm{d}F}{\mathrm{d}t} = \int \mu \nabla \cdot (M \nabla \mu) \, dV = -\int M |\nabla \mu|^2 \, dV + \oint_{\partial\Omega} \mu M \partial_n \mu \, dS$。若 $\partial_n \mu = 0$ 或週期，表面項消失，能量單調下降。
+
+總量變化率：$\frac{\mathrm{d}}{\mathrm{d}t} \int \phi \, dV = \oint_{\partial \Omega} M \partial_n \mu \, dS = 0$（若 $\partial_n \mu = 0$ 或週期）。**這說明 H^{-1} 流的守恆來自「散度形式」**——右端是某個通量的散度，故總量自動守恆（假設邊界通量為零）。L2 流右端 $-M\mu$ 不是散度形式，故無守恆。
+
+**習題 2 解答** $\kappa = 0$ 時 $\phi_t = -(\phi^3 - \phi) = \phi - \phi^3 = \phi(1 - \phi^2)$。分離變數：$\int_{\phi_0}^{\phi(t)} \frac{d\phi'}{\phi'(1 - \phi'^2)} = t$。部分分式：$\frac{1}{\phi(1-\phi^2)} = \frac{1}{\phi} + \frac{1/2}{1-\phi} - \frac{1/2}{1+\phi}$。積分得
+
+$$
+\ln \frac{|\phi|}{\sqrt{1-\phi^2}} = t + C,
+\quad C = \ln \frac{\phi_0}{\sqrt{1-\phi_0^2}}.
+$$
+
+解出
+
+$$
+\phi(t) = \frac{\phi_0 e^t}{\sqrt{1 - \phi_0^2 + \phi_0^2 e^{2t}}} = \frac{\phi_0}{\sqrt{\phi_0^2 + (1-\phi_0^2) e^{-2t}}}.
+$$
+
+（兩式為代數恆等式。）驗證：$t = 0$ 給 $\phi = \phi_0$。$t \to \infty$ 時 $\phi \to 1$，並以指數方式趨近：$1 - \phi \approx \frac{1-\phi_0^2}{2\phi_0^2} e^{-2t}$。這是雙井勢極小的線性穩定性（$\phi = 1$ 附近 $\phi_t \approx -2(\phi - 1)$）。
+
+$\phi_0 = 0$：$\phi \equiv 0$ 是鞍點，永不到 1，也不是 0 附近的極限。「$\phi$ 起始為 0 就永遠停在 0」是解的性質，不是數值問題。
+
+$\phi_0 = 0.5$：$t = 0.1$，用第二式：$e^{-0.2} \approx 0.8187$，$0.25 + 0.75 \times 0.8187 = 0.8640$，$\sqrt{0.8640} = 0.9295$，$\phi = 0.5/0.9295 \approx 0.5379$。
+
+用第一式驗證：$e^{0.1} \approx 1.10517$，$e^{0.2} \approx 1.22140$，分子 $0.5 \times 1.10517 = 0.552585$，分母 $\sqrt{0.75 + 0.25 \times 1.22140} = \sqrt{0.75 + 0.30535} = \sqrt{1.05535} \approx 1.0273$，$\phi \approx 0.5379$。兩式一致。
+
+歐拉顯式：$\phi^{n+1} = \phi^n + \Delta t \phi^n (1 - (\phi^n)^2)$。
+
+第一步：$\phi^1 = 0.5 + 0.1 \times 0.5 \times 0.75 = 0.5 + 0.0375 = 0.5375$。
+
+第二步：$0.5375(1 - 0.5375^2) = 0.5375 \times 0.7111 \approx 0.3822$。$\phi^2 = 0.5375 + 0.1 \times 0.3822 = 0.57572$。
+
+解析解 $t=0.2$：$e^{-0.4} \approx 0.6703$，$0.25 + 0.75 \times 0.6703 = 0.7527$，$\sqrt{0.7527} = 0.8676$，$\phi = 0.5/0.8676 \approx 0.5763$。歐拉 $0.57572$。**誤差約 $6\times 10^{-4}$，一階時間收斂**，與歐拉顯式階數一致。
+
+**習題 3 解答** (a) 能量下降但不收斂：取**能量與真解無關**的格式。例如 $\phi^{n+1} = \beta \phi^n$，$\beta \in (0, 1)$ 任意固定，$F_h(\boldsymbol\phi) = \sum_i \phi_i^2$。則能量為 $\beta^{2n} \sum \phi_i^2 \to 0$ 單調下降。但若原方程意為 $\phi_t = 0$（$\phi \equiv \phi_0$ 為真解），此格式收斂到 0，與真解無關。另一個例子：數值耗散把任何資料抹平到 0，能量單調下降，但抹掉了真解。
+
+(b) 能量不單調但收斂：考慮**RK4 對線性平流方程在 CFL 略大於 2.83 的穩定邊界**時，放大因子 $|g|$ 在部分 $k$ 模態大於 1，能量短暫上升；但只要 CFL 進一步減小，格式收斂。更貼近本章的例子：**後向歐拉加凸分裂**（convex splitting）有時在初始幾步會因離散非線性求解的殘差導致能量微升，但時間步減少後收斂到正確解。核心訊息：**能量下降是充分條件之一，不是收斂的必要條件**。收斂需要一致性 + 穩定 + 正確邊界處理，能量下降只是穩定性的可能指標之一。
+
+**習題 4 解答** 離散格式：
+
+空間：$\Delta x = L/N$，週期。$\mu_i = \phi_i^3 - \phi_i - \kappa \Delta_h \phi_i$，$\Delta_h$ 為週期中央二階 Laplacian。
+
+CH：$\partial_t \phi_i = \frac{1}{\Delta x^2} [M_{i+1/2}(\mu_{i+1} - \mu_i) - M_{i-1/2}(\mu_i - \mu_{i-1})]$，$M = 1$ 簡化為 $\Delta_h \mu_i$。
+
+時間：後向歐拉最直接，但需解非線性。**凸分裂**（convex splitting）較適合：把 $W(\phi) = \frac{(\phi^2-1)^2}{4}$ 拆成 $W = W_+ - W_-$，$W_+ = \frac{\phi^4}{4} + \frac{1}{4}$（凸），$W_- = \frac{\phi^2}{2}$。離散格式：
+
+$$
+\phi^{n+1} = \phi^n - \Delta t \, \Delta_h \mu^{n+1}, \quad
+\mu^{n+1} = (\phi^{n+1})^3 - \phi^{n+1} - \kappa \Delta_h \phi^{n+1}.
+$$
+
+這個格式是隱式的，每個時間步需解非線性方程（例如 Newton，並明示收斂容差）。
+
+**測試回答**：
+
+(a) **質量守恆**：數值上 $\sum_i (\phi^{n+1}_i - \phi^n_i) = -\Delta t \sum_i \Delta_h \mu^{n+1}_i = 0$ 因為離散 Laplacian 在週期下和為零。應守恆到機器精度。
+
+(b) **能量單調下降**：凸分裂加上後向歐拉保證離散能量下降（這是凸分裂的經典性質），但實作須解非線性方程並確認收斂容差足夠小。否則能量可能因殘差大而微升。
+
+(c) **Dirichlet 邊界**：若 $\phi(0) = \phi(L) = 1$、$\mu(0) = \mu(L) = 0$，則 $\sum_i \Delta_h \mu_i$ 一般 $\neq 0$（除非離散散度定理的邊界項也為零），故質量**不守恆**。這是預期的：Dirichlet 邊界允許外部通量。若要守恆，須保持 $\partial_n \mu = 0$。
+
+## 本章小結
+
+本章從自由能泛函出發，推導了 L2 與 H^{-1} 兩種變分梯度流。**兩者能量均單調下降，但守恆性質不同**：L2（Allen–Cahn 型）一般**不**守恆序參量總量，H^{-1}（Cahn–Hilliard 型）在無通量或週期邊界下**守恆**。化學勢 $\mu = \delta F / \delta \phi$ 是整個推導的核心，其與邊界條件共同決定了自然邊界（$\partial_n \phi = 0$，CH 還需 $\partial_n \mu = 0$）。
+
+離散層次必須**分明**：連續能量下降、半離散能量下降、時間離散能量行為是三件事。連續性質不能直接推給離散；半離散恆等式可以代數驗證；時間離散能量則取決於時間格式、$\Delta t$ 與非線性求解容差。本章的歐拉顯式分析給出具體條件 $M \Delta t \lambda_{\max} < 2$，其中 $\lambda_{\max}$ 可從離散 Hessian 的最大特徵值估算（無因次例中約 18.4，故 $\Delta t \lesssim 0.11$）。本卷禁止用後處理（clip、平滑）掩蓋不穩定；程式必須記錄能量、質量、值域與求解殘差。
+
+**量綱提醒**：本章所有推導與數值皆採無因次元組。回到有因次（把 $\phi$ 對應真實濃度或溫度）必須依第 01 章重新填入參考尺度，不能從無因次公式直接貼上 SI 單位。界面總能量公式中的係數為 $\frac{2\sqrt{2}}{3}\sqrt{\kappa}$（無因次），對應界面厚度尺度 $\sqrt{2\kappa}$。
+
+診斷工具：離散能量對有限差分梯度檢查、質量序列、能量序列、$\|\mu\|_\infty$、$\max|\phi|$。任何一項未通過都需除錯，不能只因為「圖看起來平滑」放行。溶氧管理閾值不是相變；本章的雙井 $W(\phi) = (\phi^2-1)^2/4$ 是數值模型的選擇，不是現場物理定律。
+
+## 參考來源
+
+- [F1] FiPy 有限體積離散與邊界，<https://pages.nist.gov/fipy/en/latest/numerical/discret.html>
+- [F2] FEniCSx Poisson 與弱形式，<https://jsdokken.com/dolfinx-tutorial/chapter1/fundamentals.html>
+- [F3] PETSc 線性系統求解器，<https://petsc.org/release/manual/ksp/>
+- [F4] SciPy 稀疏線性代數 API，<https://docs.scipy.org/doc/scipy/reference/sparse.linalg.html>
+- [F5] NumPy Fourier 變換慣例，<https://numpy.org/doc/stable/reference/routines.fft.html>
+- [F6] FiPy Cahn–Hilliard 相分離示範，<https://pages.nist.gov/fipy/en/latest/generated/examples.cahnHilliard.mesh2D.html>
+- [F7] FiPy 簡單相場與固液相變示範，<https://pages.nist.gov/fipy/en/latest/generated/examples.phase.simple.html>
+
+來源說明：主編已核對 F1–F7 公開頁面，局部確認有限體積通量、求解器殘差與 Cahn–Hilliard 守恆語意；未執行來源程式，也未逐條查核全書公式。API 版本可能新於本機 NumPy，核心實驗不得默認最新版功能。FiPy 的 $[0,1]$ 序參量例與本卷 $[-1,1]$ 雙井慣例不同，不能直接抄參數。

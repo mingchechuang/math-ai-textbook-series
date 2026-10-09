@@ -1,0 +1,11 @@
+{
+  "key": "706c0f2eea510a9ce6c07a9b84023e833a367cebdc5b5a0d10f0d9f7845e75b6",
+  "person": {
+    "id": "v5_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 156,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。\n<<<NEW>>>\n因為 $T_{\\mathrm{temp}}>0$，乘回溫度不改變不等號方向，故此式等價於 $z_i>z_j$。相等情形同理。證畢。\n\n此命題限於實數運算。固定精度浮點實作中，`logits / temperature` 可能因極小正溫度溢位成非有限值；本 API 的契約是在此情況下拒絕該步輸入（`stable_softmax` 收到非有限值即拋出 `ValueError`），而不是宣稱仍能比較機率。\n<<<END>>>"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "9e7ba9b2ad94cb6001201aa7167a357a1af995d165f195df05ef5352b1045aef",
+  "person": {
+    "id": "v3_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 3,
+  "result": "READY"
+}

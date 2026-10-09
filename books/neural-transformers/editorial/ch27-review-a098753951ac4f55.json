@@ -1,0 +1,11 @@
+{
+  "key": "a098753951ac4f557fc0d62c1b729036bbe81f957dcc32e8289198afc1e45e87",
+  "person": {
+    "id": "v5_editor_13",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 254,
+  "result": "1. **最近位置仍可能因 `0 * inf` 产生 NaN。**  \n   原句：「`right = (abs_delta + safe_min) / float(sigma)`」及「`shifted_energy = 0.5 * left * right`」  \n   原因：`nearest_scale` 有限不保证 `2 * nearest_scale` 有限。若最近距离除以 `sigma` 接近 float64 上限，最近位置的 `left=0`、`right=inf`，乘积成为 NaN。之后只检查 `denom64 <= 0`，不会拦截 NaN，故此前指出的数值边界仍存在。  \n   最小修法：对最近允许位置直接设 `shifted_energy=0`，避免计算 `0*inf`；另检查 `shifted_energy` 与 `denom64` 是否有限，并为该有限输入极限案例加测试。\n\n本轮新增的有限参数验证已覆盖 NaN、无穷与非正参数；但上述稳定权重实现仍可能静默传播 NaN。\n\nVERDICT: REVISE"
+}

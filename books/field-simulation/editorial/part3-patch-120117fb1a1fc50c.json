@@ -1,0 +1,60 @@
+{
+  "key": "120117fb1a1fc50c165d8bd62fabcf83572791ef1fe813b78da3c2b7e3d0c3bc",
+  "person": {
+    "id": "v3_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 362,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "若採集中質量（lumped mass，常用於顯式時間積分），對角化為 $\\frac{c_e h_e}{2}\\,\\mathrm{diag}(1,1)$，總質量不變但精度降為一階。",
+        "new": "若採集中質量（lumped mass，常用於顯式時間積分），對角化為 $\\frac{c_e h_e}{2}\\,\\mathrm{diag}(1,1)$，總質量不變。集中質量會改變離散頻散、耗散與誤差常數；是否降低收斂階，須依問題、網格、時間格式及誤差範數分析，不能一概稱為一階。"
+      },
+      {
+        "chapter": 16,
+        "old": "集中質量會引入 $\\mathcal{O}(h^2)$ 相位誤差，且對高頻模態的耗散改變。",
+        "new": "集中質量會改變離散頻散、耗散與誤差常數；其相位誤差階及整體收斂階須依具體問題、網格和時間格式分析。"
+      },
+      {
+        "chapter": 14,
+        "old": "    try:\n        validate_csr(indptr, indices, data, n)\n    except Exception as e:\n        return None, 0, np.nan, False, f\"invalid_input: {str(e)}\"",
+        "new": "    try:\n        validate_csr(indptr, indices, data, n)\n    except (ValueError, TypeError) as e:\n        return None, 0, np.nan, False, f\"invalid_input: {str(e)}\""
+      },
+      {
+        "chapter": 15,
+        "old": "def gmres(A, b, x0=None, restart=10, maxiter=100,\n          atol=1e-12, rtol=1e-8, apply_Pinv=None):",
+        "new": "def gmres(A, b, x0=None, restart=10, maxiter=100,\n          atol=1e-12, rtol=1e-8, apply_Pinv=None,\n          epsilon_arnoldi=1e-14):"
+      },
+      {
+        "chapter": 15,
+        "old": "    if (not np.isfinite(atol) or not np.isfinite(rtol)\n            or atol < 0 or rtol < 0):\n        raise ValueError(\"atol 與 rtol 必須是有限非負值\")",
+        "new": "    if (not np.isfinite(atol) or not np.isfinite(rtol)\n            or atol < 0 or rtol < 0\n            or not np.isfinite(epsilon_arnoldi) or epsilon_arnoldi < 0):\n        raise ValueError(\"atol、rtol 與 epsilon_arnoldi 必須有限且非負\")"
+      },
+      {
+        "chapter": 15,
+        "old": "            H[j + 1, j] = np.linalg.norm(w)\n\n            # 必須在 Givens 旋轉清零前保存此判斷。\n            arnoldi_closed = (H[j + 1, j] == 0.0)\n            if not arnoldi_closed:\n                V[:, j + 1] = w / H[j + 1, j]",
+        "new": "            H[j + 1, j] = np.linalg.norm(w)\n\n            # 以局部矩陣向量尺度判定數值 Arnoldi 封閉；這是容差判定，\n            # 不是精確秩證明。須在 Givens 旋轉前保存旗標。\n            arnoldi_scale = max(1.0, float(np.linalg.norm(A @ z)))\n            arnoldi_closed = (\n                H[j + 1, j] <= epsilon_arnoldi * arnoldi_scale\n            )\n            if not arnoldi_closed:\n                V[:, j + 1] = w / H[j + 1, j]"
+      },
+      {
+        "chapter": 16,
+        "old": "    l2 = np.sqrt(np.trapezoid((uh - ex) ** 2, xs))",
+        "new": "    err_sq = (uh - ex) ** 2\n    l2 = np.sqrt(np.sum(\n        0.5 * (err_sq[:-1] + err_sq[1:]) * np.diff(xs)\n    ))"
+      },
+      {
+        "chapter": 16,
+        "old": "> 注意：`np.trapezoid` 於較新 NumPy 才提供；若本機版本較舊請改用 `np.trapz`。這屬於 API 相容性細節，不影響數學內容。以上程式的執行結果是**依推導預期**，本章未在寫作環境實際執行。",
+        "new": "> 示範程式使用相鄰取樣點的梯形公式自行計算積分，不依賴特定 NumPy 版本的積分 API。以上程式結果是**依推導預期**，本章未在寫作環境實際執行。"
+      },
+      {
+        "chapter": 16,
+        "old": "三個一再出現的紀律：(1) 節點精確、$L^2$ 二階、$H^1$ 一階是三個不同的收斂敘述，測試要指名範數；",
+        "new": "三個一再出現的紀律：(1) 本章特例的節點吻合、$L^2$ 二階、$H^1$ 一階是不同的誤差敘述，測試要指名範數；"
+      }
+    ],
+    "reason": "修正集中質量精度概括、CSR輸入例外捕捉、GMRES Arnoldi 浮點封閉判定、NumPy 積分 API 相容性，並同步限定第16章小結的節點吻合範圍。各 old 對應原稿且互不重疊；未執行程式。"
+  }
+}

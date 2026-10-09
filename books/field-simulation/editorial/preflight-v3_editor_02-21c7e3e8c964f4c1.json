@@ -1,0 +1,11 @@
+{
+  "key": "21c7e3e8c964f4c1300ee18cb2f5fdf2fe874c863166d1c733afc9ffa6e00317",
+  "person": {
+    "id": "v3_editor_02",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "author"
+  },
+  "call": 2,
+  "result": "READY"
+}

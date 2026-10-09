@@ -1,0 +1,20 @@
+{
+  "key": "a2335145afbb3b6cee7f47fedcabb407ca1cb98d4edc79eb4a0478d8f1fce33c",
+  "person": {
+    "id": "v2_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 224,
+  "result": {
+    "patches": [
+      {
+        "chapter": 23,
+        "old": "assert no_transmission is None and ftir == 1.0\n\nout = beer_lambert",
+        "new": "assert no_transmission is None and ftir == 1.0\n\n# 臨界角及其兩側：k 是無量綱量；極小負值按臨界處理。\ncritical_sin = air / water\ncritical_cos = math.sqrt(1.0 - critical_sin ** 2)\n_, critical_ray, _ = interface(\n    (critical_sin, critical_cos, 0.0), down, water, air)\nassert critical_ray is not None\n_, below_ray, _ = interface(\n    (math.sqrt(1.0 - (critical_cos + 1e-5) ** 2),\n     critical_cos + 1e-5, 0.0), down, water, air)\nassert below_ray is not None\n_, above_ray, above_f = interface(\n    (math.sqrt(1.0 - (critical_cos - 1e-5) ** 2),\n     critical_cos - 1e-5, 0.0), down, water, air)\nassert above_ray is None and above_f == 1.0\n\nout = beer_lambert"
+      }
+    ],
+    "reason": "補上第23章臨界角及兩側的回歸測試；原程式的 k 為無量綱量，既有容差分支已區分極小負值與全反射，故不改其公式。其餘指摘未構成可據以修改原稿的錯誤：第24章的逐元素平方誤差取平均不含跨像素協方差；所引 `const_uniform` 預期輸出位於第21章，而非第24章；第19章的 nextafter 將閉區間端點移至相鄰可表示浮點數，對有限端點實現了所述的浮點開區間。未執行修後程式。"
+  }
+}

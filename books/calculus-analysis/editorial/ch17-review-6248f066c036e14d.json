@@ -1,0 +1,11 @@
+{
+  "key": "6248f066c036e14dfc2bf5a2a9ff94cffae6b8cb89f8243b1ae0c571f5d6cd2b",
+  "person": {
+    "id": "v4_editor_33",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 196,
+  "result": "阻擋問題仍未修正。\n\n原句：「取零條約束，並令 $Q=\\begin{bmatrix}1&0\\\\0&0\\end{bmatrix}$。受限 Hessian 特徵值為 $0,1$。預期分類為『正半定但不正定』。」\n\n原因：程式先解 KKT 系統，再分類 Hessian。零條約束時 KKT 系統包含奇異的 $Q$；若依文中所述取 $q=0$，`np.linalg.solve` 仍會因奇異而失敗，分類程式不會執行。這是前次指出的同一問題。\n\n最小修法：把測試改成滿足 LICQ、且 KKT 系統非奇異的約束問題，再讓切空間上的約化 Hessian具有特徵值 $0,1$；或改寫求解流程以妥善處理奇異 KKT 系統，並檢查駐點存在與相容性。\n\nVERDICT: REVISE"
+}

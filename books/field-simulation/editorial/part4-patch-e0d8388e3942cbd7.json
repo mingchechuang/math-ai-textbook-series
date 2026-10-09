@@ -1,0 +1,20 @@
+{
+  "key": "e0d8388e3942cbd714a6be88976a7a89b138515997293a62ea667f83aaa6cbee",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 412,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "定義\n\n$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "定義\n\n$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$"
+      }
+    ],
+    "reason": "原稿中的式首是換行後接 u_x、u_y，並非 LaTeX 的 \\nu_x、\\nu_y；因此無須修改。"
+  }
+}

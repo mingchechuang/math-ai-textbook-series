@@ -1,0 +1,108 @@
+### 獨立審稿報告
+
+**1. 重算與核對**
+
+*   **字數檢查**：
+    *   目標：4500字。
+    *   實測：4709字。
+    *   狀態：符合目標。
+
+*   **邊界條件符號檢查**：
+    *   定位：「數學與物理推導」>「邊界條件」段落。
+    *   原句：`水面熱交換常用 Robin 條件：$-k_{\text{th}}\partial_n T=h_{\text{th}}(T-T_{\text{air}})$`
+    *   分析：
+        *   定義 $\partial_n$ 為沿水域的**單位外法向**導數。對於水面，外法向指向上方（空氣）。
+        *   傅里葉定律：熱流密度 $q = -k \nabla T \cdot \mathbf{n} = -k \partial_n T$。
+        *   Newton 冷卻定律：熱從水（$T$）流向空氣（$T_{\text{air}}$）。若 $T > T_{\text{air}}$，熱流向外（正）。
+        *   物理上，外向熱流 $q_{out} = h(T - T_{\text{air}})$。
+        *   結合兩式：$-k \partial_n T = h(T - T_{\text{air}})$。
+        *   文稿寫法：$-k_{\text{th}}\partial_n T=h_{\text{th}}(T-T_{\text{air}})$。
+        *   符號一致。若 $T > T_{\text{air}}$，右端為正，左端 $-k \partial_n T$ 代表外向熱流，亦為正。符合物理直覺「水比空氣熱時，右端為正，表示熱向外流」。
+    *   定位：`水面復氧可寫為 $-D\partial_n c=h_m(c-c_{\text{sat}})$`
+    *   分析：
+        *   溶質通量 $J = -D \nabla c \cdot \mathbf{n} = -D \partial_n c$。
+        *   復氧通量：若水中濃度 $c$ 低於飽和濃度 $c_{\text{sat}}$，氧從空氣進入水中，即外向通量為負（或內向通量為正）。
+        *   經驗公式：外向溶質通量 $J_{out} = h_m(c - c_{\text{sat}})$。
+        *   若 $c < c_{\text{sat}}$，$J_{out}$ 為負，表示氧流入水域。
+        *   文稿寫法：$-D\partial_n c=h_m(c-c_{\text{sat}})$。
+        *   符號一致。
+    *   結論：邊界條件符號正確。
+
+*   **程式碼邏輯檢查**：
+    *   `laplacian_2d`：使用 `np.pad(mode='edge')` 實現零通量 Neumann 邊界。
+        *   邊界 cell 的 Laplacian 計算：例如 $i=0$，左側 ghost 值等於邊界值 $q[0]$。
+        *   $(q[0] - 2q[0] + q[1])/dx^2 = (q[1]-q[0])/dx^2$。
+        *   這對應於邊界法向導數為零（一階單側差分為零，因為 $q[0]-q[0]=0$? 不，ghost 值 $q[-1]=q[0]$，中心差分 $(q[1]-q[-1])/2dx = (q[1]-q[0])/2dx$。若零通量，$q[1] \approx q[0]$? 不，零通量意味著 $\partial_n c = 0$。
+        *   使用 `edge` padding 是標準的零通量 Neumann 邊界離散方法之一（一階精度邊界處理，內點二階）。
+        *   程式碼邏輯正確。
+    *   `step_reaction_diffusion`：
+        *   `T_new = T + dt * (alpha * lap_T + Q_over_rhocp)`。
+        *   `c_new = c + dt * (D * lap_c - kd * c + ka * (c_sat - c))`。
+        *   符號：擴散項 $D \nabla^2 c$。Laplacian 算子 $L$ 在週期/零通量下為負半定。
+        *   程式碼 `laplacian_2d` 回傳的是 $\nabla^2 c$ 的離散值。
+        *   若 $c$ 為常數，`lap` 為 0。
+        *   若 $c$ 有高點，`lap` 為負。
+        *   更新式 $c_{new} = c + dt D (\text{negative})$，濃度下降。符合物理。
+        *   反應項：$-k_d c + k_a(c_{sat}-c)$。
+        *   若 $c < c_{sat}$ 且 $k_d$ 小，項為正，濃度增加。符合物理。
+    *   `make_grid`：檢查 `Nx, Ny` 為整數且大於等於 2。
+    *   `stability_limit_2d`：$0.5 / (D (1/dx^2 + 1/dy^2))$。正確。
+
+*   **數值計算核對**：
+    *   **例題 3**：
+        *   $D=10^{-4}$, $dx=dy=0.1$。
+        *   $1/dx^2 + 1/dy^2 = 100 + 100 = 200$。
+        *   $\Delta t \le 0.5 / (10^{-4} \cdot 200) = 0.5 / 0.02 = 25$ s。
+        *   文稿計算：$0.5/(10^{-4}\cdot 200) = 25$ s。正確。
+    *   **習題 4**：
+        *   $L=1, N=21 \Rightarrow dx = 1/21 \approx 0.047619$。
+        *   $dx^2 \approx 0.002267$。
+        *   $1/dx^2 \approx 441$。
+        *   $1/dx^2 + 1/dy^2 = 882$。
+        *   $\Delta t \le 0.5 / (10^{-4} \cdot 882) = 0.5 / 0.0882 \approx 5.668$ s。
+        *   文稿計算：$\approx 5.67$ s。正確。
+        *   步數：$1000 / 5 = 200$ 步。正確。
+        *   敏感度：$k_d=10^{-5}, k_a=2\times 10^{-5}$。
+        *   $c_\infty = k_a c_{sat} / (k_d+k_a) = 2/3 c_{sat}$。
+        *   $\partial \ln c_\infty / \partial \ln k_a = k_d / (k_d+k_a) = 1/3$。
+        *   $\partial \ln c_\infty / \partial \ln k_d = -k_d / (k_d+k_a) = -1/3$。
+        *   文稿計算正確。
+    *   **養殖案例敏感度**：
+        *   $k_d=5\times 10^{-6}, k_a=2\times 10^{-5}$。
+        *   $k_d+k_a = 2.5\times 10^{-5}$。
+        *   $S_a = k_d/(k_d+k_a) = 5/25 = 0.2$。
+        *   $S_d = -k_d/(k_d+k_a) = -0.2$。
+        *   文稿寫：$0.2$ 與 $-0.2$。正確。
+
+*   **無因次化推導**：
+    *   $U \to 0$ 時，$T_{ref} = L^2/D$。
+    *   平流項係數：$U L / D = \mathrm{Pe}$。
+    *   文稿寫法：$\frac{\partial c^*}{\partial t^*} + \mathrm{Pe}_c \mathbf{u}^* \cdot \nabla^* c^* = \nabla^{*2} c^* \dots$
+    *   推導：
+        *   $t = T_{ref} t^* = (L^2/D) t^*$。
+        *   $\partial_t = \frac{D}{L^2} \partial_{t^*}$。
+        *   $\mathbf{u} \cdot \nabla c = U \mathbf{u}^* \cdot \frac{1}{L} \nabla^* c^* = \frac{U}{L} \mathbf{u}^* \cdot \nabla^* c^*$。
+        *   $D \nabla^2 c = D \frac{1}{L^2} \nabla^{*2} c^*$。
+        *   方程：$\frac{D}{L^2} \partial_{t^*} c^* + \frac{U}{L} \mathbf{u}^* \cdot \nabla^* c^* = \frac{D}{L^2} \nabla^{*2} c^* + \dots$
+        *   除以 $D/L^2$：$\partial_{t^*} c^* + \frac{U L}{D} \mathbf{u}^* \cdot \nabla^* c^* = \nabla^{*2} c^* + \dots$
+        *   即 $\partial_{t^*} c^* + \mathrm{Pe} \mathbf{u}^* \cdot \nabla^* c^* = \nabla^{*2} c^* + \dots$
+    *   文稿寫法正確。
+
+*   **程式與測試一致性**：
+    *   測試 (1) 提到 `Nx=Ny=2` 應被接受。程式 `if Nx < 2` 會拒絕 `Nx=1`，接受 `Nx=2`。一致。
+    *   故障測試 (1) 提到 `Nx=32.0` 應拒絕。程式 `isinstance(Nx, int)` 會拒絕 float。一致。
+
+**2. 問題清單**
+
+無重大實質問題。
+1.  **邊界條件**：符號正確。
+2.  **程式碼**：邏輯正確，符合零通量 Neumann 邊界與反應擴散模型。
+3.  **數值計算**：所有手算例與習題解答的計算均正確。
+4.  **無因次化**：推導與符號一致。
+5.  **字數**：符合目標。
+
+**3. 結論**
+
+本稿符合所有技術與格式要求。
+
+VERDICT: APPROVE

@@ -1,0 +1,2 @@
+{"role": "user", "text": "{\"task\": \"模型連線與實際provider/model核對。只回答READY。\", \"round\": 3, \"attempt\": 1}", "timestamp": 1790971683372}
+{"role": "assistant", "text": "READY", "timestamp": 1790971683382, "provider": "openai-codex", "model": "gpt-6-luna", "stopReason": "stop"}

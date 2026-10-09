@@ -1,0 +1,11 @@
+{
+  "key": "ac1a08f1c60f5c1817e2fc4983a8dc79e3b7d8af482a0f799c759db6ff52fa16",
+  "person": {
+    "id": "v5_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 542,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n3. **遮罩形狀錯**：`mask.shape=(T,)` 或 `(B,T,T+1)` → 拋 `ValueError`。\n4. **非布林遮罩**：傳入 `float32` mask → 拋 `ValueError`；這避免用 0/1 混過布林約定。\n5. **錯誤順序**：故意先 `transpose` 後 `reshape`，形狀可能仍正確，但 `merge(split(X)) != X` 會被命題 16.1 的數值檢驗抓到。\n<<<NEW>>>\n3. **遮罩形狀錯**：`mask.shape=(T,)` 或 `(B,T,T+1)` → 拋 `ValueError`。\n4. **非布林遮罩**：傳入 `float32` mask → 拋 `TypeError`；這避免用 0/1 混過布林約定。\n5. **錯誤順序**：故意先 `transpose` 後 `reshape`，形狀可能仍正確，但 `merge(split(X)) != X` 會被命題 16.1 的數值檢驗抓到。\n<<<END>>>"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "74788124542b5f9d7f9c939854c683b39ce8ca16295e179e57c070a30be47238",
+  "person": {
+    "id": "v4_editor_17",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 344,
+  "result": "本稿仍未變更；以下阻擋問題依然存在：\n\n1. **程式 shape 錯誤**  \n   `U_num` 長度為 99，而 `v = np.random.rand(N)` 長度為 100，方向導數核對不能執行。\n\n2. **故障測試未實作**  \n   `solve_laplacian` 沒有檢查 $h>0$、NaN 或 shape。負 $h$ 不一定拋出例外。\n\n3. **梯度尺度錯誤**  \n   原句\n   > 「$DJ(u)[v]\\approx h\\sum\\nabla J_d(U)_jv_j$」\n\n   對 Euclidean 座標梯度應為\n\n   $$\n   DJ_d(U)[V]=\\nabla_{\\mathrm E}J_d(U)^TV.\n   $$\n\n   若 $g$ 是連續 $L^2$ 梯度，才通常有 $\\nabla_{\\mathrm E}J_d\\approx hg|_{\\rm grid}$。\n\n4. **習題 1 算錯**  \n   原句\n   > 「$-4u''-1=0\\implies u''=-1/4$」\n\n   正確為 $-1-2u''=0$，所以 $u''=-1/2$。\n\n5. **Neumann 習題未完成**  \n   未提供離散矩陣、完整程式或相容條件測試；加入 $\\epsilon I$ 會改變原問題。\n\n6. **未構造鞍點**  \n   對 $W(p)=(p^2-1)^2$，$W''(\\pm1)=8>0$。稿件沒有展示第二變分的正、負方向。\n\n7. **梯度概念錯誤**  \n   > 「$L^2$ 梯度僅為函數本身。」\n\n   梯度取決於泛函及內積，不能作此一般敘述。\n\n8. **保留未完成錯式**  \n   > 「$\\dots\\text{ (Wait, }f=\\pi^2\\sin\\pi x\\text{)}$」\n\n   此草稿式必須刪除。\n\n9. **正則性與邊界量詞不足**  \n   $u\\in C^2$ 不單獨保證 $L_{\\nabla u}(x,u,\\nabla u)$ 有經典散度；混合邊界時自然條件只在自由邊界成立。\n\n10. **不當聲稱測試通過**  \n    稿件未提供執行證據，且程式目前不能完成，不能寫「通過測試驗證」。\n\n11. **硬性完整度未達標**  \n    正文僅 1418 中文字，低於最低 3000；正常、邊界、故障測試不完整，指定的相場能量離散方向導數案例缺失，多題習題答案仍錯誤或不完整。\n\nVERDICT: REVISE"
+}

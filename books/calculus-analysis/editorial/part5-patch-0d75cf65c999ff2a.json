@@ -1,0 +1,11 @@
+{
+  "key": "0d75cf65c999ff2ae082caece8e270542c5d70b2522f7e2df2acf91cd2ddccbc",
+  "person": {
+    "id": "v4_editor_00",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "role": "author"
+  },
+  "call": 485,
+  "result": "<<<PATCH 26>>>\n<<<OLD>>>\n若缺完備性（例如取 $X=\\mathbb{Q}_{>0}$ 配通常距離，$T(x)=(x+2/x)/2$ 想求 $\\sqrt 2$；$T$ 確實把每個正有理數映回正有理數，迭代卻收斂到不屬於 $X$ 的 $\\sqrt2$），極限就可能跳出 $X$，這正是完備性不可省的原因。\n<<<NEW>>>\n若缺完備性（例如取 $X=\\mathbb{Q}\\cap[1,2]$ 配通常距離，$T(x)=(x+2/x)/2$ 想求 $\\sqrt 2$；在此區間上 $T'(x)=1/2-1/x^2$ 於 $x=1$ 取得最小值 $-1/2$、於 $x=2$ 取得最大值 $1/4$，故 $|T'|\\le 1/2$，$T$ 是 $X$ 上的壓縮映射；又 $T([1,2])\\subseteq[1,2]$，迭代卻收斂到不屬於 $X$ 的 $\\sqrt2$），極限就可能跳出 $X$，這正是完備性不可省的原因。\n<<<END>>>"
+}

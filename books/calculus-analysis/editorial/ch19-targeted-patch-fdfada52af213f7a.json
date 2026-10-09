@@ -1,0 +1,11 @@
+{
+  "key": "fdfada52af213f7aab0f95dc35fc0fc3eac55973ffdcca42f464cde3f15a9c97",
+  "person": {
+    "id": "v4_editor_18",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 388,
+  "result": "<<<PATCH 19>>>\n<<<OLD>>>\n### 19.4 瑕積分與交換順序\n<<<NEW>>>\n### 19.4 簡單區域的迭代積分與瑕積分換序\n\n定理 19.3 雖直接陳述於矩形，但可推出以下簡單區域公式。若 $\\\\alpha,\\\\beta$ 在 $[a,b]$ 上連續、$\\\\alpha(x)\\\\leq\\\\beta(x)$，且 $f$ 在包含區域\n$$\nD=\\\\{(x,y):a\\\\leq x\\\\leq b,\\\\ \\\\alpha(x)\\\\leq y\\\\leq\\\\beta(x)\\\\}\n$$\n的矩形上連續，則\n$$\n\\\\iint_D f\\\\,dA=\\\\int_a^b\\\\int_{\\\\alpha(x)}^{\\\\beta(x)}f(x,y)\\\\,dy\\\\,dx.\n$$\n**證明。** 對每個 $x$，以指示函數 $1_{[\\\\alpha(x),\\\\beta(x)]}(y)$ 乘上 $f(x,y)$，將其在外接矩形上作補零延拓。連續的上下界使區域邊界為 Jordan 零測集，因此補零函數 Riemann 可積。矩形上的 Darboux 和在邊界相交的小格中所產生的總誤差，至多為 $\\\\sup_R|f|$ 乘上這些小格的總面積；Jordan 零測性使該面積可任意小。對固定的 $x$，內層積分恰為 $\\\\int_{\\\\alpha(x)}^{\\\\beta(x)}f(x,y)\\\\,dy$；矩形 Fubini 定理及邊界小格誤差趨零，遂給出上述等式。$\\\\square$\n\n<<<END>>>\n<<<PATCH 19>>>\n<<<OLD>>>\n**解**：\n區域描述為 $0 \\\\le x \\\\le 1$ 且 $0 \\\\le y \\\\le x$。\n應用Fubini：\n<<<NEW>>>\n**解**：\n區域描述為 $0 \\\\le x \\\\le 1$ 且 $0 \\\\le y \\\\le x$。由前節簡單區域公式，這裡可以用變動上下限寫成迭代積分；這不是直接把矩形上的定理 19.3 套到三角形：\n<<<END>>>\n<<<PATCH 19>>>\n<<<OLD>>>\n   區域可寫成 $0\\\\leq x\\\\leq1$、$0\\\\leq y\\\\leq1-x$。三角形有界且邊界可受控，連續函數在其上的補零積分可用此上下限計算：\n<<<NEW>>>\n   區域可寫成 $0\\\\leq x\\\\leq1$、$0\\\\leq y\\\\leq1-x$。由第 19.4 節已證的簡單區域公式，連續函數在此三角形上的補零積分可用這組上下限計算：\n<<<END>>>"
+}

@@ -1,0 +1,363 @@
+# 第 28 章　逆向運動學與限制
+
+## 學習目標與先備知識
+
+本章以兩連桿平面關節鏈建立一個可重現的逆向運動學（inverse kinematics，IK）實驗。完成後，你應能由關節角計算末端位置，推導位置 Jacobian 並以有限差分核對，使用阻尼最小平方作局部更新，以及分辨「達到容差」、「數值停滯」和「目標不可達」。
+
+先備知識為向量、矩陣及基本 Python。長度與位置以公尺計，角度以弧度計。關節鏈位於本書右手世界系的 $XY$ 平面：$+X$ 向右、$+Y$ 向上，繞 $+Z$ 的正角使 $+X$ 轉向 $+Y$。本章使用的魚尾關節是合成動畫控制器，並非魚類解剖測量。
+
+## 問題與直覺
+
+正向運動學（forward kinematics，FK）從已知的關節角求末端位置。逆向運動學反過來：給定希望末端到達的位置，尋找一組關節角。例如合成魚尾的末端應靠近預先設計的擺動路徑，而魚身關節與尾部關節各有轉角範圍。
+
+反向問題通常沒有唯一答案。一個位置可能對應向上彎與向下彎兩種姿態；過遠的目標沒有解；關節角受到限制時，原本距離足夠近的目標也可能碰不到。數值求解器更可能從某個初始姿態停在有殘差的位置。因此，IK 的產物不只是角度，還應包含末端實際位置、殘差與停止原因。
+
+## 數學與幾何推導
+
+### 兩連桿正向運動學
+
+令根部位置為 $\mathbf b=(b_x,b_y)^T$，兩段長度為 $L_1,L_2>0$。第一段相對世界 $+X$ 的角度為 $\theta_1$；第二關節相對第一段旋轉 $\theta_2$，所以第二段的世界角是 $\theta_1+\theta_2$。末端位置為
+
+$$
+\mathbf f(\boldsymbol\theta)=\mathbf b+
+\begin{bmatrix}
+L_1\cos\theta_1+L_2\cos(\theta_1+\theta_2)\\
+L_1\sin\theta_1+L_2\sin(\theta_1+\theta_2)
+\end{bmatrix},
+\qquad
+\boldsymbol\theta=
+\begin{bmatrix}\theta_1\\\theta_2\end{bmatrix}.
+$$
+
+從場景階層看，先以第一關節旋轉並沿局部 $+X$ 移動 $L_1$，再以第二關節旋轉並沿其局部 $+X$ 移動 $L_2$。本書使用直向量，因此子節點的世界變換為 $M_{\text{parent}}M_{\text{local}}$，不可將相對角 $\theta_2$ 直接當成第二段的世界角。
+
+給定目標 $\mathbf g$，令 $r=\|\mathbf g-\mathbf b\|$。當角度**不受限制**時，兩段構成三角形；由三角不等式，目標位置可達若且唯若
+
+$$
+|L_1-L_2|\le r\le L_1+L_2.
+$$
+
+這只判斷末端**位置**，不要求末段特定朝向，也不考慮碰撞。若再指定角度界限，落在圓環中僅是必要條件，不能保證存在合法姿態。
+
+### 位置 Jacobian
+
+在目前角度附近，給關節一個小更新 $\Delta\boldsymbol\theta$，FK 可用局部線性式近似：
+
+$$
+\mathbf f(\boldsymbol\theta+\Delta\boldsymbol\theta)
+\approx\mathbf f(\boldsymbol\theta)+J(\boldsymbol\theta)\Delta\boldsymbol\theta.
+$$
+
+Jacobian 的每一欄表示：只稍微增加該欄對應的關節角，末端位置如何變化。這是本章使用微積分的地方；求導規則為 $\frac{d}{d\theta}\sin\theta=\cos\theta$、$\frac{d}{d\theta}\cos\theta=-\sin\theta$。逐項對 FK 求導，得到 $2\times2$ 矩陣
+
+$$
+J(\boldsymbol\theta)=
+\begin{bmatrix}
+-L_1\sin\theta_1-L_2\sin(\theta_1+\theta_2)
+&
+-L_2\sin(\theta_1+\theta_2)\\
+ L_1\cos\theta_1+L_2\cos(\theta_1+\theta_2)
+&
+ L_2\cos(\theta_1+\theta_2)
+\end{bmatrix}.
+$$
+
+位置以公尺、角度以弧度表示，Jacobian 元素可解讀為每弧度的公尺位移。若求解器沒有解析導數，可以用中央有限差分估計第 $j$ 欄：
+
+$$
+J_{:,j}\approx
+\frac{\mathbf f(\boldsymbol\theta+h\mathbf e_j)
+-\mathbf f(\boldsymbol\theta-h\mathbf e_j)}{2h},
+$$
+
+其中 $h>0$ 是以弧度計的擾動，$\mathbf e_j$ 是第 $j$ 個關節的單位角度方向。$h$ 太大，局部近似不夠精細；太小，浮點數相減的誤差可能變顯著。差分時應評估**未經角度裁切的 FK**，否則在界限附近估計到的是裁切操作，而非 FK 的導數。
+
+若兩段恰好伸直或折疊，Jacobian 可能失去秩：在當前姿態，有些末端位移無法由一階小角度變化表示。這稱為奇異姿態，並不表示在其他姿態無法接近目標。
+
+### 阻尼最小平方、界限與停止
+
+定義末端誤差 $\mathbf e=\mathbf g-\mathbf f(\boldsymbol\theta)$。直接反解 $J\Delta\boldsymbol\theta=\mathbf e$，在奇異或近奇異處可能無解或產生很大的更新。阻尼最小平方（damped least squares，DLS）改為求下式的最小值：
+
+$$
+\|J\Delta\boldsymbol\theta-\mathbf e\|^2
++\lambda^2\|\Delta\boldsymbol\theta\|^2,
+\qquad \lambda>0.
+$$
+
+第一項希望線性化後的末端靠近目標，第二項懲罰過大的角度更新。對 $\Delta\boldsymbol\theta$ 求此二次式的最小值，得到
+
+$$
+\Delta\boldsymbol\theta
+=J^T(JJ^T+\lambda^2I)^{-1}\mathbf e.
+$$
+
+實作時應解線性方程，不必顯式建立逆矩陣。阻尼提高局部數值穩定性，卻不保證求得全域解；阻尼太大也會使步伐偏小。
+
+若關節界限為 $\boldsymbol\ell\le\boldsymbol\theta\le\mathbf u$，簡單作法是在提出更新後，將角度逐項裁切至界限，再重新用 FK 評估。這是受限 IK 的教學近似，**不是**嚴格的受限最佳化；在界限上可能持續產生無效更新。可再限制單步角度範數，並逐次縮小試行步長，只接受實際殘差下降的更新。
+
+停止準則至少分為：殘差已低於位置容差、更新過小、找不到下降步，以及達到迭代上限。圓環外目標可預先判為未受限也不可達；對圓環內但受關節限制的目標，單次局部求解失敗不能當作數學上的無解證明。應保留最後角度、實際末端位置與以公尺計的殘差。
+
+## 逐步手算例題
+
+### 例一：一個阻尼更新
+
+取 $\mathbf b=(0,0)^T$、$L_1=L_2=1$ 公尺、$\theta_1=0$、$\theta_2=\pi/2$。第一段末端為 $(1,0)^T$，第二段沿 $+Y$，因此
+
+$$
+\mathbf f(0,\pi/2)=(1,1)^T,
+\qquad
+J=
+\begin{bmatrix}-1&-1\\1&0\end{bmatrix}.
+$$
+
+令目標為 $\mathbf g=(0,2)^T$，則 $\mathbf e=(-1,1)^T$。取 $\lambda=1$，
+
+$$
+JJ^T+\lambda^2I
+=\begin{bmatrix}3&-1\\-1&2\end{bmatrix}.
+$$
+
+解 $(JJ^T+\lambda^2I)\mathbf y=\mathbf e$ 得 $\mathbf y=(-0.2,0.4)^T$，所以
+
+$$
+\Delta\boldsymbol\theta=J^T\mathbf y=(0.6,0.2)^T
+\text{ 弧度}.
+$$
+
+這是**未加步長及關節限制的局部更新**，不是目標的精確角度解。須將更新後的角度重新代回非線性的 FK，才知道實際殘差是否下降。
+
+### 例二：未受限可達與受限可達不同
+
+設 $L_1=1$、$L_2=0.5$ 公尺，根部在原點。目標 $(1.2,0)^T$ 的距離為 $1.2$ 公尺，落在未受限區間 $[0.5,1.5]$，故存在某個未受限姿態到達目標。但若把兩個關節都固定為零角，唯一末端是 $(1.5,0)^T$，留下 $0.3$ 公尺殘差。
+
+若改以 $(2,0)^T$ 為目標，其距離 $2>1.5$ 公尺；即使解除所有角度限制，末端與目標至少相距 $0.5$ 公尺。這個殘差下界由幾何決定，增加迭代次數也無法消除。
+
+## 實作與程式
+
+以下完整程式使用 Python 3.10+ 與 NumPy 2.2.6 相容寫法。它不讀檔、不需要 GPU。有限差分用來檢查及建立 Jacobian；DLS 提出更新後，先裁切角度，再用 FK 判斷試行步是否真的降低殘差。程式供讀者執行，本書未執行。
+
+```python
+import numpy as np
+
+
+def fk(q, lengths, base=(0.0, 0.0)):
+    q = np.asarray(q, dtype=float)
+    L = np.asarray(lengths, dtype=float)
+    b = np.asarray(base, dtype=float)
+    if q.shape != (2,) or L.shape != (2,) or b.shape != (2,):
+        raise ValueError("角度、長度與根部位置都須有兩個元素")
+    if not all(np.all(np.isfinite(x)) for x in (q, L, b)):
+        raise ValueError("輸入須為有限數值")
+    if np.any(L <= 0):
+        raise ValueError("連桿長度須為正")
+
+    a1, a2 = q[0], q[0] + q[1]
+    return b + np.array([
+        L[0] * np.cos(a1) + L[1] * np.cos(a2),
+        L[0] * np.sin(a1) + L[1] * np.sin(a2),
+    ])
+
+
+def jacobian_fd(q, lengths, base=(0.0, 0.0), h=1e-5):
+    if not np.isfinite(h) or h <= 0:
+        raise ValueError("有限差分步長須為正")
+    q = np.asarray(q, dtype=float)
+    if q.shape != (2,):
+        raise ValueError("須提供兩個關節角")
+    J = np.empty((2, 2), dtype=float)
+    for j in range(2):
+        step = np.zeros(2)
+        step[j] = h
+        J[:, j] = (
+            fk(q + step, lengths, base)
+            - fk(q - step, lengths, base)
+        ) / (2 * h)
+    return J
+
+
+def solve_ik(target, q0, lengths, lower, upper,
+             base=(0.0, 0.0), damping=0.1,
+             tolerance=1e-5, max_iter=200,
+             max_step=0.25, h=1e-5):
+    target = np.asarray(target, dtype=float)
+    q = np.asarray(q0, dtype=float).copy()
+    L = np.asarray(lengths, dtype=float)
+    lo = np.asarray(lower, dtype=float)
+    hi = np.asarray(upper, dtype=float)
+    base = np.asarray(base, dtype=float)
+
+    if any(x.shape != (2,) for x in (target, q, L, lo, hi, base)):
+        raise ValueError("目標、角度、長度、界限與根部均須有兩個元素")
+    if not all(np.all(np.isfinite(x))
+               for x in (target, q, L, lo, hi, base)):
+        raise ValueError("輸入須為有限數值")
+    if (np.any(L <= 0) or np.any(lo > hi)
+            or not all(np.isfinite(x)
+                       for x in (damping, tolerance, max_step, h))
+            or damping <= 0 or tolerance <= 0
+            or max_step <= 0 or h <= 0 or max_iter < 1):
+        raise ValueError("長度、角度界限或求解參數無效")
+
+    q = np.clip(q, lo, hi)
+    radius = np.linalg.norm(target - base)
+    outside_ring = (
+        radius > L.sum() + tolerance
+        or radius < abs(L[0] - L[1]) - tolerance
+    )
+    status = "迭代上限"
+    attempts = 0
+
+    for _ in range(max_iter):
+        tip = fk(q, L, base)
+        error = target - tip
+        distance = np.linalg.norm(error)
+        if distance <= tolerance:
+            status = "已達位置容差"
+            break
+
+        attempts += 1
+        J = jacobian_fd(q, L, base, h)
+        delta = J.T @ np.linalg.solve(
+            J @ J.T + damping**2 * np.eye(2), error
+        )
+        size = np.linalg.norm(delta)
+        if not np.isfinite(size) or size < 1e-12:
+            status = "更新太小"
+            break
+        if size > max_step:
+            delta *= max_step / size
+
+        accepted = False
+        for k in range(16):
+            candidate = np.clip(q + (0.5**k) * delta, lo, hi)
+            candidate_distance = np.linalg.norm(
+                target - fk(candidate, L, base)
+            )
+            if candidate_distance < distance - 1e-12:
+                q = candidate
+                accepted = True
+                break
+        if not accepted:
+            status = "找不到下降步"
+            break
+
+    tip = fk(q, L, base)
+    residual = float(np.linalg.norm(target - tip))
+    if residual <= tolerance:
+        status = "已達位置容差"
+    elif outside_ring:
+        status = "目標在未受限可達圓環外；" + status
+    return q, tip, residual, status, attempts
+
+
+# 合成數值測試：本書未執行，結果標示為「預期」。
+L = (1.0, 1.0)
+q_test = np.array([0.0, np.pi / 2])
+assert np.allclose(fk(q_test, L), [1.0, 1.0], atol=1e-12)
+J_expected = np.array([[-1.0, -1.0], [1.0, 0.0]])
+assert np.allclose(jacobian_fd(q_test, L), J_expected, atol=1e-8)
+
+q, tip, residual, status, attempts = solve_ik(
+    target=(1.0, 1.0), q0=(0.3, 0.8), lengths=L,
+    lower=(-np.pi, -np.pi), upper=(np.pi, np.pi),
+)
+assert np.all(q >= -np.pi) and np.all(q <= np.pi)
+assert np.allclose(tip, fk(q, L))
+assert residual < 1e-5
+assert status == "已達位置容差"
+
+_, _, far_error, far_status, _ = solve_ik(
+    target=(3.0, 0.0), q0=(0.0, 0.0), lengths=L,
+    lower=(-np.pi, -np.pi), upper=(np.pi, np.pi),
+)
+assert far_error >= 1.0 - 1e-12
+assert "圓環外" in far_status
+
+fixed_q, _, fixed_error, fixed_status, _ = solve_ik(
+    target=(1.0, 1.0), q0=(0.0, 0.0), lengths=L,
+    lower=(0.0, 0.0), upper=(0.0, 0.0),
+)
+assert np.allclose(fixed_q, [0.0, 0.0])
+assert fixed_error > 1e-5
+assert fixed_status != "已達位置容差"
+print("預期：FK、Jacobian、界限及不可達測試通過")
+```
+
+`max_step` 是一次更新的角度向量最大範數，以弧度計；`tolerance` 是末端位置容差，以公尺計。`1e-12` 等比較閾值用於這個一公尺量級的數值示範，換場景尺度時須重新檢視。程式不會證明已求得最接近目標的合法姿態；它只回報此次局部搜尋的狀態。
+
+## 測試與預期結果
+
+第一項獨立基準是手算例一：`fk([0, π/2], [1, 1])` **預期**為 $(1,1)^T$；有限差分 Jacobian **預期**接近手算矩陣。第二項是可達目標 $(1,1)^T$：以上述初始角及界限，程式斷言殘差應小於 $10^{-5}$ 公尺。這個測試應同時讀取返回的末端位置，而非只讀 `status`。
+
+第三項目標 $(3,0)^T$ 超出兩公尺的最大伸展距離，**預期**任何姿態至少留下約一公尺殘差；第四項把兩關節界限都固定為零，**預期**角度不變且不得回報達標。這兩項分別測試「幾何上不可能」與「角度界限阻止更新」，不可合併解讀。若讀者更換阻尼、初始姿態或容差，也應重新確認測試條件，而非沿用某次執行的角度值。
+
+## 除錯與常見陷阱
+
+**第二段轉向錯誤。**檢查 FK 是否使用 $\theta_1+\theta_2$ 作第二段世界角。亦須檢查角度是否誤以度數輸入；NumPy 的三角函數以弧度運算。
+
+**Jacobian 與畫面移動方向不合。**先在同一組角度上比較解析 Jacobian 與有限差分，再檢查世界 $Y$ 向上和影像像素 $Y$ 向下的差異。世界目標、根部位置及 FK 輸出必須在同一座標空間。
+
+**伸直時更新很小。**伸直姿態可能奇異。阻尼可避免某些不穩定更新，但不能從任何起點保證走出停滯。可另選幾個合法初始姿態，分別記錄其結果；多次嘗試仍不能宣稱找到全域最佳解。
+
+**界限內仍有殘差。**關節貼住角度上下限時，裁切可能抵消提出的更新。檢查圓環條件、末端殘差、哪些關節貼住界限，以及是否出現「找不到下降步」。在圓環內的一次求解失敗，不足以證明受限目標無解。
+
+**逐影格姿態跳躍。**同一末端位置可對應不同彎曲方向。以先前影格角度作為下一影格起點、限制單步變化並監測殘差，通常比每影格從固定角度重啟更易保持連續；但這並未自動加入碰撞限制。
+
+## 養殖數位分身案例
+
+可將一條合成魚尾簡化為兩段連桿，讓尾端追蹤設計好的擺動目標。魚身若在世界中移動，先將世界目標轉至魚尾根節點的局部平面，再作本章 IK；或者把根部與目標都保持在一致的世界座標中計算。若根節點有旋轉，僅相減世界位置而不作逆旋轉，便不是局部目標。
+
+以固定時間步產生序列時，可用上一影格的合法角度作下一影格初始值。每影格記錄時間（秒）、目標位置及座標空間、關節角、末端實際位置、殘差與停止原因。貼住界限或超出可達範圍的影格應保留標記，不要默默視為成功追蹤。這些合成姿態有助於生成可稽核動畫及標註，不能視為魚類游動力學的實測驗證。
+
+## 習題
+
+1. **手算。**根部在原點，$L_1=2$、$L_2=1$ 公尺，$\theta_1=\pi/2$、$\theta_2=-\pi/2$。求末端位置及解析位置 Jacobian。
+2. **程式測試。**在 $\boldsymbol\theta=(0.4,-0.7)^T$、$L_1=1$、$L_2=0.5$ 下，分別以 $h=10^{-4}$、$10^{-5}$ 求有限差分 Jacobian，與解析式比較。寫出測試核心及判準。
+3. **反例／除錯。**兩條各一公尺的連桿從 $(0,0)^T$ 弧度出發，目標位置為 $(2,0.2)^T$ 公尺。某求解器因更新很小便顯示「已達目標」。指出判斷錯誤，並求目標距離及未受限可達性。
+4. **整合應用。**魚尾根節點在世界平面位置 $(4,1)^T$，其局部 $+X$ 相對世界旋轉 $\pi/2$。世界目標是 $(3,2)^T$，兩段長度各一公尺。求目標在根節點局部平面的座標，檢查未受限距離條件，並列出逐影格應保存的三種以上資料。
+
+## 習題解答
+
+1. 第一段朝 $+Y$，第二段世界角為 $0$，故末端位置是 $(1,2)^T$ 公尺。代入導數：
+
+   $$
+   J=
+   \begin{bmatrix}
+   -2\sin(\pi/2)-\sin0&-\sin0\\
+   2\cos(\pi/2)+\cos0&\cos0
+   \end{bmatrix}
+   =
+   \begin{bmatrix}-2&0\\1&1\end{bmatrix}.
+   $$
+
+2. 可在本章程式後加入以下測試。此處以絕對誤差 $10^{-7}$ 作兩個指定步長的**預期**判準：
+
+   ```python
+   q = np.array([0.4, -0.7])
+   lengths = (1.0, 0.5)
+   a, b = q[0], q[0] + q[1]
+   J_exact = np.array([
+       [-np.sin(a) - 0.5*np.sin(b), -0.5*np.sin(b)],
+       [ np.cos(a) + 0.5*np.cos(b),  0.5*np.cos(b)],
+   ])
+   for h in (1e-4, 1e-5):
+       assert np.allclose(
+           jacobian_fd(q, lengths, h=h),
+           J_exact, rtol=0, atol=1e-7
+       )
+   ```
+
+   不能一般性地要求 $h$ 越小誤差必越小，因浮點相減誤差也會增加。
+
+3. 是否達標應由實際 FK 殘差判斷，而不是由更新量判斷；更新很小也可能代表奇異姿態或界限停滯。目標距離為 $\sqrt{2^2+0.2^2}=\sqrt{4.04}\approx2.010$ 公尺，大於最大伸展長度 $2$ 公尺，因此未受限亦不可達。最小可能殘差至少約 $0.010$ 公尺，須回報失敗原因與殘差。
+4. 世界目標相對根節點的位移為 $(-1,1)^T$。將其旋轉 $-\pi/2$，即乘根節點旋轉的逆，得局部目標 $(1,1)^T$ 公尺。距離 $\sqrt2$ 落在未受限區間 $[0,2]$，但角度限制可能阻止到達。逐影格宜保存時間戳、目標及其座標空間、關節角、FK 末端位置、殘差與停止原因；至少前三項之外還應保存殘差，才能查核追蹤品質。
+
+## 本章小結
+
+FK 從角度計算位置；位置 Jacobian 把小角度變化近似映射為末端位移。DLS 以阻尼抑制奇異附近的不穩定更新，但仍是局部方法。可靠的兩連桿 IK 實驗須核對有限差分、施加關節界限、重新評估每次更新後的 FK，並以殘差和停止原因區分成功、停滯與不可達。
+
+## 參考來源
+
+- [G1　PBRT 4：Transformations](https://pbr-book.org/4ed/Geometry_and_Transformations/Transformations)：座標與變換慣例的延伸參考。
+- [G6　Blender Manual：Skinning Introduction](https://docs.blender.org/manual/en/latest/animation/armatures/skinning/introduction.html)：骨架與網格關係的背景閱讀；本章核心程式不依賴 Blender。
+- [G7　NumPy 線性代數參考](https://numpy.org/doc/stable/reference/routines.linalg.html)：線性方程求解與範數函式的介面參考。

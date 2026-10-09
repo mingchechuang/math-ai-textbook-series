@@ -1,0 +1,11 @@
+{
+  "key": "33bba732d115f8eb58c3419ba449b08d3ee342f7cef57814e11d979785aa3f5c",
+  "person": {
+    "id": "v3_editor_03",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 387,
+  "result": "## 尚未修正的必修項\n\n**第19章「二維製造場及其動量來源」**仍寫作：「$$\\nu=a\\sin(kx)\\cos(ky),\\qquad v=-a\\cos(kx)\\sin(ky),$$」\n\n此處 `\\nu` 表示希臘字母 nu，與運動黏度符號 $\\nu$ 混淆；緊接著的推導及程式卻使用 $u$。請將速度分量定義改為 $u=a\\sin(kx)\\cos(ky)$，並保留 $\\nu$ 表示運動黏度。\n\n第21章的格距、步長上限及步數修正已納入；未見其他新的阻擋性問題。VERDICT: REVISE"
+}

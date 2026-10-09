@@ -1,0 +1,30 @@
+{
+  "key": "fccf8ca9118b34f14cd58f7bef2074de8ae37072a6b00c5b3ffa9a9db0a8dee8",
+  "person": {
+    "id": "v2_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 227,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "$\\Delta$ 的單位是 $m^2$（因為 $b$ 是 m，$c$ 是 $m^2$）。容差 $\\tau_\\Delta$ 應與 $\\Delta$ 的各項量級相關，例如 $\\tau_\\Delta = 10^{-12} \\cdot \\max(b^2, 4|ac|, 1)$。若 $\\Delta < -\\tau_\\Delta$，判無交點；若 $-\\tau_\\Delta \\le \\Delta < 0$，視 $\\Delta=0$ 處理相切。",
+        "new": "$\\Delta$ 的單位是 $\\mathrm{m}^2$（因為 $b$ 是長度、$c$ 是長度平方）。容差須與這些項同量綱；本章以球半徑 $R>0$ 作特徵長度，取 $\\tau_\\Delta=10^{-12}\\max(b^2,4|ac|,R^2)$。括號內每項都是長度平方；若整個場景及球半徑同時改用另一種長度單位表示，此容差也隨長度平方縮放。若 $\\Delta<-\\tau_\\Delta$，判無交點；若 $-\\tau_\\Delta\\leq\\Delta<0$，將 $\\Delta$ 視為零處理近相切。係數 $10^{-12}$ 仍只是本例的數值選擇，不能保證所有浮點尺度下的判定。"
+      },
+      {
+        "chapter": 19,
+        "old": "    scale = max(b*b, abs(4*a*c), 1.0)\n    tol = 1e-12 * scale",
+        "new": "    scale = max(b*b, abs(4*a*c), sphere.radius**2)\n    tol = 1e-12 * scale"
+      },
+      {
+        "chapter": 21,
+        "old": "先備知識：本章假設你已讀過第 15 章的 Lambert 反射與立體角，第 18 章的交點與穩健性，以及 Volume I 的機率密度函數與期望值。",
+        "new": "先備知識：本章假設你已讀過第 15 章的 Lambert 反射與立體角、第 19 章的射線交點與數值穩健性，以及 Volume I 的機率密度函數與期望值。"
+      }
+    ],
+    "reason": "第19章將判別式容差下限改為具有長度平方量綱的球半徑平方，並同步修改程式；第21章將射線交點先備知識改指正確的第19章。未執行程式或驗證修後輸出。"
+  }
+}

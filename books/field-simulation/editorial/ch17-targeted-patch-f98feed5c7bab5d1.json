@@ -1,0 +1,14 @@
+{
+  "key": "f98feed5c7bab5d192dbcaddac7269f3878a01788f1fd71d3e5bdc9019a43ebb",
+  "person": {
+    "id": "v3_editor_14",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 292,
+  "result": {
+    "patches": [],
+    "reason": "審稿指出的三處並非誤植：原稿以 JSON 傳送，`\\n` 是換行跳脫，後接字母 `u`。解碼後公式分別為 $u=g_D$、$u_h=\\sum_{a=1}^3U_aN_a$、$u=0$，與全文定義一致。本次未提出其他有證據的錯誤；依只修真錯誤的要求保留原文。未執行程式。"
+  }
+}

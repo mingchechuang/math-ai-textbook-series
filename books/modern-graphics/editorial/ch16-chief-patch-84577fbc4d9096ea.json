@@ -1,0 +1,45 @@
+{
+  "key": "84577fbc4d9096ea59dd9effe1c73b185163991c17e2d87269dd1e866d06776a",
+  "person": {
+    "id": "v2_editor_02",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "author"
+  },
+  "call": 112,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "這個結果看似違反直覺：$r=0.5$ 在 15° 處的 $D$ **比 $r=0.2$ 還大**。原因是**峰值位置附近的絕對尺度與角寬有耦合**：低粗糙度峰值極尖（$r=0.2$ 時 $D(1)\\approx 0.04/\\pi/0.04^2/0.04^2$ 巨大），但在 15° 已幾乎掉光；中等粗糙度雖然峰值不高，卻在 15° 附近仍保留較高密度。這正是為何只看「峰值」不足以判斷材質外觀：**高光半徑與峰值高度必須一起看**。這也提醒讀者：粗糙度調參時，若只對單一角度手算，很容易得到與視覺相悖的結論。",
+        "new": "這個結果看似違反直覺：$r=0.5$ 在 15° 處的 $D$ **比 $r=0.2$ 還大**。原因是峰值高度與角寬互相耦合。由 $D(1)=1/(\\pi\\alpha^2)$ 可得，$r=0.2$ 時 $D(1)\\approx198.9$，但在 15° 已降到約 $1.45$，只剩峰值的約 $1/137$；$r=0.5$ 時峰值約 $5.09$，在 15° 仍有約 $3.23$。因此，特定角度上的 $D$ 較大不代表整體看起來更亮；低粗糙度的能量主要集中在正反射附近的窄角域。判讀材質外觀時，必須同時比較峰值高度與角寬，不能只看單一方向的 BRDF 數值。"
+      },
+      {
+        "chapter": 16,
+        "old": "| $0.2$ | $\\approx 203.7$ | $\\approx 1.45$ | $<2°$ |\n| $0.5$ | $\\approx 5.09$ | $\\approx 3.23$ | $\\approx 18°$ |\n| $0.8$ | $\\approx 0.20$ | $\\approx 0.74$ | $\\approx 45°$ |",
+        "new": "| $0.2$ | $\\approx 198.9$ | $\\approx 1.45$ | $<2°$ |\n| $0.5$ | $\\approx 5.09$ | $\\approx 3.23$ | $\\approx 18°$ |\n| $0.8$ | $\\approx 0.78$ | $\\approx 0.74$ | $\\approx 45°$ |"
+      },
+      {
+        "chapter": 16,
+        "old": "    # T6 白色爐粗略檢查：對多個方向平均，非金屬不應超過入射\n    rng = np.random.default_rng(7)\n    N = np.array([0.0, 0.0, 1.0])\n    acc = 0.0\n    K = 4000\n    for _ in range(K):\n        # V 半球均勻取樣\n        u, v = rng.random(2)\n        z = u\n        phi = 2 * np.pi * v\n        r = np.sqrt(max(0.0, 1 - z * z))\n        V = np.array([r * np.cos(phi), r * np.sin(phi), z])\n        # L 半球均勻取樣\n        u, v = rng.random(2)\n        z = u\n        phi = 2 * np.pi * v\n        r = np.sqrt(max(0.0, 1 - z * z))\n        L = np.array([r * np.cos(phi), r * np.sin(phi), z])\n        tot, _, _ = cook_torrance(N, V, L, 1.0, 0.5, 0.0)\n        # 以半球均勻採樣估計 ρ 的球面積分：∫ f_r (n·l) dω\n        acc += tot * L[2] * (2 * np.pi)  # pdf = 1/(2π)\n    rho_est = acc / K\n    print(f\"T6 white furnace rho_est: expected <= 1.0 got {rho_est:.4f}\")",
+        "new": "    # T6 白色爐粗略診斷（Monte Carlo 估計）。\n    # 對每個均勻抽樣的 V，估計方向半球反射率\n    # ∫ f_r(V,L)(N·L)dω_L，再對 V 做均勻平均。\n    rng = np.random.default_rng(7)\n    N = np.array([0.0, 0.0, 1.0])\n    acc = 0.0\n    K = 4000\n    for _ in range(K):\n        # V 半球均勻取樣\n        u, v = rng.random(2)\n        z = u\n        phi = 2 * np.pi * v\n        r = np.sqrt(max(0.0, 1 - z * z))\n        V = np.array([r * np.cos(phi), r * np.sin(phi), z])\n        # L 半球均勻取樣，p(L)=1/(2π)\n        u, v = rng.random(2)\n        z = u\n        phi = 2 * np.pi * v\n        r = np.sqrt(max(0.0, 1 - z * z))\n        L = np.array([r * np.cos(phi), r * np.sin(phi), z])\n        tot, _, _ = cook_torrance(N, V, L, 1.0, 0.5, 0.0)\n        # Monte Carlo 項：f_r(V,L)(N·L)/p(L)\n        acc += tot * L[2] * (2 * np.pi)\n    rho_avg_est = acc / K\n    print(f\"T6 white furnace diagnostic: expected near or below 1.0 got {rho_avg_est:.4f}\")"
+      },
+      {
+        "chapter": 16,
+        "old": "輸出訊息標示為「預期」對應值；實際執行時 assert 不應觸發，觸發即表示實作與本章公式偏離。T6 的門檻刻意寬鬆：只要估計值不超過 $1.0$ 即通過，因為單次散射模型本就會略低於 $1$。",
+        "new": "輸出訊息標示為「預期」對應值；實際執行時 assert 不應觸發，觸發即表示實作與本章公式偏離。T6 沒有設定 assert，而是以固定亂數種子進行粗略診斷：它先估計各隨機觀察方向的方向半球反射率，再對觀察方向平均。單次散射模型通常使結果接近或低於 $1$；有限樣本仍有 Monte Carlo 誤差，因此不能把此輸出當成嚴格的能量守恆證明。"
+      },
+      {
+        "chapter": 16,
+        "old": "| T6 | 白色爐球面積分 | $\\rho=1, r=0.5$ | $\\le 1.0$ | 上限檢查 |",
+        "new": "| T6 | 白色爐平均反射率診斷 | $\\rho=1, r=0.5$ | 接近或低於 $1.0$ | 無 assert；觀察趨勢 |"
+      },
+      {
+        "chapter": 16,
+        "old": "T4 使用區間而非單點，是因為手算僅保留四位小數；若你把自己的中間量算到更多位，把區間改成單點也可。T5 的容差設 $10^{-3}$ 而非 $5\\times10^{-4}$，是為了容忍手算與程式浮點在中間步驟（$\\sin 85°$、$\\cos 85°$）的差異；這是**工程容差**，不是物理容差。T6 的門檻是「不超過 1」，因為 Cook–Torrance 的單次散射模型已知在高粗糙度下會損失能量；若量到超過 1.0，多半是 Jacobian 或 $k_d$ 處理錯了。",
+        "new": "T4 使用區間而非單點，是因為手算僅保留四位小數；若你把自己的中間量算到更多位，把區間改成單點也可。T5 的容差設 $10^{-3}$ 而非 $5\\times10^{-4}$，是為了容忍手算與程式浮點在中間步驟（$\\sin 85°$、$\\cos 85°$）的差異；這是**工程容差**，不是物理容差。T6 以半球均勻取樣估計反射率，並額外對觀察方向取平均；它只適合作為粗略趨勢診斷。單次散射模型在高粗糙度下可能損失能量，而有限樣本也會造成隨機誤差；若估計值穩定且顯著超過 1.0，才應優先檢查 Jacobian、$k_d$ 或 PDF 補償。"
+      }
+    ],
+    "reason": "修正 GGX 敏感度表中 $r=0.8$ 的峰值，並把例題16.4的峰值公式與數值關係寫清楚；同時將T6準確描述為對方向半球反射率再對觀察方向平均的Monte Carlo診斷，避免把沒有assert的輸出誤稱為已通過的嚴格白色爐測試。審稿前段對$r=0.2$在15°數值的指控已在同一報告後段自行重算為約1.46，因此未把正確的原稿數值改成錯值。"
+  }
+}

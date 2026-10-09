@@ -1,0 +1,412 @@
+# 第24章 函數列、一致收斂與極限交換
+
+## 學習目標與先備知識
+
+本章旨在建立函數列收斂的嚴格定義，闡述「逐點收斂」與「一致收斂」的本質差異，並探討在極限過程下交換積分與微分運算的充分條件。讀者需具備前幾章的微積分基礎，特別是連續性的 $\epsilon$-$\delta$ 定義、Riemann 積分的性質以及單變量微分的基本定理。
+
+學習目標包括：
+1.  精確定義函數列的逐點收斂與一致收斂，理解量詞順序（$N$ 是否依賴於 $x$）的數學意義。
+2.  證明一致收斂下極限函數的連續性與可積性，並區分這些定理中「條件」與「結論」的角色。
+3.  掌握函數列積分與微分運算交換的充分條件，特別是導數一致收斂的關鍵作用。
+4.  運用 Weierstrass M-判準判斷級數的一致收斂性。
+5.  處理參數積分與參數級數的微分問題，理解偏導數一致連續性在證明中的重要性。
+6.  通過經典反例辨析「函數值一致收斂」但「導數行為病態」的現象，避免盲目交換極限與導數。
+
+先備知識回顧：
+-   實數序列極限的 $\epsilon$-$N$ 定義及其唯一性。
+-   Riemann 積分的線性性、單調性及收斂定理（可積函數的性質）。
+-   單變量導數的定義，以及可微函數必連續的反事實直覺（連續不一定可微，可微一定連續）。
+-   中值定理及其在估算函數變化量時的應用。
+
+## 問題與直覺
+
+在分析學中，極限操作是核心工具。當我們面對一個函數列 $f_n(x)$ 並取其極限 $f(x) = \lim_{n\to\infty} f_n(x)$ 時，一個自然的工程與數學問題是：我們能否對極限函數 $f$ 進行積分或微分，並將其結果等同於對每個 $f_n$ 進行相同操作後再取極限？即，以下等式是否普遍成立？
+$$ \int_a^b \left( \lim_{n\to\infty} f_n(x) \right) dx \stackrel{?}{=} \lim_{n\to\infty} \int_a^b f_n(x) dx \quad \text{(1)} $$
+$$ \frac{d}{dx} \left( \lim_{n\to\infty} f_n(x) \right) \stackrel{?}{=} \lim_{n\to\infty} \frac{d}{dx} f_n(x) \quad \text{(2)} $$
+
+直覺上，如果 $f_n$ 非常「平滑」且「穩定」地趨近於 $f$，這些交換似乎應該成立。然而，「逐點收斂」僅僅保證了對每一個固定的 $x$，$f_n(x)$ 都趨近於 $f(x)$。這是一種「點對點」的收斂行為，它無法控制整個區間 $[a,b]$ 上的誤差分布。如果收斂速度在區間不同位置變化極大（例如在端點附近收斂極慢），或者導數在極限過程中發生高頻振盪或突變，上述等式可能失效。
+
+為了解決這個問題，我們需要一個更強的收斂概念——**一致收斂**。一致收斂要求 $f_n$ 與 $f$ 之間的距離在整個定義域內都能被統一控制，與具體的 $x$ 無關。這種「全局」的收斂性為極限交換提供了必要的穩健性。本章將詳細展開這些概念，給出嚴格的定理、證明與反例，並明確指出有限數值計算只能作為驗證輔助，不能替代極限的邏輯證明。
+
+## 定義、定理與推導
+
+### 1. 逐點收斂與一致收斂
+
+**定義 24.1 (逐點收斂)** 設 $D \subseteq \mathbb{R}$，$\{f_n\}_{n=1}^\infty$ 為定義在 $D$ 上的實值函數列。若對任意 $x \in D$，存在極限 $f(x) = \lim_{n\to\infty} f_n(x)$，則稱 $\{f_n\}$ 在 $D$ 上**逐點收斂**於 $f$。
+
+用 $\epsilon$-$N$ 語言描述：$\forall x \in D, \forall \epsilon > 0, \exists N \in \mathbb{N}$（$N$ 依賴於 $x$ 和 $\epsilon$），使得 $\forall n \ge N$，有 $|f_n(x) - f(x)| < \epsilon$。
+
+**定義 24.2 (一致收斂)** 若 $\forall \epsilon > 0, \exists N \in \mathbb{N}$（$N$ **不依賴於** $x$），使得 $\forall n \ge N$ 及 $\forall x \in D$，有 $|f_n(x) - f(x)| < \epsilon$，則稱 $\{f_n\}$ 在 $D$ 上**一致收斂**於 $f$。
+
+關鍵差異在於量詞順序。一致收斂是一種更強的条件，它確保了收斂的「均勻性」，即整個區間上的誤差同時趨近於零。
+
+### 2. 一致收斂保持連續性
+
+**定理 24.3 (一致收斂保持連續性)** 若每個 $f_n$ 在區間 $I$ 上連續，且 $\{f_n\}$ 在 $I$ 上一致收斂於 $f$，則 $f$ 在 $I$ 上連續。
+
+**證明：**
+設 $x_0 \in I$。我們需要證明 $\forall \epsilon > 0, \exists \delta > 0$ 使得 $\forall x \in I, |x - x_0| < \delta \implies |f(x) - f(x_0)| < \epsilon$。
+給定 $\epsilon > 0$。
+1.  由於 $f_n$ 一致收斂於 $f$，存在 $N$ 使得 $\forall n \ge N$ 及 $\forall x \in I$，有 $|f_n(x) - f(x)| < \frac{\epsilon}{3}$。
+2.  固定某個 $n_0 \ge N$。由於 $f_{n_0}$ 在 $x_0$ 連續，存在 $\delta > 0$ 使得 $\forall x \in I, |x - x_0| < \delta \implies |f_{n_0}(x) - f_{n_0}(x_0)| < \frac{\epsilon}{3}$。
+3.  利用三角不等式：
+    $$ |f(x) - f(x_0)| \le |f(x) - f_{n_0}(x)| + |f_{n_0}(x) - f_{n_0}(x_0)| + |f_{n_0}(x_0) - f(x_0)| $$
+    $$ < \frac{\epsilon}{3} + \frac{\epsilon}{3} + \frac{\epsilon}{3} = \epsilon $$
+因此 $f$ 在 $x_0$ 連續。由 $x_0$ 的任意性，$f$ 在 $I$ 上連續。$\blacksquare$
+
+**注意**：此定理的逆命題不成立。即，逐點收斂於連續函數的函數列不一定一致收斂（見後文例 1 的反面，雖然 $x^n$ 收斂於不連續函數，但若構造收斂於連續函數但收斂速度不一致的例子，則逐點收斂不保證一致收斂）。此外，若 $f_n$ 不連續，即使一致收斂，極限 $f$ 也未必連續（例如 $f_n(x) = x + \frac{1}{n}$ 一致收斂於 $x$，連續；但若 $f_n$ 為 Dirichlet 函數的截斷版本，行為會不同。通常我們關注連續項的一致收斂）。
+
+### 3. 積分交換與可積性
+
+**定理 24.4 (一致收斂的可積性與積分交換)** 若每個 $f_n$ 在 $[a,b]$ 上 Riemann 可積，且 $\{f_n\}$ 在 $[a,b]$ 上一致收斂於 $f$，則：
+1.  $f$ 在 $[a,b]$ 上 Riemann 可積。
+2.  $\lim_{n\to\infty} \int_a^b f_n(x) \, dx = \int_a^b f(x) \, dx$。
+
+**證明：**
+1.  **可積性**：一致收斂的極限函數 $f$ 是連續函數列的一致極限，由定理 24.3，$f$ 連續。連續函數在有界閉區間上必 Riemann 可積。
+2.  **積分交換**：
+    考慮誤差 $E_n = \left| \int_a^b f_n(x) \, dx - \int_a^b f(x) \, dx \right|$。
+    由積分的線性性與單調性：
+    $$ E_n = \left| \int_a^b (f_n(x) - f(x)) \, dx \right| \le \int_a^b |f_n(x) - f(x)| \, dx $$
+    由一致收斂定義，對任意 $\epsilon > 0$，存在 $N$ 使得 $\forall n \ge N$ 及 $\forall x \in [a,b]$，$|f_n(x) - f(x)| < \frac{\epsilon}{b-a}$（假設 $a < b$；若 $a=b$，積分為 0，結論平凡）。
+    因此，
+    $$ E_n < \int_a^b \frac{\epsilon}{b-a} \, dx = \frac{\epsilon}{b-a} (b-a) = \epsilon $$
+    故 $\lim_{n\to\infty} E_n = 0$，即極限可交換。$\blacksquare$
+
+### 4. 微分交換
+
+**定理 24.5 (微分交換)** 設 $\{f_n\}$ 定義在 $[a,b]$ 上，滿足：
+1.  每個 $f_n$ 在 $[a,b]$ 上可微（在端點採單側導數），且 $f_n'$ 在 $[a,b]$ 上連續。
+2.  $f_n$ 在某一點 $c \in [a,b]$ 處收斂，即 $\lim_{n\to\infty} f_n(c) = L$ 存在。
+3.  $f_n'$ 在 $[a,b]$ 上一致收斂於某連續函數 $g$。
+
+則：
+1.  $\{f_n\}$ 在 $[a,b]$ 上一致收斂於函數 $f(x) = L + \int_c^x g(t) \, dt$。
+2.  $f$ 在 $(a,b)$ 上可微，且 $f'(x) = g(x)$。
+
+**證明：**
+由微積分基本定理，對任意 $x \in [a,b]$：
+$$ f_n(x) = f_n(c) + \int_c^x f_n'(t) \, dt $$
+令 $n \to \infty$。
+-   右側第一项 $f_n(c) \to L$（由條件 2）。
+-   右側第二項，由定理 24.4，$\lim_{n\to\infty} \int_c^x f_n'(t) \, dt = \int_c^x g(t) \, dt$（由條件 3 的一致收斂）。
+因此，$f_n(x)$ 收斂於 $f(x) := L + \int_c^x g(t) \, dt$。
+由於收斂過程與 $x$ 無關地由一致收斂的積分控制（具體地，$\sup_x |f_n(x) - f(x)| = |\int_c^x (f_n'(t) - g(t)) dt| \le (b-a) \sup_t |f_n'(t)-g(t)| \to 0$），故 $f_n$ 一致收斂於 $f$。
+
+又因為 $g$ 是連續函數（一致收斂的連續函數列之極限，由定理 24.3），根據微積分基本定理的第二部分，$f(x) = L + \int_c^x g(t) \, dt$ 是可微函數，且 $f'(x) = g(x)$。$\blacksquare$
+
+**直覺**：導數的一致收斂保證了「斜率」在全域穩定，結合一點的收斂，足以確定整個函數的值並保持可微性。若僅有逐點收斂，導數的高頻振盪可能在極限中消失或產生不連續性，導致微分交換失敗。
+
+### 5. Weierstrass M-判準
+
+**定理 24.6 (Weierstrass M-Test)** 設 $\sum_{n=1}^\infty f_n(x)$ 定義在集合 $D$ 上。若存在正數序列 $M_n$ 使得：
+1.  $|f_n(x)| \le M_n$ 對所有 $x \in D$ 及所有 $n$ 成立。
+2.  數列級數 $\sum_{n=1}^\infty M_n$ 收斂。
+
+則函數級數 $\sum_{n=1}^\infty f_n(x)$ 在 $D$ 上一致收斂（且絕對收斂）。
+
+**證明：**
+令 $S_n(x) = \sum_{k=1}^n f_k(x)$。對 $m > n$，
+$$ \left| \sum_{k=n+1}^m f_k(x) \right| \le \sum_{k=n+1}^m |f_k(x)| \le \sum_{k=n+1}^m M_k $$
+由於 $\sum M_n$ 收斂，其尾部 $\sum_{k=n+1}^m M_k$ 隨 $n,m \to \infty$ 而趨近於 0，且與 $x$ 無關。因此 $\{S_n\}$ 滿足一致 Cauchy 條件，故一致收斂。$\blacksquare$
+
+### 6. 參數積分與級數的微分
+
+**定理 24.7 (參數積分微分)** 設 $f(x,t)$ 定義在矩形區域 $R = [a,b] \times [c,d]$ 上。若：
+1.  $f(x,t)$ 在 $R$ 上連續。
+2.  $\frac{\partial f}{\partial t}(x,t)$ 在 $R$ 上存在且連續。
+3.  $F(t) = \int_a^b f(x,t) \, dx$。
+
+則 $F(t)$ 在 $(c,d)$ 上可微，且
+$$ F'(t) = \int_a^b \frac{\partial f}{\partial t}(x,t) \, dx $$
+（端點 $c,d$ 處為單側導數）。
+
+**證明：**
+考慮差商：
+$$ \frac{F(t+h) - F(t)}{h} = \frac{1}{h} \int_a^b [f(x,t+h) - f(x,t)] \, dx $$
+由積分中值定理或泰勒展開（積分形式），對每個 $x$，有
+$$ f(x,t+h) - f(x,t) = \int_t^{t+h} \frac{\partial f}{\partial t}(x,s) \, ds $$
+代入差商：
+$$ \frac{F(t+h) - F(t)}{h} = \int_a^b \left( \frac{1}{h} \int_t^{t+h} \frac{\partial f}{\partial t}(x,s) \, ds \right) dx $$
+定義 $g_h(x) = \frac{1}{h} \int_t^{t+h} \frac{\partial f}{\partial t}(x,s) \, ds$。
+由 $\frac{\partial f}{\partial t}$ 在緊集 $R$ 上的連續性，它是一致連續的。
+$$ \sup_{x \in [a,b]} \left| g_h(x) - \frac{\partial f}{\partial t}(x,t) \right| = \sup_x \left| \frac{1}{h} \int_t^{t+h} \left( \frac{\partial f}{\partial t}(x,s) - \frac{\partial f}{\partial t}(x,t) \right) ds \right| \le \sup_{x,s} \left| \frac{\partial f}{\partial t}(x,s) - \frac{\partial f}{\partial t}(x,t) \right| $$
+當 $h \to 0$ 時，右側趨近於 0。因此 $g_h(x) \to \frac{\partial f}{\partial t}(x,t)$ 一致收斂。
+由定理 24.4 的精神（一致收斂交換極限與積分），
+$$ \lim_{h\to0} \frac{F(t+h) - F(t)}{h} = \int_a^b \lim_{h\to0} g_h(x) \, dx = \int_a^b \frac{\partial f}{\partial t}(x,t) \, dx $$
+故 $F'(t) = \int_a^b \frac{\partial f}{\partial t}(x,t) \, dx$。$\blacksquare$
+
+## 逐步手算例題
+
+### 例 1：$x^n$ 在 $[0,1]$ 上的收斂行為與反例分析
+
+考慮 $f_n(x) = x^n$ 在 $[0,1]$ 上。
+1.  **逐點極限**：
+    -   若 $x \in [0,1)$，$\lim_{n\to\infty} x^n = 0$。
+    -   若 $x = 1$，$\lim_{n\to\infty} 1^n = 1$。
+    -   故極限函數 $f(x) = \begin{cases} 0, & 0 \le x < 1 \\ 1, & x = 1 \end{cases}$。
+2.  **連續性**：$f(x)$ 在 $x=1$ 處不連續（左極限 0 不等於函數值 1）。
+3.  **收斂類型**：
+    -   由於 $f_n(x)$ 連續但極限 $f(x)$ 不連續，由定理 24.3 的逆否命題可知，$\{f_n\}$ 在 $[0,1]$ 上**不一致收斂**。
+    -   **解析驗證**：計算 supremum 誤差 $\sup_{x \in [0,1]} |x^n - f(x)|$。
+        -   當 $x < 1$，$f(x)=0$，誤差為 $x^n$。
+        -   當 $x=1$，$f(x)=1$，誤差為 $0$。
+        -   $\sup_{x \in [0,1)} x^n = 1$（雖然取不到，但任意接近 1）。
+        -   故 $\sup |f_n - f| = 1$ 對所有 $n$ 成立，不隨 $n \to \infty$ 趨近於 0。
+4.  **結論**：逐點收斂不等於一致收斂。有限網格取樣會顯示錯誤在 $x$ 接近 1 處很大，但這只是數值現象；嚴格證明依賴於 supremum 不趨零的分析。
+
+### 例 2：一致小但導數不小的反例
+
+考慮 $f_n(x) = \frac{\sin(nx)}{n}$ 在 $[0, \pi]$ 上。
+1.  **函數值收斂**：
+    -   $|f_n(x)| \le \frac{1}{n}$。
+    -   $\sup_{x \in [0, \pi]} |f_n(x) - 0| = \frac{1}{n} \to 0$。
+    -   故 $f_n$ 一致收斂於零函數 $f(x) = 0$。
+2.  **導數行為**：
+    -   $f_n'(x) = \cos(nx)$。
+    -   極限函數 $f(x) = 0$ 的導數 $f'(x) = 0$。
+    -   檢查 $f_n'$ 是否一致收斂於 $f'$：
+        -   $\sup_{x \in [0, \pi]} |f_n'(x) - 0| = \sup_{x \in [0, \pi]} |\cos(nx)| = 1$。
+        -   誤差恆為 1，不趨近於 0。
+    -   此外，$f_n'$ 甚至不收斂（逐點）。例如在 $x=\pi$，$\cos(n\pi)=(-1)^n$ 振盪。
+3.  **微分交換測試**：
+    -   左側：$\frac{d}{dx} (\lim f_n) = \frac{d}{dx} (0) = 0$。
+    -   右側：$\lim (\frac{d}{dx} f_n) = \lim (\cos(nx))$ 不存在。
+    -   等式 $0 \neq \text{DNE}$ 或更準確地說，右側極限不存在，故交換無效。
+4.  **教訓**：即使函數值一致收斂，若導數不一致收斂（或根本無界/振盪），不能交換微分與極限。定理 24.5 要求導數一致收斂，此處條件不滿足。
+
+## 實作與程式
+
+以下 Python 程式碼使用 NumPy 進行數值驗證與測試。程式包含正常、邊界與故障測試，並明確區分「數值觀察」與「理論證明」。
+
+```python
+import numpy as np
+import math
+
+def check_uniform_convergence(f_n, f_limit, a, b, N_max=1000, samples=10000):
+    """
+    數值檢查一致收斂趨勢。
+    返回 sup error 列表。
+    """
+    x = np.linspace(a, b, samples)
+    sup_errors = []
+    for n in range(1, N_max + 1):
+        fn_vals = f_n(n, x)
+        f_vals = f_limit(x)
+        # 處理可能的 NaN
+        diff = np.abs(fn_vals - f_vals)
+        sup_err = np.max(diff)
+        sup_errors.append(sup_err)
+    return np.array(sup_errors)
+
+def integrate_trapz(y, dx):
+    return np.trapz(y, dx=dx)
+
+# --- 測試案例 1: x^n on [0, 1] ---
+def f_n_power(n, x):
+    return x ** n
+
+def f_limit_power(x):
+    # x < 1 -> 0, x == 1 -> 1
+    # 注意：在浮點數中，x=1.0 精確相等
+    return np.where(x < 1.0 - 1e-15, 0.0, 1.0) 
+
+print("--- Test 1: x^n ---")
+# 理論 Sup Error 應恆為 1 (接近)
+# 數值檢查：取密網格
+errors_pow = check_uniform_convergence(f_n_power, f_limit_power, 0.0, 1.0, N_max=100, samples=10000)
+print(f"Sup Error n=10: {errors_pow[9]:.6f}")
+print(f"Sup Error n=100: {errors_pow[99]:.6f}")
+# 預期：接近 1.0，因為在 x=1 附近的點 x=1-dx, x^n 接近 1
+# 這與不一致收斂的理論一致。
+
+# --- 測試案例 2: sin(nx)/n on [0, pi] ---
+def f_n_sin(n, x):
+    return np.sin(n * x) / n
+
+def f_limit_zero(x):
+    return np.zeros_like(x)
+
+def f_prime_sin(n, x):
+    return np.cos(n * x)
+
+print("--- Test 2: sin(nx)/n ---")
+errors_sin = check_uniform_convergence(f_n_sin, f_limit_zero, 0.0, np.pi, N_max=100, samples=10000)
+print(f"Function Sup Error n=10: {errors_sin[9]:.6f}") # 預期 ~0.1
+print(f"Function Sup Error n=100: {errors_sin[99]:.6f}") # 預期 ~0.01
+
+# 檢查導數 Sup Error
+x_grid = np.linspace(0, np.pi, 10000)
+dx = x_grid[1] - x_grid[0]
+for n in [10, 100]:
+    diff_prime = np.abs(f_prime_sin(n, x_grid) - 0)
+    print(f"Derivative Sup Error n={n}: {np.max(diff_prime):.6f}") # 預期 ~1.0
+
+# --- 測試案例 3: Integral Exchange ---
+print("--- Test 3: Integral Exchange for sin(nx)/n ---")
+# Limit integral is 0.
+# Integral of f_n:
+for n in [10, 100, 1000]:
+    y = f_n_sin(n, x_grid)
+    val = integrate_trapz(y, dx)
+    print(f"Integral f_{n}: {val:.6f}")
+# 預期：趨近於 0
+
+# --- 故障與邊界測試 ---
+print("--- Boundary & Fault Tests ---")
+
+# 1. Empty Interval / Invalid Range
+try:
+    x = np.linspace(1.0, 0.0, 10) # Reversed
+    val = np.mean(x)
+    print(f"Reversed interval mean: {val}") # NumPy handles it, but integral direction matters
+except Exception as e:
+    print(f"Error: {e}")
+
+# 2. Non-finite inputs
+def f_n_bad(n, x):
+    return np.sin(n*x) / x # Division by zero at x=0
+# 避免 x=0
+x_safe = np.linspace(0.1, 1.0, 100)
+try:
+    val = f_n_bad(10, x_safe)
+    print(f"Bad function (safe x): mean={np.mean(val):.4f}")
+except ZeroDivisionError:
+    print("Caught ZeroDivisionError")
+
+# 3. N=0 case
+try:
+    val = f_n_sin(0, np.array([1.0]))
+    print(f"N=0 result: {val}") # sin(0)/0 -> NaN or Inf?
+except Exception as e:
+    print(f"Exception for N=0: {e}")
+# math.sin(0)/0 is error, but numpy returns nan or warning. 
+# In our definition n>=1.
+
+# 4. Consistency Check: Uniform Convergence Implies Continuous Limit
+# If we test a sequence that converges uniformly to a discontinuous function, 
+# the function itself must be discontinuous.
+# We already showed x^n -> discontinuous f.
+# If we take g_n(x) = x^2 + 1/n, it converges uniformly to x^2.
+# x^2 is continuous.
+def f_n_smooth(n, x):
+    return x**2 + 1.0/n
+def f_limit_smooth(x):
+    return x**2
+
+errors_smooth = check_uniform_convergence(f_n_smooth, f_limit_smooth, -1.0, 1.0, N_max=100, samples=1000)
+print(f"Smooth Converges Sup Error n=100: {errors_smooth[99]:.6f}") # Should be 0.01
+# This is a normal case.
+```
+
+## 測試與預期結果
+
+1.  **$x^n$ 測試**：
+    -   **輸出**：`Sup Error` 接近 1.0（例如 0.9999...）。
+    -   **解釋**：數值結果顯示誤差不隨 $n$ 顯著下降，與「不一致收斂」的理論預測一致。注意：有限網格無法證明 supremum 恆為 1，只能觀察到接近 1 的現象。嚴格證明需分析 $\sup_{x<1} x^n = 1$。
+2.  **$\sin(nx)/n$ 測試**：
+    -   **輸出**：函數誤差隨 $1/n$ 下降（0.1 -> 0.01）；導數誤差恆為 1.0。
+    -   **解釋**：確認函數一致收斂，但導數不收斂。
+3.  **積分交換測試**：
+    -   **輸出**：積分值趨近於 0。
+    -   **解釋**：符合定理 24.4，因為函數一致收斂。
+4.  **故障測試**：
+    -   非法區間或除零錯誤應被捕獲或產生 NaN，提示使用者檢查定義域與奇異點。
+
+## 反例與常見陷阱
+
+1.  **連續性的陷阱**：
+    -   **反例**：$f_n(x) = x^n$ 在 $[0,1]$。逐點收斂於不連續函數。
+    -   **陷阱**：誤以為逐點收斂保持連續性。必須是一致收斂且原函數連續，才能保證極限函數連續。
+2.  **微分交換的陷阱**：
+    -   **反例**：$f_n(x) = \frac{\sin(nx)}{n}$。函數一致收斂於 0，但導數 $\cos(nx)$ 不收斂。
+    -   **陷阱**：嘗試直接對 $f_n$ 微分再取極限。必須驗證導數序列的一致收斂性（定理 24.5 條件）。若僅知函數收斂，不可假設導數收斂。
+3.  **M-判準的濫用**：
+    -   **反例**：級數 $\sum \frac{x}{n^2+x^2}$ 在 $\mathbb{R}$ 上。
+    -   **分析**：$|f_n(x)| \le \frac{1}{4n}$（最大值在 $x=n$ 處，$\frac{n}{n^2+n^2}=\frac{1}{2n}$? 不，$\frac{x}{n^2+x^2}$ 最大值在 $x=n$，值為 $\frac{1}{2n}$）。$\sum \frac{1}{2n}$ 發散。M-判準失敗。
+    -   **陷阱**：若誤找一個發散的 $M_n$，可能錯誤認為收斂失敗，但其實可能逐點收斂。M-判準是充分非必要條件。
+4.  **參數積分的連續性**：
+    -   **陷阱**：假設 $f(x,t)$ 連續則 $F(t)$ 必可微。必須檢查 $\frac{\partial f}{\partial t}$ 的存在與連續性（定理 24.7）。若偏導數不連續，交換可能失敗。
+
+## AI、幾何與養殖案例
+
+**合成案例：感測數據平滑與極限**
+
+在養殖環境監控中，我們可能收錄一系列時間戳記的溫度感測數據 $T_n(x)$，其中 $n$ 代表採樣頻率或過濾階數，$x$ 代表時間。假設真實溫度曲線為 $T(x)$。
+
+1.  **模型**：假設感測系統應用了低通濾波，使得 $T_n(x)$ 是 $T(x)$ 的平滑逼近。若濾波核寬隨 $n$ 變小，且 $T(x)$ 滿足 Lipschitz 條件，則 $T_n(x)$ 可能一致收斂於 $T(x)$。
+2.  **應用**：我們需要計算總熱量累積 $E = \int T(x) dx$。若 $T_n \to T$ 一致收斂，則 $\lim \int T_n = \int T$，允許我們用離散採樣積分的極限來估算總熱量，且誤差可控。
+3.  **微分應用**：若我們需要估計溫度變化率 $T'(x)$（例如檢測急速升溫預警），直接對平滑數據 $T_n$ 微分可能放大噪聲。若 $T_n'$ 不一致收斂於 $T'$（因為噪聲高頻分量），則直接微分無效。此時應使用專門的數值微分方案或先驗證收斂性。
+4.  **邊界狀況**：若感測器在特定時間點（如開門時）出現瞬時尖峰，導致 $T_n$ 逐點收斂但導數行為病態，一致收斂假設可能在尖峰附近失效。需在該區域使用更細的網格或特殊處理。
+
+**AI 角度的觀察**：
+在深度學習中，神經網絡的輸出可視為複雜的非線性函數列。訓練過程中的權重更新可看作函數列的演化。了解一致收斂有助於理解模型泛化能力：如果訓練集上的誤差一致小，則測試集誤差通常有界（需結構風險假設）。然而，過擬合通常表現為「逐點擬合完美但泛化差」，類似於不一致收斂的行為。
+
+## 習題
+
+1.  **[手算]** 證明函數列 $f_n(x) = n x (1-x)^n$ 在 $[0,1]$ 上逐點收斂於 0，但不一致收斂。
+2.  **[程式]** 編寫 Python 函數，檢查 $g_n(x) = \frac{x}{n+x}$ 在 $[0,10]$ 上是否一致收斂於 0。計算 $n=1, 10, 100, 1000$ 時的 supremum 誤差（解析值）。
+3.  **[反例/證明]** 證明：若 $\{h_n\}$ 在 $[a,b]$ 上可微，$h_n'$ 一致收斂於 $g$，且 $h_n$ 在 $[a,b]$ 上逐點收斂，則 $h_n$ 必一致收斂。
+    *提示*：利用微積分基本定理將 $h_n(x)$ 表示為 $h_n(a) + \int_a^x h_n'(t) dt$。
+4.  **[整合]** 設 $f(x,t) = \frac{t}{1+x^2 t^2}$。求 $F(t) = \int_0^\infty f(x,t) dx$ 的顯式表達式，並驗證 $\frac{d}{dt} \int_0^\infty f dx = \int_0^\infty \frac{\partial f}{\partial t} dx$ 是否成立。討論 $t=0$ 時的行為。
+
+## 習題解答
+
+1.  **解答**：
+    -   **逐點**：若 $x \in (0,1)$，$\lim_{n\to\infty} n x (1-x)^n = 0$（指數衰減快於線性增長）。若 $x=0$ 或 $x=1$，$f_n(0)=0, f_n(1)=0$。故逐點收斂於 0。
+    -   **不一致**：求 $f_n(x)$ 的最大值。$f_n'(x) = n(1-x)^{n-1} (1 - (n+1)x)$。極值點在 $x = \frac{1}{n+1}$。
+    -   $f_n(\frac{1}{n+1}) = \frac{n}{n+1} (\frac{n}{n+1})^n \to e^{-1}$。
+    -   因此 $\sup |f_n(x) - 0| \ge f_n(\frac{1}{n+1}) \to e^{-1} \neq 0$。故不一致收斂。
+
+2.  **解答**：
+    -   $g_n(x) = \frac{x}{n+x}$。極限 $g(x)=0$。
+    -   $|g_n(x) - 0| = \frac{x}{n+x}$。對 $x \in [0,10]$ 單調遞增。
+    -   $\sup_{x \in [0,10]} \frac{x}{n+x} = \frac{10}{n+10}$。
+    -   $n=1: 10/11 \approx 0.909$。
+    -   $n=10: 10/20 = 0.5$。
+    -   $n=100: 10/110 \approx 0.091$。
+    -   $n=1000: 10/1010 \approx 0.010$。
+    -   誤差趨近於 0，故一致收斂。
+
+3.  **解答**：
+    -   對任意 $x \in [a,b]$，$h_n(x) = h_n(a) + \int_a^x h_n'(t) dt$。
+    -   $h_n(x) - h_m(x) = (h_n(a) - h_m(a)) + \int_a^x (h_n'(t) - h_m'(t)) dt$。
+    -   取 sup norm：
+        $$ \sup_x |h_n(x) - h_m(x)| \le |h_n(a) - h_m(a)| + \int_a^x |h_n'(t) - h_m'(t)| dt $$
+        $$ \le |h_n(a) - h_m(a)| + (b-a) \sup_t |h_n'(t) - h_m'(t)| $$
+    -   因為 $h_n$ 逐點收斂，$h_n(a)$ 收斂，故為 Cauchy 序列。
+    -   因為 $h_n'$ 一致收斂，$h_n'$ 為一致 Cauchy 序列，$\sup_t |h_n' - h_m'| \to 0$。
+    -   故 $\sup_x |h_n - h_m| \to 0$，即 $h_n$ 一致收斂。
+
+4.  **解答**：
+    -   $F(t) = \int_0^\infty \frac{t}{1+x^2 t^2} dx$。
+    -   令 $u = xt, du = t dx \implies dx = du/t$。
+    -   $F(t) = \int_0^\infty \frac{t}{1+u^2} \frac{du}{t} = \int_0^\infty \frac{du}{1+u^2} = [\arctan u]_0^\infty = \frac{\pi}{2}$。
+    -   所以 $F(t) = \frac{\pi}{2}$ (對 $t>0$)。$F'(t) = 0$。
+    -   右側：$\frac{\partial f}{\partial t} = \frac{1(1+x^2 t^2) - t(2x^2 t)}{(1+x^2 t^2)^2} = \frac{1 - x^2 t^2}{(1+x^2 t^2)^2}$。
+    -   $\int_0^\infty \frac{1 - x^2 t^2}{(1+x^2 t^2)^2} dx$。
+    -   令 $u=xt$，積分變為 $\frac{1}{t} \int_0^\infty \frac{1-u^2}{(1+u^2)^2} du$。
+    -   原函數為 $\frac{u}{1+u^2}$ 的導數是 $\frac{1-u^2}{(1+u^2)^2}$。
+    -   $\int_0^\infty (\frac{u}{1+u^2})' du = [\frac{u}{1+u^2}]_0^\infty = 0 - 0 = 0$。
+    -   右側積分結果為 0。左側 $F'(t)=0$。相等。
+    -   $t=0$ 時，$f(x,0)=0$，$F(0)=0$。右側 $\partial f / \partial t |_{t=0} = 1$。$\int_0^\infty 1 dx = \infty$。
+    -   不等式在 $t=0$ 失敗，因為偏導數積分收斂性在 $t=0$ 不成立（發散）。定理要求偏導數在區間上一致收斂或可積，此處邊界行為異常。
+
+## 本章小結
+
+本章建立了函數列收斂的嚴格框架，區分了逐點收斂與一致收斂。我們證明了：
+1.  一致收斂是保持連續性的充分條件（若原函數連續）。
+2.  一致收斂允許在極限過程下交換積分運算，並保證極限函數可積。
+3.  微分交換需要導數序列的一致收斂及原函數列在某點收斂。
+4.  Weierstrass M-判準是判斷級數一致收斂的有力工具。
+5.  參數積分的微分公式依賴於偏導數的連續性及一致連續性。
+
+通過具體例子（如 $x^n$ 和 $\sin(nx)/n$），我們展示了違反這些條件時極限交換的失敗案例。這些概念是分析學的核心，廣泛應用於積分方程、微分方程及數值分析中。數值計算可作為驗證工具，但不能替代基於 $\epsilon$-$N$ 邏輯的嚴格證明。
+
+## 參考來源
+
+1.  Lebl, J. *Basic Analysis*. (A1)
+2.  MIT OpenCourseWare, 18.100A Real Analysis. (A2)
+3.  MIT OpenCourseWare, 18.02SC Multivariable Calculus. (A3)
+4.  JAX Autodiff Cookbook. (A4)
+5.  SciPy Documentation. (A5, A6)

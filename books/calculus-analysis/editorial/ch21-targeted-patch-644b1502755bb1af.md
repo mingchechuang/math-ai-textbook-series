@@ -1,0 +1,52 @@
+<<<PATCH 21>>>
+<<<OLD>>>
+若 $\gamma'(t)=0$ 只在有限多點成立，稱 $\gamma$ 為正則；若處處 $\gamma'\ne0$，稱 $\gamma$ 為正則參數化。若 $\gamma$ 不單射，弧長按參數區間計重，這點在重參數化核對時特別重要。
+
+**充分條件**：$C^1$ 曲線的速度範數在緊區間上連續，故弧長有限。Lipschitz 也是有限弧長的充分條件，但不是必要條件：$\gamma(t)=\sqrt t$ 在 $[0,1]$ 上不是 Lipschitz，弧長仍為 $1$。
+<<<NEW>>>
+若處處 $\gamma'(t)\ne0$，稱 $\gamma$ 為正則參數化；若只在有限多點失去正則性，則可稱為分段正則。若 $\gamma$ 不單射，弧長按參數區間計重，這點在重參數化核對時特別重要。
+
+**充分條件**：$C^1$ 曲線的速度範數在緊區間上連續，故弧長有限。Lipschitz 也是有限弧長的充分條件，但不是必要條件：把 $\gamma(t)=\sqrt t$ 視為從 $[0,1]$ 到 $\mathbb R$ 的純量值曲線時，它不是 Lipschitz，但其像為區間 $[0,1]$，弧長（全變差）仍為 $1$。在 $(0,1]$ 上也可由瑕積分核對：
+$$
+\int_0^1|\gamma'(t)|\,dt=\int_0^1\frac{1}{2\sqrt t}\,dt=1.
+$$
+這裡不是平面圖形曲線 $(t,\sqrt t)$；後者的弧長公式不同。
+<<<END>>>
+
+<<<PATCH 21>>>
+<<<OLD>>>
+這個恆等式說明 $\sqrt{\det G}$ 是切平面中平行四邊形的面積，也說明 $\Phi_u\times\Phi_v$ 是其法向量的長度。Gram元素的優點是不必假設 $\mathbb R^3$ 有叉積；同樣公式推廣到 $\Phi:U\subset\mathbb R^k\to\mathbb R^n$（$k\le n$）時，$J^TJ$ 為 $k\times k$，$\sqrt{\det G}$ 為 $k$ 維體積元素。**必要條件**是 $J$ 在該點滿行秩。
+<<<NEW>>>
+這個恆等式說明 $\sqrt{\det G}$ 是切平面中平行四邊形的面積，也說明 $\Phi_u\times\Phi_v$ 是其法向量的長度。Gram元素的優點是不必假設 $\mathbb R^3$ 有叉積；同樣公式推廣到 $\Phi:U\subset\mathbb R^k\to\mathbb R^n$（$k\le n$）時，$J^TJ$ 為 $k\times k$，$\sqrt{\det G}$ 為 $k$ 維體積元素。要使此體積元素嚴格為正，**必要且充分條件**是 $J\in\mathbb R^{n\times k}$ 在該點滿縱行秩（full column rank），即 $\operatorname{rank}J=k$。
+<<<END>>>
+
+<<<PATCH 21>>>
+<<<OLD>>>
+### 反例 21.1（正則但重疊的參數化）
+
+令 $\Phi(u,v)=(u,v,0)$，$(u,v)\in[0,1]^2$；再令 $\tilde\Phi(u,v)=(u,v,0)$，$(u,v)\in[0,2]\times[0,1]$。兩者都是正則參數化（$\det G=1$），但 $\tilde\Phi$ 在 $u\in[1,2]$ 上重複覆蓋同一片平面。若對 $\tilde\Phi$ 積分 $\sqrt{\det G}$，得到面積 $2$，而該集合的真實面積是 $1$。**教訓**：$\sqrt{\det G}>0$ 是局部滿秩，不是單射；「參數化不變性」要求微分同胚，而非僅僅 $C^1$。
+<<<NEW>>>
+### 反例 21.1（正則但重疊的參數化）
+
+令
+$$
+\Phi(u,v)=(\cos(2\pi u),\sin(2\pi u),v),\qquad (u,v)\in(0,1)\times(0,1),
+$$
+並令同一公式定義的 $\tilde\Phi$ 取參數域 $(0,2)\times(0,1)$。兩者的切向量為
+$$
+\Phi_u=2\pi(-\sin(2\pi u),\cos(2\pi u),0),\qquad
+\Phi_v=(0,0,1),
+$$
+故 $\det G=4\pi^2>0$，處處正則。然而 $\tilde\Phi(u+1,v)=\tilde\Phi(u,v)$，所以較大的參數域把同一圓柱側面覆蓋兩次。對 $\Phi$ 積分 $\sqrt{\det G}=2\pi$ 得面積 $2\pi$，對 $\tilde\Phi$ 積分則得 $4\pi$，但兩者的像集相同。**教訓**：$\sqrt{\det G}>0$ 是局部滿秩，不是單射；「參數化不變性」要求參數域之間有適當的一對一坐標變換，而非僅僅要求參數化為 $C^1$。
+<<<END>>>
+
+<<<PATCH 21>>>
+<<<OLD>>>
+若有人誤把 $\sqrt{\det G}$ 當 $\|\Phi_u\|\|\Phi_v\|=R$，在此例恰好對；但對斜切參數化如上例題21.B的球面 $G$ 非對角時，$\sqrt{\det G}\ne\|\Phi_u\|\|\Phi_v\|$（差一個 $\sin\theta$ 因子，$\theta$ 為兩切向量夾角）。**陷阱**：把「正交時 $G$ 對角」誤當一般公式。
+<<<NEW>>>
+若有人誤把 $\sqrt{\det G}$ 一概當成 $\|\Phi_u\|\|\Phi_v\|=R$，在此例恰好正確。一般參數化的兩個切向量未必正交；例如平面參數化 $\Psi(u,v)=(u+v,v,0)$ 有 $\Psi_u=(1,0,0)$、$\Psi_v=(1,1,0)$，因此 $\|\Psi_u\|\|\Psi_v\|=\sqrt2$，但
+$$
+G=\begin{pmatrix}1&1\\1&2\end{pmatrix},\qquad \sqrt{\det G}=1.
+$$
+兩者相差夾角的 $\sin\theta$ 因子。上例題21.B的球面坐標其實有 $\Phi_u\cdot\Phi_v=0$，所以其 $G$ 是對角矩陣，不能作為非正交反例。**陷阱**：把「正交時 $G$ 對角」誤當一般公式。
+<<<END>>>

@@ -1,0 +1,473 @@
+# 獨立審稿意見
+
+## 一、重算摘要
+
+我先依章稿中的數值重新計算主要結果，未執行任何程式。
+
+### 1. 例題 4.1 的困惑度
+
+對 logits $[0,1,2,3]$：
+
+$$
+\sum_v e^{z_v}=1+e+e^2+e^3\approx31.1929,
+$$
+
+因此
+
+$$
+\operatorname{LSE}(z)=\ln(31.1929)\approx3.44019.
+$$
+
+正確類別 A 的 logit 為 $0$，所以該 token 的 NLL 為 $3.44019$。另外兩個近乎確定的 token，其 NLL 並非精確為零，而是約為 $3e^{-110}$ 與 $3e^{-101}$，在目前精度下可近似為零。均勻 logits 的 NLL 為
+
+$$
+-\ln(1/4)=\ln4\approx1.38629.
+$$
+
+故
+
+$$
+\mathrm{MeanNLL}
+=\frac{3.44019+1.38629}{4}
+\approx1.20662,
+$$
+
+$$
+\mathrm{PPL}=e^{1.20662}\approx3.3422.
+$$
+
+章稿最後的約數大致正確，但推算過程中曾錯算 LSE，且程式註解中的 `3.3425` 與更精確結果略有差距，宜統一為約 `3.342`。
+
+### 2. 例題 4.2 的 ECE
+
+依章稿實際分組，$0.5$ 被放入低信心箱：
+
+- 高信心箱：$0.9,0.9,0.8,0.7,0.7$，平均信心 $0.8$，準確率 $0.6$；
+- 低信心箱：$0.5,0.5,0.3,0.3,0.1$，平均信心 $0.34$，準確率 $0.2$。
+
+因此
+
+$$
+\mathrm{ECE}
+=\frac5{10}|0.6-0.8|+\frac5{10}|0.2-0.34|
+=0.17.
+$$
+
+數值正確，但所寫區間端點與樣本歸屬不一致。
+
+### 3. 習題 1
+
+總 NLL 為 $5$，有效 token 數為 $10$，所以
+
+$$
+\mathrm{PPL}=e^{0.5}\approx1.64872.
+$$
+
+此答案正確。
+
+---
+
+## 二、必須修正的實質問題
+
+### 1. Risk–Coverage 的 coverage 定義寫反，後續敘述因此互相矛盾
+
+**原句：**
+
+> 「定義覆蓋率（Coverage）為拒絕回答的機率。」
+
+> 「$\tau \to 0$：幾乎不拒答，Coverage $\approx 0$」
+
+> 「目標：在保證覆蓋率 $C \geq C_{\text{target}}$ 的約束下，最小化 Risk。」
+
+**原因：**
+
+標準 selective prediction 的 coverage 通常是「模型接受並作答的比例」，即
+
+$$
+C(\tau)=P(s(x)\ge\tau),
+$$
+
+而拒答比例是 $1-C(\tau)$。章稿把 coverage 定義成拒答率，卻仍稱為 Risk-Coverage Curve，並使用「coverage 至少達標」的標準形式，造成概念顛倒。如果堅持把 coverage 定義為拒答率，那麼約束 $C\ge C_{\text{target}}$ 會鼓勵更多拒答，也不是通常所說的最低服務覆蓋率。
+
+此外，「全拒答時 Risk $\to0$」並不嚴謹。若 selective risk 定義為已回答樣本上的條件錯誤率，
+
+$$
+R(\tau)=
+\frac{\sum_i a_i(\tau)\ell_i}
+{\sum_i a_i(\tau)},
+$$
+
+當分母為零時 risk 是未定義，不應自動記成零。
+
+**最小修法：**
+
+把 coverage 改為「作答比例」，另稱拒答率為 $1-C$；明確給出有限樣本公式。當無任何作答時，拒絕計算 conditional risk，回報 `undefined` 或 `NaN`，並另外回報 coverage 為零。相應改寫兩個極限：
+
+- $\tau\to0$：coverage 接近 $1$；
+- $\tau\to1$：coverage 可能接近 $0$，risk 在空接受集上未定義。
+
+這是本章核心概念錯誤，必須修正。
+
+---
+
+### 2. ECE「定理」在目前敘述下沒有被完整證明
+
+**原句：**
+
+> 「定理 3.1（有限樣本下 ECE 的偏差性）在有限樣本 $N$ 下，使用簡單分箱計算的 ECE 是一個有偏估計。」
+
+> 「樣本統計量 $\hat{\text{Acc}}_b$ 是 $\mu_b$ 的無偏估計，$\bar p_b$ 是 $\pi_b$ 的無偏估計。」
+
+> 「因此，$E[\text{ECE}_{\text{empirical}}]\geq\text{ECE}_{\text{true}}$。」
+
+**原因：**
+
+Jensen 不等式確實可以對固定箱、固定或條件固定的箱內樣本數，推出
+
+$$
+E\left[|\hat a_b-\hat p_b|\mid N_b\right]
+\ge
+\left|E[\hat a_b-\hat p_b\mid N_b]\right|.
+$$
+
+但章稿沒有定義「true ECE」究竟是：
+
+1. 固定分箱下的母體 binned ECE；
+2. 未分箱的 calibration error；
+3. 還是使用樣本自適應邊界所得的量。
+
+也沒有處理 $N_b=0$、隨機權重 $N_b/N$、以及分箱邊界是否由同一批資料估計。對固定、預先指定的 bins，適當條件化後可以建立相對應命題；對等頻、自適應或資料依賴分箱，現有兩行 Jensen 推導不足。
+
+「$\bar p_b$ 是 $\pi_b$ 的無偏估計」也必須說明是在條件於樣本落入固定箱且 $N_b>0$ 的意義下成立。否則目前不是完整證明，不符合每章至少完整證明一個小命題的契約。
+
+**最小修法：**
+
+縮窄命題：明示 bins 為事先固定、樣本 i.i.d.、考慮非空箱，並把母體目標定義為
+
+$$
+\mathrm{ECE}_{\mathcal B}
+=\sum_b P(S\in I_b)
+\left|
+E[A\mid S\in I_b]-E[S\mid S\in I_b]
+\right|.
+$$
+
+再條件於各箱計數證明絕對值造成的有限樣本上偏，並處理隨機箱權重。若不願補齊，應降格為「證明思路」而不能標成已證定理，並另補一個完整小命題，例如證明 token 加權 NLL 等於串接所有有效 token 後的平均 NLL。
+
+---
+
+### 3. logits 與 log-probabilities 的定義混用
+
+**原句：**
+
+> 「模型輸出的 log-probability 向量為 $\mathbf z_t$」
+
+緊接著卻定義：
+
+$$
+-\ln\left(
+\frac{e^{z_y}}{\sum_v e^{z_v}}
+\right).
+$$
+
+**原因：**
+
+此公式把 $\mathbf z$ 當作未正規化 logits。若 $\mathbf z$ 真的是 log-probabilities，則在已正規化前提下 NLL 應直接是 $-z_y$，不必再做一次 softmax。這會混淆函式契約，也和程式的 `log_probs` 輸入不同。
+
+**最小修法：**
+
+把數學段落中的 $\mathbf z$ 明確改稱 logits；定義
+
+$$
+\ell(z,y)=\operatorname{LSE}(z)-z_y.
+$$
+
+程式則二選一：
+
+- 接收 logits，函式內穩定計算 log-softmax；
+- 或接收已驗證的 log-probabilities，直接 gather。
+
+不要讓同一符號同時代表兩者。
+
+---
+
+### 4. 手算中的 LogSumExp 有明顯錯算殘留
+
+**原句：**
+
+> 「$LSE = 3+\ln(e^{-3}+e^{-2}+e^{-1}+e^0)\approx3+\ln(1.0001)\approx3.0001$。」
+
+**原因：**
+
+括號內實際為
+
+$$
+e^{-3}+e^{-2}+e^{-1}+1\approx1.5530,
+$$
+
+不是 $1.0001$。後面雖以「等等」重新計算並得到約 $3.44$，但教材保留錯誤推導再自我糾正會使逐步手算失去可靠性。
+
+**最小修法：**
+
+刪掉錯算分支，直接逐項算出 $1.5530$，得到 $3+\ln1.5530\approx3.4402$。
+
+---
+
+### 5. ECE 箱邊界文字、手算和程式不一致
+
+**原句：**
+
+> 「Bin 1 $[0.5,1.0)$，Bin 2 $[0.0,0.5)$。」
+
+但後面把兩個 $0.5$ 都放入 Bin 2。程式使用：
+
+```python
+np.digitize(probs, bins, right=True) - 1
+```
+
+**原因：**
+
+依這個程式與 clipping，兩箱實際接近 $[0,0.5]$ 與 $(0.5,1]$，而非章稿寫的 $[0,0.5)$ 與 $[0.5,1)$。端點 $0$、$0.5$、$1$ 是校準測試不可忽略的邊界。
+
+**最小修法：**
+
+統一採一個明確約定，例如前箱 $[0,0.5)$、末箱 $[0.5,1]$，並使用與之相符的索引方式；新增 $p=0$、$0.5$、$1$ 的預期分箱測試。
+
+---
+
+### 6. PPL 程式沒有實作章稿自己要求的穩定計算
+
+**原句：**
+
+```python
+np.log(np.exp(z1) / np.sum(np.exp(z1), axis=-1, keepdims=True))
+```
+
+以及：
+
+> 「上述簡化代碼僅用於演示邏輯」
+
+**原因：**
+
+本卷契約明定 CE 應直接由 logits 與 logsumexp 穩定計算，不能先 softmax 再 log。這段程式會對大正 logits overflow、對大負 logits underflow，且 `0/0` 可產生 NaN。自足 CPU 程式不能把核心數值穩定性推給 SciPy 或 PyTorch，尤其 NumPy 已足以實作穩定版本。
+
+**最小修法：**
+
+在 NumPy 中定義：
+
+```python
+m = np.max(logits, axis=-1, keepdims=True)
+log_probs = logits - (m + np.log(np.sum(np.exp(logits - m),
+                                        axis=-1, keepdims=True)))
+```
+
+並拒絕非有限 logits。這不需要新增依賴。
+
+---
+
+### 7. mask 是在索引之後套用，而且乘法不能安全屏蔽 NaN
+
+**原句：**
+
+```python
+correct_log_probs = log_probs[batch_indices, time_indices, labels]
+nll = -correct_log_probs
+nll = nll * valid_mask
+```
+
+**原因：**
+
+所有位置在 mask 前都會索引，因此 padding label 若為 $-1$ 會靜默索引最後一類，若為 $V$ 則直接失敗。更嚴重的是，若無效位置的 `correct_log_probs` 為 NaN，則 `NaN * False` 仍是 NaN，總和會被污染。正文雖以手工改 label 規避單一例子，但函式本身未履行安全契約。
+
+**最小修法：**
+
+先檢查所有有效位置的 label 在 $[0,V)$；建立安全索引 `safe_labels = np.where(valid_mask, labels, 0)`；gather 後使用
+
+```python
+nll = np.where(valid_mask, -correct_log_probs, 0.0)
+```
+
+而不是乘 mask。另檢查有效位置的 NLL 均為有限值。
+
+---
+
+### 8. 函式缺少必要的 shape、dtype 與非有限值驗證
+
+**原句：**
+
+> 「Label 越界……修正：實作中必須確保 `labels` 值域在 $[0,V)$。」
+
+但實際函式沒有這項修正。
+
+**原因：**
+
+`compute_global_ppl` 沒有確認：
+
+- `log_probs.ndim == 3`；
+- `labels.shape == valid_mask.shape == (N,L)`；
+- mask 是否為布林；
+- 有效 label 是否為整數且合法；
+- 有效 log-probability 是否有限；
+- 最終 `mean_nll` 與 PPL 是否有限。
+
+`compute_ece` 也沒有拒絕空輸入、`num_bins<=0`、shape 不同、NaN、超出 $[0,1]$ 的信心值，或非二元 correctness labels。空輸入時會發生除零。
+
+**最小修法：**
+
+把上述檢查加入函式，而不是只寫在故障測試說明。對 `np.exp(mean_nll)` overflow 也應有明確策略，例如若 mean NLL 有限但指數溢位，回報 `inf` 並明示；或直接拒絕不可表示的 PPL，同時仍回傳 mean NLL。
+
+---
+
+### 9. 「機率總和不為 1」的檢測描述不適用於目前 ECE 介面
+
+**原句：**
+
+> 「檢查 `probs` 是否在 $[0,1]$ 區間內。若超出，應先執行 softmax或抛出錯誤。」
+
+**原因：**
+
+函式的 `probs` 是每筆樣本的單一 $p_{\max}$，shape 為 $(N,)$，這些數字跨樣本本來就不應加總為一。範圍檢查只能判斷它可能是概率，不能證明它來自合法的類別分布。函式也不應擅自把一維輸入做 softmax，因為那會錯誤地沿樣本軸正規化。
+
+**最小修法：**
+
+對一維 confidence 只做有限性及 $[0,1]$ 範圍檢查，超出時直接拒絕。若另提供 logits 介面，必須要求 shape $(N,C)$ 並沿類別軸做 softmax。
+
+---
+
+### 10. 選擇性拒答把單 token 的 $p_{\max}$ 當成整體回答正確性的信心
+
+**原句：**
+
+> 「在唯讀 Agent 中，模型生成回答前，計算 logits 的 entropy 或 $1-p_{\max}$。」
+
+**原因：**
+
+語言模型每一步都有一個 token 分布；沒有單一未加定義的「回答前 logits」可以代表整段回答是否正確。第一 token 的最大概率、整段最小 token 信心、平均 entropy、序列機率及答案正確率是不同量。低 entropy 也可能只是模型對錯誤答案非常自信。直接以 $1-p_{\max}>0.3$ 建立安全拒答，沒有驗證契約。
+
+**最小修法：**
+
+明確限定本章示例是「單步 token 分類」或另定義序列級 score；拒答閾值只能在驗證集上依指定錯誤標籤與 coverage 需求選擇。強調 token confidence 不等於事實正確性或安全信心。養殖情境不得把這一分數當操作安全保證。
+
+---
+
+### 11. OOD 實驗沒有落實 lab 要求
+
+**原句：**
+
+> 「模型在場 B 的 PPL 從 15 上升至 40。」
+
+**原因：**
+
+章稿沒有合成資料生成器、保留集、偏移集、group 欄位、分群指標計算或對照程式；因此這兩個數字只能是情境假設，不能構成本章要求的「保留集與合成偏移集比較、空有效 token 拒絕、分群結果」。目前自足程式只計算一組 PPL 與一組 ECE，也沒有 selective risk/coverage。
+
+**最小修法：**
+
+新增小型純合成評估資料：例如 ID 與 OOD 各自包含 group、logits、labels、valid mask；用同一評估函式輸出整體與分群的 token 數、總 NLL、PPL、ECE、coverage、risk。所有輸出標為「預期結果」，不可聲稱已執行。若保留 15 與 40，必須明標為假設數字，而非實驗觀測。
+
+---
+
+### 12. PPL 的直覺敘述過度實體化
+
+**原句：**
+
+> 「若 $PPL=V$，模型與隨機猜測無異。」
+
+> 「PPL=50 表示……在 50 個候選 token 中隨機選擇。」
+
+**原因：**
+
+只有在每一步都對相應候選給均勻分布時，才能作此精確解讀。PPL 是平均對數損失的指數，也可視為幾何平均意義的有效分支數，不表示模型真的在固定數量候選中均勻抽樣。另外，不同 tokenizer、切分規則、文件邊界與 OOV 策略下的 per-token PPL 通常不可直接比較。
+
+**最小修法：**
+
+把「代表」改成「可作為有效分支數的粗略直覺」；補充只應在相同 tokenizer、詞表、token 計數、資料處理與評估範圍下比較。
+
+---
+
+### 13. 多類別 ECE 習題解答不完整且定義含混
+
+**原句：**
+
+> 「對每個類別 $c$，計算該類別預測機率 $p_c$ 與實際正確率（該類別被正確預測的比例）的差異。」
+
+**原因：**
+
+若做 classwise ECE，類別 $c$ 的 outcome 通常應定義為 $\mathbb I(y_i=c)$，並以所有樣本的 $p_{i,c}$ 分箱；不是只在 argmax 預測為 $c$ 的樣本上計算「被正確預測比例」，除非另行定義 top-label class-conditional ECE。兩者不同。題目要求「修改函式」，完整解答卻沒有程式，也沒有正常、邊界及故障測試。
+
+**最小修法：**
+
+選定並清楚命名 classwise ECE 或 top-label ECE，給出完整 NumPy 函式及測試，包含缺失類別、空輸入、非法概率列和非有限值。
+
+---
+
+### 14. 習題 3 的題目公式本身不是常見的錯誤平均方式
+
+**原句：**
+
+> 「解釋為什麼 `perplexity = np.exp(np.mean(per_sample_ppl))` 與……不等價」
+
+**原因：**
+
+`per_sample_ppl` 若已經是 perplexity，常見錯法是 `np.mean(per_sample_ppl)`；再套一層 `exp` 會變成另一個更明顯、且解答中根本沒有使用的錯誤。解答計算的是 $(1+e)/2$，不是 $\exp((1+e)/2)$，題目與解答不一致。
+
+**最小修法：**
+
+把題目改為比較 `np.mean(per_sample_ppl)` 與 token-weighted PPL；或者若要討論平均 per-sample mean NLL，則寫成 `np.exp(np.mean(per_sample_mean_nll))`，並說明它是樣本等權而非 token 等權。
+
+---
+
+### 15. 引用來源超出已核對範圍，且至少一項書目資訊可疑
+
+**原句：**
+
+> 「Kuhn et al. (2021). Semantic Uncertainty: Leveraging Language Models for Neural Network Disagreement.」
+
+> 「Niculescu-Mizil & Caruana (2005)…（ECE 原始提出）」
+
+> 「以上引用為標準學術參考」
+
+**原因：**
+
+提供的來源契約只說 N1、N2 摘要頁及 N3 特定 API 已核對；N6 尚未逐條核對。章稿又新增 Guo、Niculescu-Mizil、Kuhn 等來源，但沒有交代核對狀態。Kuhn 條目的年份與題名尤其疑似不準確；將某篇文獻稱為「ECE 原始提出」也是需要來源證據的歷史歸因。不能用「標準學術參考」替代書目核對。
+
+**最小修法：**
+
+逐項核對作者、年份、題名、出版處及實際支持的主張；未核對前標明「待核對」，刪除「原始提出」等優先權聲稱。N6 只能列作延伸入口，不能暗示已依其內容驗證本章程式。
+
+---
+
+## 三、資料洩漏、評估範圍與案例邊界
+
+章稿正確指出閾值不可在測試集調整，這一點應保留。但仍須補足：
+
+1. calibration bins 的數量與邊界若經資料選擇，也只能用驗證集決定；
+2. temperature scaling 或其他後處理參數必須在 calibration/validation split 擬合；
+3. ID 與 OOD 集須先按來源、文件或時間切分，再建立窗口，避免重疊 token 窗口跨集合；
+4. 每個分群結果須同時回報有效 token 數，否則小群組 PPL/ECE 不具可解讀性；
+5. 不可因 OOD PPL 上升就推論出特定疾病、細菌感染或操作危害；那些需要獨立標註及任務評估；
+6. 養殖案例必須明示全部資料與條件為合成，沒有真實操作閾值，系統不得控制曝氣或提供具權限性的設備命令。
+
+---
+
+## 四、可保留內容
+
+以下內容方向正確，修正上述問題後可保留：
+
+- 以所有有效 token 的總 NLL 除以有效 token 總數；
+- 空有效 token 應拒絕；
+- 不平均不同長度樣本的 PPL；
+- ECE 受 bins 數量及邊界影響；
+- 校準良好不等於高準確率或推理能力；
+- 測試集不得用於選擇拒答閾值；
+- 流暢度、正確性與安全性不可互相替代；
+- 程式明示「未執行」，沒有虛構已通過測試。
+
+目前沒有發現章稿聲稱已實際執行程式；但「與手算結果一致」宜改成「依推導預期應一致」，以免被讀作執行驗證。
+
+---
+
+## 五、結論
+
+本章涵蓋了核心主題，也有兩個手算例子及 NumPy 程式骨架，但現稿不能通過。最關鍵的阻擋項是：coverage 定義顛倒、空接受集 risk 被錯當成零、ECE 定理未在所需條件下完整成立、logits 與 log-probabilities 混用、數值不穩定程式違反本卷契約、mask 不能隔離 NaN、OOD/分群/拒答實驗未真正實作，以及習題與解答存在公式不一致。這些都屬定義、概率、評估及程式正確性問題，而非文風偏好。
+
+VERDICT: REVISE

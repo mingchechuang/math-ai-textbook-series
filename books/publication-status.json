@@ -1,0 +1,151 @@
+{
+  "checked_at": "2026-10-08T19:08:59+08:00",
+  "scope": "Source/artifact SHA-256, HTML render QA and PDF structure; not human content validation.",
+  "volumes": [
+    {
+      "volume": 1,
+      "roman": "I",
+      "title": "從生成式 AI 到智慧水產養殖：線性代數、 多模態與 Agent 實作",
+      "source_updated": "2026-10-01T10:43:17.556030",
+      "built_at": "2026-10-08T11:01:38.193Z",
+      "characters": 50062,
+      "pages": 116,
+      "chapters": 20,
+      "math_count": 2199,
+      "fresh": true,
+      "artifacts": {
+        "html": {
+          "path": "linear-algebra-aquaculture/published/volume-1.html",
+          "bytes": 5767723,
+          "sha256": "ff4a2de3c189e0e71f2a926836095e7b507d9f24a8f8824db43b7f40b7aae036"
+        },
+        "pdf": {
+          "path": "linear-algebra-aquaculture/published/volume-1.pdf",
+          "bytes": 3198957,
+          "sha256": "6cd8c67c4b438c0af6b24a77f319b50ea75f79751871dfe2f3effadd6100dbdb"
+        }
+      },
+      "manifest_sha256": "fa174afd4759af0b2ff088d1a3cfe13c3764458cc20c7f9b941c0027fc22049b",
+      "validation_sha256": "60363cf3d905b9544e311b6ba1cdbff4d7666679cf626e7fcdc0637228ad0a0b",
+      "manuscript_sha256": "3c5f56146c1667e5289b5a86ebd98b5a8b57b4eb2edd6e2009766e3c259557ae",
+      "source_sha256": "5f896d7b5efbee5c4e98f11e4883965b5929d6844a574a553cb5b5b09b3eeb64",
+      "source_file_count": 28
+    },
+    {
+      "volume": 2,
+      "roman": "II",
+      "title": "Volume II｜現代電腦圖學：2D／3D繪圖、建模、材質、光線追蹤與動畫",
+      "source_updated": "2026-10-03T02:27:18.821961",
+      "built_at": "2026-10-08T11:02:04.278Z",
+      "characters": 111551,
+      "pages": 384,
+      "chapters": 30,
+      "math_count": 5351,
+      "fresh": true,
+      "artifacts": {
+        "html": {
+          "path": "modern-graphics/published/volume-2.html",
+          "bytes": 11525290,
+          "sha256": "8b51d2c352e69dc6bdac97db34f666044ef38d70ca43c954a5265d5cffb46e1f"
+        },
+        "pdf": {
+          "path": "modern-graphics/published/volume-2.pdf",
+          "bytes": 7842391,
+          "sha256": "acfcab053bb933352c0ee2bf211bf91dda37a900b5d1592255cdf95ba4507114"
+        }
+      },
+      "manifest_sha256": "c410c21f7a96be5269add82d16e37adcd8ae60daa656b564e0755a05359099ac",
+      "validation_sha256": "8e3829c00e17de44f4c500b799e409037a9defcb0880694175272e461871544b",
+      "manuscript_sha256": "9518f0536d6a7d56f28c6a8391c60486f49e938112a369659d242245d74a7585",
+      "source_sha256": "b85d5b68a09eaecbaf2f366ada88bc9ce09847fd5dd0ebc7f8e8a5c161653185",
+      "source_file_count": 38
+    },
+    {
+      "volume": 3,
+      "roman": "III",
+      "title": "Volume III｜場論、場模擬與相變：偏微分方程及科學計算",
+      "source_updated": "2026-10-04T04:59:21.655618",
+      "built_at": "2026-10-08T11:02:38.260Z",
+      "characters": 123889,
+      "pages": 361,
+      "chapters": 30,
+      "math_count": 6227,
+      "fresh": true,
+      "artifacts": {
+        "html": {
+          "path": "field-simulation/published/volume-3.html",
+          "bytes": 13446096,
+          "sha256": "187945ffb6dda42adb7fb38755b4f6b4f48f344d16f7b4373c4282e88362198a"
+        },
+        "pdf": {
+          "path": "field-simulation/published/volume-3.pdf",
+          "bytes": 7776314,
+          "sha256": "02a5fc7d15f04b44558ac07e11a0618c751098db140b6cbb9102c67996586309"
+        }
+      },
+      "manifest_sha256": "d923ac5cdfcc178c53e1b275a072dde19145f9bb890d13fa3b6b6c736206e390",
+      "validation_sha256": "79d38f4f30b33d91ba0337f05cf835bd55535ee66e02fb7c5353a45ffdb4c11b",
+      "manuscript_sha256": "43338f442a64959d5af36f9c77a2d12bbdd2d2726592b99cd451afaac9e8cb55",
+      "source_sha256": "5649c2752c477f225752236eef801be798627693916fec18f284ee5bc94067ea",
+      "source_file_count": 38
+    },
+    {
+      "volume": 4,
+      "roman": "IV",
+      "title": "Volume IV｜微積分與數學分析的線性代數方法",
+      "source_updated": "2026-10-06T18:39:06.993747",
+      "built_at": "2026-10-08T11:03:25.879Z",
+      "characters": 117879,
+      "pages": 373,
+      "chapters": 30,
+      "math_count": 8642,
+      "fresh": true,
+      "artifacts": {
+        "html": {
+          "path": "calculus-analysis/published/volume-4.html",
+          "bytes": 17075539,
+          "sha256": "74654332816a4c690e7aaf524e68c77ff2af258455db5ad22f0981b2c3748c4b"
+        },
+        "pdf": {
+          "path": "calculus-analysis/published/volume-4.pdf",
+          "bytes": 7773533,
+          "sha256": "e8c25b609107a7f659fa61c1a29389b3f9691eaed6c9f8e5285c14353f933e70"
+        }
+      },
+      "manifest_sha256": "65d89cbbf76b2531e327190c46f9aa101047a47c5ab0416079a09413b73149ea",
+      "validation_sha256": "ad7eee21dcc7619b1fdf7c60e1f393ad03007aec17ca6634fd68f768695f3aa3",
+      "manuscript_sha256": "2974d9f948780b041e5428492a98f7066deece278df865b40179757f307f31c9",
+      "source_sha256": "c6ee30159bc11991294cb72cd3c13c921d087ce3b5299e706db2d01a44c9ea74",
+      "source_file_count": 38
+    },
+    {
+      "volume": 5,
+      "roman": "V",
+      "title": "Volume V｜神經網路、深度學習與Transformer的數學及實作",
+      "source_updated": "2026-10-08T17:21:38.525350",
+      "built_at": "2026-10-08T11:06:51.086Z",
+      "characters": 130923,
+      "pages": 474,
+      "chapters": 30,
+      "math_count": 5325,
+      "fresh": true,
+      "artifacts": {
+        "html": {
+          "path": "neural-transformers/published/volume-5.html",
+          "bytes": 12073770,
+          "sha256": "cb01d918c0c34b189b12f37e232100d7fb59c576e4e3edfa77754dc4dc586cb0"
+        },
+        "pdf": {
+          "path": "neural-transformers/published/volume-5.pdf",
+          "bytes": 8848279,
+          "sha256": "5c97c927477ff75536f14b8eea86e4f1011ddaec43bd9e814b0f667c3ede0a60"
+        }
+      },
+      "manifest_sha256": "be2cf2f565e267ca467f09e15e80b3b4640bc47ba21c265606a46f95264ebedb",
+      "validation_sha256": "a30bdf01effb6c586254fc1610319c7c5423234fd67327dc9f227517e73f1922",
+      "manuscript_sha256": "872435ee5f21b6c0cce5ef6b90e0e5dc99e9110e6b5099c29b6d0ad238d3f199",
+      "source_sha256": "503295df5fa74583951f9d5e4131af8f629259e40720c247bb49399bebd9f216",
+      "source_file_count": 38
+    }
+  ]
+}

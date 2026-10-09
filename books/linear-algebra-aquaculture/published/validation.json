@@ -1,0 +1,33 @@
+{
+  "volume": 1,
+  "pages": 116,
+  "bookmarks": 255,
+  "chapter_pages": {
+    "1": 5,
+    "2": 10,
+    "3": 16,
+    "4": 21,
+    "5": 26,
+    "6": 31,
+    "7": 36,
+    "8": 42,
+    "9": 47,
+    "10": 52,
+    "11": 57,
+    "12": 62,
+    "13": 68,
+    "14": 73,
+    "15": 79,
+    "16": 84,
+    "17": 90,
+    "18": 96,
+    "19": 101,
+    "20": 109
+  },
+  "blank_pages": [],
+  "missing_glyph_pages": [],
+  "html_bytes": 5767723,
+  "pdf_bytes": 3198957,
+  "pdf_sha256": "6cd8c67c4b438c0af6b24a77f319b50ea75f79751871dfe2f3effadd6100dbdb",
+  "scope": "Structure, text extraction, glyph markers and formula rendering; not mathematical validation."
+}

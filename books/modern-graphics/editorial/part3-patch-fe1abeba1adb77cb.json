@@ -1,0 +1,55 @@
+{
+  "key": "fe1abeba1adb77cb7e4bf3a1a7a99343a5721eb83b124a634086be18224167bf",
+  "person": {
+    "id": "v2_editor_08",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "author"
+  },
+  "call": 257,
+  "result": {
+    "patches": [
+      {
+        "chapter": 16,
+        "old": "輻射度量沿用第14章橋接：",
+        "new": "輻射度量沿用第15章橋接："
+      },
+      {
+        "chapter": 16,
+        "old": "合計 $f_r\\approx 0.1528 + 0.0069 \\approx 0.1597\\ \\mathrm{sr}^{-1}$。若入射輻照度 $E=2\\ \\mathrm{W/m^2}$，出射輻射亮度約為 $f_r\\cdot E\\cdot(N\\cdot L)\\approx 0.1597\\cdot 2\\cdot 0.7071\\approx 0.226$。",
+        "new": "合計 $f_r\\approx 0.1528 + 0.0069 \\approx 0.1597\\ \\mathrm{sr}^{-1}$。若表面入射輻照度 $E=2\\ \\mathrm{W/m^2}$，出射輻亮度約為 $L_o=f_rE\\approx0.1597\\times2=0.3194\\ \\mathrm{W/(m^2\\,sr)}$。若 $2\\ \\mathrm{W/m^2}$ 指的是光束法向照度 $E_\\perp$，則表面照度為 $E_\\perp(N\\cdot L)$，此時出射輻亮度約為 $0.226\\ \\mathrm{W/(m^2\\,sr)}$。"
+      },
+      {
+        "chapter": 16,
+        "old": "要點在於：微面朝向的隱式分布 $D(h)$ 積分到巨觀方向時，面積元素改變了，因此 BRDF 不可能只是 $F\\,D\\,G$，必須除以這個 Jacobian。",
+        "new": "要點在於：微面朝向的分布 $D(h)$ 映射到巨觀反射方向時，面積元素與投影因子都會改變；結合半向量映射的 Jacobian、微面投影面積及巨觀方向的投影餘弦後，才得到標準分母 $4(N\\cdot\\omega_i)(N\\cdot\\omega_o)$。"
+      },
+      {
+        "chapter": 16,
+        "old": "物理材質 BRDF 的核心是 Fresnel、法線分佈、幾何遮蔽與投影 Jacobian 的乘積。Jacobian 分母 $4(N\\cdot V)(N\\cdot L)$ 由微面立體角到巨觀方向立體角的轉換產生，不是可隨意省略的係數；在 $\\alpha\\to0$ 的極限下，少了它 BRDF 不會退化為鏡面反射的機率密度。",
+        "new": "物理材質 BRDF 的核心是 Fresnel、法線分佈、幾何遮蔽與投影因子的組合。結合半向量映射的 Jacobian、微面投影面積及巨觀方向的投影餘弦後，得到分母 $4(N\\cdot V)(N\\cdot L)$；它不是可隨意省略的係數。在 $\\alpha\\to0$ 的極限下，缺少這些幾何因子會使 BRDF 無法退化為鏡面反射分布。"
+      },
+      {
+        "chapter": 16,
+        "old": "| $0.2$ | $\\approx 198.9$ | $\\approx 1.45$ | $<2°$ |\n| $0.5$ | $\\approx 5.09$ | $\\approx 3.23$ | $\\approx 18°$ |\n| $0.8$ | $\\approx 0.78$ | $\\approx 0.74$ | $\\approx 45°$ |",
+        "new": "| $0.2$ | $\\approx 198.9$ | $\\approx 1.45$ | 半角 $h$ 約 $3.37°$（固定 $V=N$ 時光源角約 $6.74°$） |\n| $0.5$ | $\\approx 5.09$ | $\\approx 3.23$ | 半角 $h$ 約 $22.3°$（固定 $V=N$ 時光源角約 $44.6°$） |\n| $0.8$ | $\\approx 0.78$ | $\\approx 0.74$ | 半球內無法降至峰值的 $1/10$ |"
+      },
+      {
+        "chapter": 14,
+        "old": "影像陣列第 $(i, j)$ 個像素（$i$ 為列，$j$ 為行，$j=0$ 為頂部）的中心座標在連續 UV 空間中為：",
+        "new": "影像陣列 `tex[j, i]` 中，$i$ 是向右增加的水平 column index，$j$ 是向下增加的垂直 row index，且 $j=0$ 位於頂部。該像素中心在連續 UV 空間中的座標為："
+      },
+      {
+        "chapter": 16,
+        "old": "if albedo.ndim > 1 or not np.all(np.isfinite(albedo)):\n        raise ValueError(\"albedo 須為有限純量或 RGB 向量\")",
+        "new": "if albedo.ndim != 0 and albedo.shape != (3,):\n        raise ValueError(\"albedo 須為有限純量或 shape (3,) 的 RGB\")\n    if not np.all(np.isfinite(albedo)):\n        raise ValueError(\"albedo 必須為有限值\")\n    if np.any((albedo < 0.0) | (albedo > 1.0)):\n        raise ValueError(\"albedo 必須在 [0, 1]\")"
+      },
+      {
+        "chapter": 16,
+        "old": "# T2 Schlick 掠射極限\n    f_g = fresnel_schlick(0.0, 0.04)\n    assert abs(f_g - 1.0) < 1e-6, f\"T2 failed: {f_g}\"\n    print(f\"T2 Fresnel grazing: expected 1.0 got {f_g:.6f}\")",
+        "new": "# T2 Schlick 掠射極限\n    f_g = fresnel_schlick(0.0, 0.04)\n    assert abs(f_g - 1.0) < 1e-6, f\"T2 failed: {f_g}\"\n    print(f\"T2 Fresnel grazing: expected 1.0 got {f_g:.6f}\")\n\n    # 邊界與輸入驗證：背面方向、零粗糙度及非法參數。\n    total, diff, spec = cook_torrance(\n        [0, 0, 1], [0, 0, 1], [0, 0, -1], 0.5, 0.5, 0.0)\n    assert np.allclose(total, 0.0)\n    assert np.allclose(diff, 0.0) and np.allclose(spec, 0.0)\n    assert np.isfinite(ggx_d(1.0, 0.0))\n    for albedo_bad, roughness_bad, metallic_bad in (\n        (0.5, np.nan, 0.0),\n        (np.array([0.2, 0.3]), 0.5, 0.0),\n        (0.5, 0.5, -0.1),\n    ):\n        try:\n            cook_torrance([0, 0, 1], [0, 0, 1], [0, 0, 1],\n                          albedo_bad, roughness_bad, metallic_bad)\n        except ValueError:\n            pass\n        else:\n            raise AssertionError(\"非法材質參數應被拒絕\")"
+      }
+    ],
+    "reason": "修正第16章的輻射度量章號與照度計算，釐清 Cook–Torrance 分母的幾何來源並重算粗糙度角寬；修正第14章像素索引方向描述，收緊 albedo 型別／範圍檢查並補上邊界輸入測試。"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "key": "1d7b4627909da667b4592e76350a99e3acf471757b5ce386209c079478738ca8",
+  "person": {
+    "id": "v3_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 298,
+  "result": {
+    "patches": [
+      {
+        "chapter": 17,
+        "old": "並將中心連到四條外邊。求解",
+        "new": "以四個外部節點圍成的單位正方形為 $\\Omega$，將中心連到四條外邊，並在整條外邊施加零 Dirichlet 條件。求解"
+      }
+    ],
+    "reason": "例三原句僅列節點並稱「四條外邊」，未在求解前明確指定區域與邊界類型；補明與後續消去零 Dirichlet 自由度一致的問題設定。審稿所引 `\\nu` 是 JSON 換行跳脫 `\\n` 緊接字母 `u` 或 `u_h` 的誤讀，解碼後三處公式本已正確。未執行程式。"
+  }
+}

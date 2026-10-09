@@ -1,0 +1,95 @@
+{
+  "key": "0efacc72c8421d79fc514658ebe8677809b481fa87d0b2561641e1931788ccee",
+  "person": {
+    "id": "v2_editor_24",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 186,
+  "result": {
+    "patches": [
+      {
+        "chapter": 4,
+        "old": "此操作稱為「Look-at」或「外參矩陣」計算 [G1]。",
+        "new": "以相機位置、目標點與建議上方向建立此矩陣的方法稱為 look-at；它是建立世界到相機外參的一種方式，而非所有外參的同義詞 [G1]。外參描述兩個座標系的相對姿態，不描述鏡頭焦距、影像尺寸或投影方式。同一個世界點即使沒有移動，只要相機姿態改變，其相機座標就會改變。"
+      },
+      {
+        "chapter": 4,
+        "old": "此矩陣將世界座標原點平移到相機位置，並旋轉座標軸以對齊相機的局部方向 [G5]。",
+        "new": "此矩陣將世界中的相機位置$e$映到相機座標原點，並以相機局部基底表示其餘世界點 [G5]。亦即$V(e,1)^T=(0,0,0,1)^T$；世界原點一般不會映到相機原點。此處談的是同一個幾何點換用另一組座標描述，而不是把池體頂點真的移動。"
+      },
+      {
+        "chapter": 4,
+        "old": "利用右手定則，$f \\times u$ 指向右側（在 $f$ 為 $-Z$ 且 $u$ 為 $Y$ 時，$-Z \\times Y = -X$? No. $Z \\times Y = -X$. So $-Z \\times Y = X$. Correct. $f$ is direction of gaze. If $f=(0,0,-1)$ and $u=(0,1,0)$, $f \\times u = (1,0,0)$. Correct.). $x_c$垂直於$f$且符合右手系。",
+        "new": "利用右手定則，$f \\times u$ 指向相機右側：例如$f=(0,0,-1)$、$u=(0,1,0)$時，$f\\times u=(1,0,0)$。正規化後的$x_c$垂直於$f$。輸入的$u$只是建議方向；若它不是與視線垂直，最後的$y_c$會是其在垂直視線平面上的方向，而非原封不動的$u$。當$u$與$f$平行時，外積為零，單靠這三項輸入無法唯一決定相機繞視線的轉角。"
+      },
+      {
+        "chapter": 4,
+        "old": "視圖矩陣$V$先旋轉後平移（將$e$移至原點）：\n$$\nV = R \\cdot T(-e)\n$$\n其中$T(-e)$是平移$-e$的齊次矩陣。\n驗證：$V p_h = R T(-e) p_h = R (p_h - e) = R (p - e)$（取前三維）。這表示以$e$為原點，以$x_c, y_c, z_c$為軸的座標。",
+        "new": "採用 column vector 且由右先作用，視圖矩陣**先平移、再旋轉**：先求世界點相對於相機位置的位移，然後把位移在三個相機軸上取內積。令$B=[x_c\\;y_c\\;z_c]$為以這三個三維向量作為縱行的$3\\times3$矩陣，則$B^T$的三個橫列正是$x_c^T,y_c^T,z_c^T$，因此\n\n$$\nV=R\\,T(-e)=\n\\begin{bmatrix}B^T&-B^Te\\\\0\\;0\\;0&1\\end{bmatrix}.\n$$\n\n這也釐清了齊次向量的維度：$p_h=(p_x,p_y,p_z,1)^T$是四維，$p$與$e$才是三維，不能直接寫$p_h-e$。正確的分步結果為\n\n$$\nT(-e)p_h=\\begin{bmatrix}p-e\\\\1\\end{bmatrix},\\qquad\nVp_h=\\begin{bmatrix}B^T(p-e)\\\\1\\end{bmatrix}.\n$$\n\n換言之，相機座標的三個分量依次是$x_c\\cdot(p-e)$、$y_c\\cdot(p-e)$與$z_c\\cdot(p-e)$。平移欄$-B^Te$是由矩陣乘法得來，不宜在相機旋轉時僅把$-e$填入$V$最後一欄。若輸入為方向$v_h=(v_x,v_y,v_z,0)^T$，平移不起作用，所得方向為$(B^Tv,0)^T$。位置與方向的差異正是齊次分量$w$的用途。"
+      },
+      {
+        "chapter": 4,
+        "old": "**被動轉換性質**：$V$是正交矩陣加平移，其逆$V^{-1}$是將相機座標轉回世界座標的「相機到世界矩陣」（Camera-to-World）[G4]。\n相機到世界矩陣$C$的前三個**縱行**（column）是相機局部基底在世界座標中的表示：\n$$\nC = \\begin{bmatrix} | & | & | & | \\\\ x_c & y_c & z_c & e \\\\ | & | & | & | \\\\ 0 & 0 & 0 & 1 \\\\ | & | & | & | \\end{bmatrix}\n$$\n因此$V$的前三個橫列是$C$的旋轉部分的轉置。",
+        "new": "**被動轉換與反變換**：$V$是剛體仿射變換；其左上角$3\\times3$部分$B^T$為正交矩陣且行列式為$+1$，含平移的整個$4\\times4$矩陣則不能稱為正交矩陣。相機到世界矩陣$C$把相機局部座標轉回世界座標 [G4]。其旋轉部分$B$的三個縱行，依序是相機右、上、後方軸在世界座標中的表示：\n\n$$\nC=\\begin{bmatrix}B&e\\\\0\\;0\\;0&1\\end{bmatrix},\n\\qquad B=\\begin{bmatrix}x_c&y_c&z_c\\end{bmatrix}.\n$$\n\n由三軸互相正交且為單位向量可得$B^TB=I$。對相機座標$q$，先旋轉回世界方向再加上相機位置，即$p=Bq+e$；反解得$q=B^T(p-e)$，所以\n\n$$\nV=C^{-1}=\\begin{bmatrix}B^T&-B^Te\\\\0\\;0\\;0&1\\end{bmatrix}.\n$$\n\n這個反推也提供實作檢查：$VC$及$CV$都應接近單位矩陣。將相機本身在世界中的姿態看作主動放置相機，與把固定世界點改用相機系描述的被動視圖轉換，會得到互為反矩陣的數值關係；兩種敘述不可混成同一個作用方向。"
+      },
+      {
+        "chapter": 4,
+        "old": "*解法*：檢測$\\|f \\times u_n\\| < \\epsilon$（其中$u_n$為正規化後的$u$）。若發生，需換一個預設上向量（如$(0,0,1)$或$(1,0,0)$）重新計算。",
+        "new": "*解法*：先確認視點與目標點有足夠距離、`up`不是零向量，再檢測$\\|f\\times u_n\\|<\\epsilon_{angle}$，其中$u_n$是正規化的`up`，而叉積長度是無因次的夾角正弦。若過小，採事先公布的備援上方向，例如先試$(0,0,1)$、仍平行才試$(1,0,0)$。備援軸只是決定未指定的相機 roll，並不能推知拍攝者原本想讓畫面哪一側朝上；動畫相機若要求姿態連續，還需另設延續上一影格方向的政策。"
+      },
+      {
+        "chapter": 4,
+        "old": "def look_at(eye, center, up, eps=1e-6):\n    \"\"\"\n    建立視圖矩陣 V。\n    eye, center, up: (3,) 可轉為陣列的序列\n    Returns: (4, 4) ndarray\n    \"\"\"\n    def as_vec3(value, name):\n        value = np.asarray(value, dtype=np.float64)\n        if value.shape != (3,):\n            raise ValueError(f\"{name} must have shape (3,)\")\n        if not np.all(np.isfinite(value)):\n            raise ValueError(f\"{name} must contain finite values\")\n        return value\n\n    eye = as_vec3(eye, \"eye\")\n    center = as_vec3(center, \"center\")\n    up = as_vec3(up, \"up\")\n    \n    if not np.isfinite(eps) or eps <= 0:\n        raise ValueError(\"eps must be a positive finite number\")\n    \n    # 1. 視線方向 (normalized)\n    f_vec = center - eye\n    f_len = np.linalg.norm(f_vec)\n    if f_len < eps:\n        raise ValueError(\"Eye and center are too close.\")\n    f = f_vec / f_len\n    \n    # 2. z_c = -f\n    z_c = -f\n    \n    # 3. 正規化 up 以確保尺度不變性\n    up_len = np.linalg.norm(up)\n    if up_len < eps:\n        raise ValueError(\"up vector is too short\")\n    up_n = up / up_len\n    \n    # 4. x_c = normalize(cross(f, up_n))\n    # 使用 f x u 確保右手系 (x, y, z) 符合 x x y = z\n    x_c_raw = np.cross(f, up_n)\n    x_c_len = np.linalg.norm(x_c_raw)\n    if x_c_len < eps:\n        # Fallback for parallel vectors\n        # Try a different up vector, e.g., (0, 0, 1)\n        alt_up = np.array([0.0, 0.0, 1.0])\n        x_c_raw = np.cross(f, alt_up)\n        x_c_len = np.linalg.norm(x_c_raw)\n        if x_c_len < eps:\n            alt_up = np.array([1.0, 0.0, 0.0])\n            x_c_raw = np.cross(f, alt_up)\n            x_c_len = np.linalg.norm(x_c_raw)\n        if x_c_len < eps:\n            raise ValueError(\"Cannot determine up direction.\")\n    x_c = x_c_raw / x_c_len\n        \n    # 5. y_c = cross(x_c, f)\n    y_c = np.cross(x_c, f)\n    \n    # 6. Construct Rotation Matrix R\n    # Rows are x_c, y_c, z_c\n    R = np.eye(4)\n    R[0, :3] = x_c\n    R[1, :3] = y_c\n    R[2, :3] = z_c\n    \n    # 7. Construct Translation T(-eye)\n    T = np.eye(4)\n    T[:3, 3] = -eye\n    \n    # 8. V = R @ T\n    V = R @ T\n    \n    return V",
+        "new": "def look_at(eye, center, up,\n            position_eps=1e-9, direction_eps=1e-12,\n            angular_eps=1e-6):\n    \"\"\"建立世界到相機的 (4, 4) 視圖矩陣。\n\n    position_eps 與 eye、center 同長度單位（本書為公尺）；\n    direction_eps 與輸入 up 的數值單位相同；\n    angular_eps 為正規化方向叉積的無因次容差。\n    \"\"\"\n    def as_vec3(value, name):\n        value = np.asarray(value, dtype=np.float64)\n        if value.shape != (3,):\n            raise ValueError(f\"{name} must have shape (3,)\")\n        if not np.all(np.isfinite(value)):\n            raise ValueError(f\"{name} must contain finite values\")\n        return value\n\n    eye = as_vec3(eye, \"eye\")\n    center = as_vec3(center, \"center\")\n    up = as_vec3(up, \"up\")\n    for name, value in ((\"position_eps\", position_eps),\n                        (\"direction_eps\", direction_eps),\n                        (\"angular_eps\", angular_eps)):\n        if not np.isscalar(value) or not np.isfinite(value) or value <= 0:\n            raise ValueError(f\"{name} must be positive and finite\")\n\n    displacement = center - eye\n    distance = np.linalg.norm(displacement)\n    if not np.isfinite(distance) or distance < position_eps:\n        raise ValueError(\"eye and center are too close or out of range\")\n    f = displacement / distance\n\n    up_len = np.linalg.norm(up)\n    if not np.isfinite(up_len) or up_len < direction_eps:\n        raise ValueError(\"up is too short or out of range\")\n    up_n = up / up_len\n\n    right = np.cross(f, up_n)\n    right_len = np.linalg.norm(right)\n    if right_len < angular_eps:\n        # 備援政策：先世界 +Z；若平行，再世界 +X。\n        for candidate in ((0.0, 0.0, 1.0), (1.0, 0.0, 0.0)):\n            right = np.cross(f, candidate)\n            right_len = np.linalg.norm(right)\n            if right_len >= angular_eps:\n                break\n        else:\n            raise ValueError(\"cannot determine camera right axis\")\n    x_c = right / right_len\n    y_c = np.cross(x_c, f)\n    z_c = -f\n\n    R = np.eye(4)\n    R[0, :3] = x_c\n    R[1, :3] = y_c\n    R[2, :3] = z_c\n    T = np.eye(4)\n    T[:3, 3] = -eye\n    return R @ T"
+      },
+      {
+        "chapter": 4,
+        "old": "Python 3.10+，使用NumPy。\n\n```python",
+        "new": "以下程式供讀者在既有的 Python 3.10+、NumPy 環境使用，不須 GPU。`eye`與`center`以公尺表示，`up`只指定方向；若使用倍率不變性測試，選取的倍率必須讓`up`長度仍高於`direction_eps`。`position_eps`應依場景尺度設定，不能把一個容差同時當作公尺、輸入方向長度及角度的門檻。輸入座標雖可為整數，函式會轉為浮點陣列。程式分別拒絕錯誤 shape、非有限輸入、視點與目標過近及零長上方向；這些是建立相機基底的必要條件，不是物理安全閾值。\n\n用矩陣前三個橫列存放相機軸，是因為每個相機座標分量都要對世界位移取一次內積。函式最後的`R @ T`代表先平移後旋轉，不是 NumPy 陣列在記憶體中的儲存次序。備援上方向是明訂的確定性政策；它能讓完全平行的輸入有結果，卻可能使接近平行處的畫面旋轉突然改變。需要連續動畫時，不宜僅以此靜態函式保證鏡頭運動平滑。\n\n```python"
+      },
+      {
+        "chapter": 4,
+        "old": "以下測試預期通過：",
+        "new": "以下是**預期**通過的讀者端測試，並非聲稱作者已執行。除了核對矩陣數字，還要檢查變換的幾何不變量：相機位置應落在原點；目標應落在負$Z_c$軸；旋轉部分各軸長度為一、互相正交且行列式為$+1$。只測最後一欄容易漏掉外積次序或矩陣橫列配置錯誤。基本案例把世界原點送到$(0,0,-5)$，恰好也能區分「相機位置映到原點」與「世界原點映到原點」這兩種敘述。\n\n若要檢查逆轉換，可在下方測試後另加`C = np.linalg.inv(V)`、`assert np.allclose(V @ C, np.eye(4))`，再令`p = np.array([1., 2., 0., 1.])`，檢查`C @ (V @ p)`是否接近`p`。這裡的逆矩陣只用於讀者端核對；前述推導已說明為何它存在。浮點數應使用合理容差比較，不應要求兩次矩陣乘法的結果逐位相等。"
+      },
+      {
+        "chapter": 4,
+        "old": "## 除錯與常見陷阱\n1.",
+        "new": "## 除錯與常見陷阱\n當畫面左右顛倒時，先用世界$+X$方向的測試點檢查相機$+X_c$，再檢查$x_c\\times y_c=z_c$，不要只看目標是否落在負$Z_c$。目標落在正確方向，仍可能伴隨錯誤的上方向或鏡射。若相機在非原點，亦應核對$V(e,1)^T$；只在$e=(0,0,0)$測試，無法發現平移欄漏乘旋轉矩陣。\n\n容差失敗須分辨三種量：視點與目標距離有公尺單位；未正規化的`up`長度依呼叫者提供的數值尺度而定；兩個單位方向的叉積長度則無因次。平行與近乎平行都可能使右軸不穩定，但提高角度容差也會讓更多姿態進入備援分支，應依用途測試邊界。即使某個頂點在近平面之外，也不能單憑它刪除整個跨越近平面的三角形；頂點篩選不等於三角形裁切。\n\n1."
+      },
+      {
+        "chapter": 4,
+        "old": "$z_{cam} \\approx -10.6$。若 $near=0.1$，則 $z_{cam} < -near$，通過近平面測試（假設 $far > 10.6$）。",
+        "new": "$z_{cam}\\approx-10.607$公尺。若$near=0.1$公尺且$far>10.607$公尺，此點通過前後深度範圍測試；仍未檢查左右、上下視錐及遮擋，因此不能僅憑負的$z_{cam}$斷言頂點會出現在影像內。此處的池體頂點與相機配置皆為合成數值。"
+      },
+      {
+        "chapter": 4,
+        "old": "   $y_c = x_c \\times f = \\frac{1}{\\sqrt{2}}(1, 0, -1) \\times \\frac{1}{\\sqrt{3}}(-1,-1,-1) = \\frac{1}{\\sqrt{6}}(1, -2, 1) \\times (-1)$? \n   Let's calc cross: $(1, 0, -1) \\times (-1, -1, -1) = (0(-1)-(-1)(-1), (-1)(-1)-1(-1), 1(-1)-0(-1)) = (-1, 2, -1)$。\n   So $y_c = \\frac{1}{\\sqrt{6}}(-1, 2, -1)$。",
+        "new": "   依外積各分量計算，$(1,0,-1)\\times(-1,-1,-1)=(-1,2,-1)$，故$y_c=x_c\\times f=\\frac{1}{\\sqrt{6}}(-1,2,-1)$。它與$x_c$、$z_c$互相正交；將三軸填入$V$的前三個橫列後，才計算平移欄。"
+      },
+      {
+        "chapter": 4,
+        "old": "2. 程式測試：修改`look_at`使其接受未正規化的`up`，並驗證結果與正規化輸入一致。",
+        "new": "2. 程式測試：現有`look_at`已接受未正規化的`up`。請撰寫測試，驗證將非零`up`乘以正的有限倍率後，在長度仍高於`direction_eps`時，視圖矩陣與原輸入一致；另測零長`up`會被拒絕。"
+      },
+      {
+        "chapter": 4,
+        "old": "2. 驗證：`np.allclose(look_at(e, c, u), look_at(e, c, u/np.linalg.norm(u)))`。",
+        "new": "2. 例如選$e=(1,2,3)$、$c=(0,0,0)$、$u=(0,2,0)$，可用`assert np.allclose(look_at(e, c, u), look_at(e, c, np.array(u) * 50.0))`檢查正倍率不變性；也可與`look_at(e, c, np.array(u) / np.linalg.norm(u))`比較。零向量測試則用`try`呼叫`look_at(e, c, [0,0,0])`並在捕獲`ValueError`後確認確有拋錯。負倍率會反轉建議上方向，不屬於本題的不變性。"
+      },
+      {
+        "chapter": 4,
+        "old": "3. Fallback可能導致roll角任意。修正：在fallback中，選擇一個與$f$不平行且與原$u$夾角最小的向量，或固定一個標準軸。",
+        "new": "3. 當`up`與$f`平行，輸入不足以唯一決定繞視線的 roll；所有可用的真正上方向都垂直於$f`，不能靠「與原`up`夾角最小」選出唯一答案。可明訂先選世界$+Z$、仍平行再選世界$+X$的政策；若是逐影格動畫，也可增加上一影格相機右軸作為額外輸入，以盡量保持時間連續性。固定備援軸雖可重現，接近切換方向時仍可能出現不連續翻轉。"
+      },
+      {
+        "chapter": 4,
+        "old": "4. 程式碼略，邏輯為：計算$V$，對每個頂點$p_h$計算$p_{cam} = V p_h$，若$p_{cam}[2] > -near$，加入列表。",
+        "new": "4. 以下函式回傳**頂點索引**，不刪除任何三角形。它檢查`near`為正且有限、頂點為有限的三維座標；空網格回傳空列表。等於近平面$z=-near$的頂點不列入外側，因為題目使用嚴格大於。\n\n   ```python\n   def vertices_before_near(vertices, eye, center, up, near):\n       if not np.isscalar(near) or not np.isfinite(near) or near <= 0:\n           raise ValueError(\"near must be positive and finite\")\n       pts = np.asarray(vertices, dtype=np.float64)\n       if pts.size == 0:\n           pts = pts.reshape((0, 3))\n       if pts.ndim != 2 or pts.shape[1] != 3:\n           raise ValueError(\"vertices must have shape (N, 3)\")\n       if not np.all(np.isfinite(pts)):\n           raise ValueError(\"vertices must be finite\")\n       V = look_at(eye, center, up)\n       return [i for i, p in enumerate(pts)\n               if (V @ np.array([p[0], p[1], p[2], 1.0]))[2] > -near]\n   ```\n\n   例如令`eye=[0,0,5]`、`center=[0,0,0]`、`up=[0,1,0]`、`near=1`，世界$z=4$的頂點恰在近平面，預期不列入；世界$z=4.5$的頂點預期列入，世界$z=3$則不列入。可以用`assert vertices_before_near([[0,0,4], [0,0,4.5], [0,0,3]], [0,0,5], [0,0,0], [0,1,0], 1) == [1]`檢查。對三角形而言，只有整個三角形都在同一外側半空間時，才能據此作整體剔除；跨越近平面的面需要裁切。"
+      }
+    ],
+    "reason": "依審稿證據修正矩陣作用次序、座標映射、齊次維度、逆矩陣表示、容差單位、平行 up 的 roll 說明與習題答案；補足推導、測試及除錯說明。保留已核對正確的數值案例與矩陣，不宣稱程式已執行或修稿已通過驗證。"
+  }
+}

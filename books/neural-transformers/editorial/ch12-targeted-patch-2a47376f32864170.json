@@ -1,0 +1,11 @@
+{
+  "key": "2a47376f32864170455e0bb91f60f896ce957a687ae2495a36eee6517dbf2cbc",
+  "person": {
+    "id": "v5_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 235,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n    return {\n        \"status\": \"completed\",\n        \"metrics\": metrics,\n        \"W\": best_W,\n<<<NEW>>>\n    # 常數基線只由訓練標籤決定，平手選編號較小的類別。\n    baseline_class = int(np.argmax(np.bincount(\n        ytr, minlength=cfg.classes\n    )))\n    baseline_accuracy = {\n        name: float(np.mean(parts[name][\"y\"] == baseline_class))\n        for name in (\"train\", \"val\", \"test\")\n    }\n    return {\n        \"status\": \"completed\",\n        \"metrics\": metrics,\n        \"baseline_class\": baseline_class,\n        \"baseline_accuracy\": baseline_accuracy,\n        \"W\": best_W,\n<<<END>>>\n<<<PATCH 02>>>\n<<<OLD>>>\n`resume=True` 時，程式重建相同合成資料及切分，核對設定、群組和標準化統計，再恢復當前參數、最佳參數、早停計數與 RNG 狀態。因 checkpoint 在每個 epoch 結束後寫入，下一輪由 `epoch+1` 開始。\n<<<NEW>>>\n`resume=True` 時，程式重建相同合成資料及切分，核對設定、群組和標準化統計，再恢復當前參數、最佳參數、早停計數與 RNG 狀態。因 checkpoint 在每個 epoch 結束後寫入，下一輪由 `epoch+1` 開始。此實作只支援兩個檔案均成功寫完後的 epoch 邊界中止；`.npz` 與 JSON 分開覆寫，寫入期間中斷可能留下不完整或不同輪次的檔案，不保證可恢復。若需抵抗此類故障，應先寫入並核驗完整的版本化檔案，再原子更新指向該版本的單一索引。\n<<<END>>>\n<<<PATCH 03>>>\n<<<OLD>>>\n預期：測試先建立 checkpoint，再從同一前綴載入，不依賴其他測試留下的檔案。\n<<<NEW>>>\n預期：測試先建立 checkpoint，再從同一前綴載入，不依賴其他測試留下的檔案；它不模擬寫入期間中斷。\n\n另可在選模完成後核對常數基線。其預測類別只取自訓練標籤；下列測試仍屬預期，未在寫作時執行：\n\n```python\ncfg = Config(epochs=3)\nresult = train(cfg, checkpoint_prefix=\"baseline_test\")\nparts, _, _ = prepare(cfg)\nchosen = int(np.argmax(np.bincount(\n    parts[\"train\"][\"y\"], minlength=cfg.classes\n)))\nassert result[\"baseline_class\"] == chosen\nfor name in (\"train\", \"val\", \"test\"):\n    expected = float(np.mean(parts[name][\"y\"] == chosen))\n    assert np.isclose(result[\"baseline_accuracy\"][name], expected)\n```\n\n模型與基線的準確率均沿各集合的樣本軸取平均，可逐集合比較；不預設模型必然較好。驗證與測試標籤僅用於各自評估，不決定基線的預測類別；測試結果不參與選模。\n<<<END>>>"
+}

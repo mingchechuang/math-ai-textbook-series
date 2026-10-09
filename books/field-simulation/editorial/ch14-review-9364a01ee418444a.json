@@ -1,0 +1,11 @@
+{
+  "key": "9364a01ee418444a30492226c99fccf33664af110b8b126f88b879146c1e0260",
+  "person": {
+    "id": "v3_editor_27",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "reviewer"
+  },
+  "call": 221,
+  "result": "# 審稿結果\n\n前輪的 PCG recurrence、SGS 名稱、量綱、網格位置及誤差範數問題均已實質修正。手算與非 SPD 反例亦一致。尚有少數程式邊界契約需修補。\n\n## 必須修正\n\n### 1. 允許零容差，卻使用嚴格小於，精確解可能被判成 breakdown\n\n- **原句／程式**：\n  ```python\n  if norm_r_true < atol + rtol * norm_b:\n  ```\n  同一判定出現於初始與迭代停止處。\n- **原因**：程式允許 `atol=0`、`rtol=0`。此時即使真殘差恰為零，`0 < 0` 仍為假，演算法會繼續，之後可能因零搜索方向被判成 `breakdown`。\n- **最小修法**：兩處皆改成：\n  ```python\n  if norm_r_true <= atol + rtol * norm_b:\n  ```\n  並增加 `atol=rtol=0`、精確初始解的邊界測試。\n\n### 2. `x0` 輸入檢查本身可能拋出未處理例外\n\n- **原句／程式**：\n  ```python\n  if x0.shape != b.shape or not np.all(np.isfinite(x0)):\n  ```\n- **原因**：若 `x0` 是 list 或其他沒有 `.shape` 的物件，函式會直接產生 `AttributeError`，未依文件契約回傳 `invalid_x0`。\n- **最小修法**：先檢查 `x0` 是一維實數 NumPy 陣列，或先安全轉換：\n  ```python\n  x0 = np.asarray(x0)\n  if x0.ndim != 1 or x0.shape != b.shape ...\n  ```\n  並拒絕非有限及複數資料。\n\n### 3. 求解器宣稱 SPD 實數系統，卻接受複數 `b`／`data`\n\n- **原句／程式**：\n  ```python\n  np.issubdtype(b.dtype, np.number)\n  ```\n  `validate_csr` 也未限制 `data` 為實數一維陣列。\n- **原因**：`np.number` 包含複數。`csr_matvec` 建立的是實數 `y=np.zeros(n)`，複數乘積寫入時可能遺失虛部；同時程式使用的是轉置內積 `np.dot`，不是 Hermitian 內積，並不構成複數 Hermitian positive definite CG。\n- **最小修法**：本章既限定實數 SPD，應要求 `b`、`data`、`x0` 為一維實數浮點／整數陣列，明確拒絕複數。`validate_csr` 亦應檢查 `data.ndim == 1` 及實數 numeric dtype。\n\n## 建議一併修正\n\n### 4. 最大值原理不可由「場平滑」或殘差門檻直接保證\n\n- **原句**：\n  > 溫度場應平滑，無振盪。最大值／最小值應出現在邊界（極值原理）。\n- **原因**：連續極值原理不自動等於近似迭代解的嚴格離散保證。標準五點離散的精確解具離散最大值原理，但有限求解容差下可能有小幅違反。\n- **最小修法**：限定為「此五點 M-matrix 離散的精確離散解」；數值解則實際測試內部超界量，並按真殘差與容差解讀，不以平滑外觀批准。\n\n### 5. 小結對 Jacobi 的敘述宜加條件\n\n- **原句**：\n  > Jacobi 預條件可通過改善條件數來加速收斂。\n- **原因**：本章自己的常係數 1D 例中條件數恰好不變。\n- **最小修法**：改成「對部分縮放不均或變係數系統可能改善條件數；本章常係數 1D 例不改善」。\n\nVERDICT: REVISE"
+}

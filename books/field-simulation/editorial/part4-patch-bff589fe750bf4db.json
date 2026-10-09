@@ -1,0 +1,20 @@
+{
+  "key": "bff589fe750bf4db69ce8c1bf830f4a3c39d3bc6b5c5ee09d1abcb3c2bb94386",
+  "person": {
+    "id": "v3_editor_04",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 426,
+  "result": {
+    "patches": [
+      {
+        "chapter": 19,
+        "old": "定義\n\n$$\nu_x=a\\sin(kx)\\cos(ky),\\qquad\nu_y=-a\\cos(kx)\\sin(ky),\n$$",
+        "new": "定義速度分量\n\n$$\n(u_x,u_y)=\\bigl(a\\sin(kx)\\cos(ky),\\,-a\\cos(kx)\\sin(ky)\\bigr).\n$$"
+      }
+    ],
+    "reason": "以明確的拉丁字母 u_x、u_y 定義製造速度，接合後文 u:=u_x、v:=u_y；運動黏度 ν 與程式均不改動。原稿中緊接 $$ 的 `\\n` 須按換行處理，不能誤作希臘字母命令。"
+  }
+}

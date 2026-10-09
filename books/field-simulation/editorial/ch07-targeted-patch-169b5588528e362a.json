@@ -1,0 +1,25 @@
+{
+  "key": "169b5588528e362ae9b5243b866e62f06597bb8e10e6dbdff928bc1b4d98c521",
+  "person": {
+    "id": "v3_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 167,
+  "result": {
+    "patches": [
+      {
+        "chapter": 7,
+        "old": "此邊界 Laplacian 對一般函數只有一階點態精度：",
+        "new": "若 $u$ 在邊界附近至少具有有界的四階導數，且 Taylor 展開的餘項受控，此邊界 Laplacian 一般只有一階點態精度："
+      },
+      {
+        "chapter": 7,
+        "old": "純 Neumann 同樣有常數零模態：$L\\boldsymbol{1}=\\boldsymbol{0}$；輸入右端若不滿足相容性 $\\sum_i f_i=0$（在 $H$ 加權下），離散系統便無解，或數值解會以漂移形式顯示未消去的淨來源。實作上一種常見的錯誤是：以 pin 點把 $u_0$ 固定為常數，認為這樣就解決了零空間。這只消除了自由度，卻沒有修正相容性；結果可能是「有解」但與連續問題的解相差一個常數，或在誤差範數中掩蓋了來源項的淨貢獻。正確作法是先確認 $\\sum f_i$ 是否為零，再從解中扣除均值或以最小平方方式固定常數。標準迭代求解器（例如 CG）在此類奇異系統上不適用，除非先投影到常數零模態的正交補空間。",
+        "new": "純 Neumann 同樣有常數零模態：$L\\boldsymbol{1}=\\boldsymbol{0}$。對本章的節點 ghost 矩陣，左零向量是 $H\\boldsymbol{1}$；若系統寫成 $L\\boldsymbol{u}=\\boldsymbol{f}$，相容條件便是 $\\boldsymbol{1}^{T}H\\boldsymbol{f}=0$，即端點半權重、內點全權重的來源加總為零，而不是未加權的 $\\sum_i f_i=0$。若方程另有非零 Neumann 邊界項 $\\boldsymbol{c}$，則須檢查 $\\boldsymbol{1}^{T}H(\\boldsymbol{f}-\\boldsymbol{c})=0$。不相容時，原離散系統無解；迭代所得的漂移或小殘差假象都不能當成解。以 pin 點固定 $u_0$ 只移除常數自由度，不能修復原方程的相容性；若捨棄該點原有方程而得到可解系統，所解的已不是完整原問題。正確作法是先檢查相容性，再以 $H$ 加權均值 $\\boldsymbol{1}^{T}H\\boldsymbol{u}/(\\boldsymbol{1}^{T}H\\boldsymbol{1})$ 約束解的常數部分。若採用 CG，不能直接將這個歐氏內積下不對稱的 $L$ 交給求解器；須先構造對稱正定的等價系統，或在明確定義的 $H$ 加權內積中，投影至常數模態的正交補空間並使用相容的演算法。"
+      }
+    ],
+    "reason": "修正節點 ghost Neumann 系統的加權相容條件，補明非零邊界項、均值約束與 CG 所需的內積／對稱性；另補足邊界截斷誤差展開的光滑性前提。保留其餘已核對內容。"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "key": "ddc5554efb2a5f64ff67000a5ed9a558918c764d06bb6843b7c8aeddf3276121",
+  "person": {
+    "id": "v5_editor_06",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "author"
+  },
+  "call": 461,
+  "result": "<<<PATCH 01>>>\n<<<OLD>>>\n設 $\\mathcal{H}=\\{f_1,\\dots,f_M\\}$ 是**有限**假設類，$|M|=\\mathcal{H}$ 為其基數。\n<<<NEW>>>\n設 $\\mathcal{H}=\\{f_1,\\dots,f_M\\}$ 是**有限**假設類，其基數為 $M$。\n<<<END>>>\n01\n<<<PATCH 02>>>\n<<<OLD>>>\n**邊界測試 2：極端但有限 logits。** $z=(1000,1001,999)$，target=1。預期 loss 約 $0.407606$，不出現 inf 或 nan。若把 $z$ 改成三個相等巨大值，例如 $(10^{300},10^{300},10^{300})$，數學上 loss 應為 $\\log 3$，但 float64 在 $10^{300}+0.477$ 時可能把 $0.477$ 捨入掉，得到 0。這是浮點消去，不是穩定公式錯誤。實務上應避免讓 logits 尺度大到加減小常數失去精度，或改用更高精度與重新縮放。\n<<<NEW>>>\n**邊界測試 2：極端但有限 logits。** $z=(1000,1001,999)$，target=1。預期 loss 約 $0.407606$，不出現 inf 或 nan。若把 $z$ 改成三個相等巨大值，例如 $(10^{300},10^{300},10^{300})$，數學上 loss 應為 $\\ln 3\\approx 1.099$，但 float64 在 $10^{300}+1.099$ 時可能把 $1.099$ 捨入掉，得到 0。這是浮點消去，不是穩定公式錯誤。實務上應避免讓 logits 尺度大到加減小常數失去精度，或改用更高精度與重新縮放。\n<<<END>>>\n06\n<<<PATCH 03>>>\n<<<OLD>>>\n    n_eff = int(valid.sum())\n    if n_eff == 0:\n        raise ValueError(\"沒有有效 target，平均損失無定義\")\n<<<NEW>>>\n    n_eff = int(valid.sum())\n    if n_eff == 0:\n        raise ValueError(\"沒有有效 target，損失無定義\")\n<<<END>>>\n06"
+}

@@ -1,0 +1,11 @@
+{
+  "key": "97f9ad92dc9e18783e8c62b181d61bed6dcde5a30932a2d17f001404f261b45c",
+  "person": {
+    "id": "v4_editor_13",
+    "provider": "openai-codex",
+    "model": "gpt-6-luna",
+    "role": "reviewer"
+  },
+  "call": 300,
+  "result": "## 必須修正\n\n1. **Hurwitz 積分解的證明仍然錯誤。**  \n   原文：「$\\frac{d}{dt}(e^{A^Tt}Qe^{At})=A^Te^{A^Tt}Qe^{At}+e^{A^Tt}Qe^{At}A$。」  \n   原因：正確的乘積導數是$e^{A^Tt}A^TQe^{At}+e^{A^Tt}QAe^{At}$。不能將$A^T$或$A$移過夾在中間的$Q$，所以此處不能推出$A^TP+PA=-Q$。  \n   最小修法：更正導數並重寫推導；或將命題明確標為引用的有限維 Lyapunov 定理，刪除這段錯誤證明。\n\n2. **漸近穩定證明對極限$L>0$的推論不成立。**  \n   原文：「若$L>0$，軌跡始終位於緊集$\\{x\\in K_c:V(x)\\ge L\\}$。」  \n   原因：$V(x(t))\\to L$只保證充分大的$t$有$V(x(t))\\ge a$，其中可選$0<a<L$；不能保證從$t=0$起$V(x(t))\\ge L$。因此稿件接著推出的$V(x(t))\\le V(x_0)-\\eta t$沒有依據。  \n   最小修法：選$0<a<L$，考慮緊集$\\{x\\in K_c:V(x)\\ge a\\}$。由收斂，軌跡充分大後留在該集；再用其上的嚴格負導數上界與$V(x(t))\\to L$矛盾。\n\n3. **穩定性證明未明確給出初值半徑$\\delta$。**  \n   原文：「由$V(x_\\ast)=0$及連續性，可令初值充分接近$x_\\ast$，使$x_0\\in B_s(x_\\ast)$且$V(x_0)<c$。」  \n   原因：穩定性量詞要求對每個$\\varepsilon$給出$\\delta$；這裡尚未明確說明如何選取。  \n   最小修法：寫明由連續性選$\\delta\\le s$，使$\\|x_0-x_\\ast\\|_2<\\delta$推出$V(x_0)<c$。\n\nVERDICT: REVISE"
+}

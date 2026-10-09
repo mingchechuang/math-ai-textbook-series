@@ -1,0 +1,115 @@
+{
+  "key": "82854b79efe3647b65cde49e77b58d49b627e1bfe31a499dd79a1f81e7975a7a",
+  "person": {
+    "id": "v3_editor_34",
+    "provider": "openai-codex",
+    "model": "gpt-6-sol",
+    "role": "author"
+  },
+  "call": 217,
+  "result": {
+    "patches": [
+      {
+        "chapter": 14,
+        "old": "**關鍵性質**：\n*   殘差序列 $r_0, r_1, \\dots$ 彼此正交：$r_i^T r_j = 0$ for $i \\neq j$。\n*   方向序列 $p_0, p_1, \\dots$ 彼此 $A$-共軛：$p_i^T A p_j = 0$ for $i \\neq j$。\n*   **真殘差**：停止條件必須基於真殘差 $r_k = b - A x_k$，而非迭代中使用的局部遞推殘差（因浮點誤差累積）。",
+        "new": "**關鍵性質**：在 $A$ 為對稱正定、採標準遞推且使用精確算術時，殘差序列彼此正交：$r_i^T r_j=0$（$i\\ne j$）；方向序列彼此 $A$-共軛：$p_i^T A p_j=0$（$i\\ne j$）。浮點運算只能近似保持這些關係，不能把精確算術定理當作程式保證。**真殘差**：停止條件使用重新計算的 $b-Ax_k$；它可能與遞推殘差不同。為保留本節標準 PCG 的方向更新，真殘差僅作停止與診斷，不在每一輪直接替換遞推殘差。若確需替換，應另訂重啟策略並重新建立方向。"
+      },
+      {
+        "chapter": 14,
+        "old": "*   **Gauss–Seidel 預條件**：標準 Gauss–Seidel 預條件矩陣為 $M_{GS} = (D+L)D^{-1}(D+U)$，其中 $A = D+L+U$。此矩陣在 $A$ 為 SPD 時亦為 SPD。單向 Gauss-Seidel $M=D+L$ 不對稱，不能直接用於標準 PCG，僅可用於 stationary iteration 或作為非對稱預條件（需配合 BiCGStab 等）。本章聚焦於對稱 SPD 系統，故僅討論 Jacobi 作為示範。",
+        "new": "*   **對稱 Gauss–Seidel（SGS）預條件**：若 $A=D+L+U$ 為 SPD，且 $U=L^T$、$D$ 為正對角矩陣，則 $M_{\\mathrm{SGS}}=(D+L)D^{-1}(D+U)$ 為 SPD。單向 Gauss–Seidel 的 $M=D+L$ 一般不對稱，不能直接用於標準 PCG；可作定常迭代的一部分，或配合適用非對稱系統及預條件的求解方法。本章的實作僅示範 Jacobi。"
+      },
+      {
+        "chapter": 14,
+        "old": "網格 $N=2$ 個內部節點，步長 $h = 1/3$。\n$f(x) = 1$（常數來源）。\n邊界：$u_0 = u_3 = 0$。",
+        "new": "本例將 $x\\in[0,1]$、$u$ 與 $f$ 均定義為無因次量；以下矩陣係數及右端亦無因次。使用節點中心網格，$N=2$ 個內部未知節點，步長 $h=1/3$；兩端邊界節點不是未知量。\n$f(x)=1$（常數來源）。\n邊界：$u_0=u_3=0$。"
+      },
+      {
+        "chapter": 14,
+        "old": "此時步長為負，能量增加，算法發散或進入非預定期區。實作中應偵測 $p_k^T A p_k \\le 0$ 並回報 breakdown。\n\n**結論**：標準 CG 算法在 $p_k^T A p_k \\le 0$ 時失敗（Breakdown）。這揭示了 SPD 是 CG 收斂的必要條件。",
+        "new": "此時沿該方向的曲率為負，已失去以正定二次能量作最小化的 CG 保證；不能僅由負步長推論迭代必然發散。實作應在更新前偵測非正曲率並回報 breakdown。\n\n**結論**：標準 CG 的一般收斂保證要求 SPD；本例在第二次方向計算出負曲率，具體展示非 SPD 輸入可能使演算法失去適用性。一次未發生 breakdown 也不能反過來證明輸入為 SPD。"
+      },
+      {
+        "chapter": 14,
+        "old": "    if not isinstance(indptr, np.ndarray) or indptr.dtype != int:\n        raise ValueError(\"indptr must be int array\")\n    if not isinstance(indices, np.ndarray) or indices.dtype != int:\n        raise ValueError(\"indices must be int array\")",
+        "new": "    if (not isinstance(indptr, np.ndarray) or indptr.ndim != 1\n            or not np.issubdtype(indptr.dtype, np.integer)):\n        raise ValueError(\"indptr must be a 1D integer array\")\n    if (not isinstance(indices, np.ndarray) or indices.ndim != 1\n            or not np.issubdtype(indices.dtype, np.integer)):\n        raise ValueError(\"indices must be a 1D integer array\")"
+      },
+      {
+        "chapter": 14,
+        "old": "    n = len(b)\n    \n    # 輸入檢查\n    try:\n        validate_csr(indptr, indices, data, n)",
+        "new": "    # 停止容差及迭代上限屬求解契約；不得以負值或非有限值繞過停止檢查。\n    if (not isinstance(b, np.ndarray) or b.ndim != 1 or b.size == 0\n            or not np.issubdtype(b.dtype, np.number)):\n        return None, 0, np.nan, False, \"invalid_input: b must be a nonempty 1D numeric array\"\n    if (not np.isfinite(rtol) or rtol < 0 or not np.isfinite(atol) or atol < 0\n            or isinstance(max_iter, (bool, np.bool_))\n            or not isinstance(max_iter, (int, np.integer)) or max_iter < 0):\n        return None, 0, np.nan, False, \"invalid_input: tolerances or max_iter\"\n    n = len(b)\n\n    # 輸入檢查\n    try:\n        validate_csr(indptr, indices, data, n)"
+      },
+      {
+        "chapter": 14,
+        "old": "        # Residual Replacement: 用真殘差取代遞推殘差，以保持穩定性\n        r = r_true\n        \n        # 計算預條件向量 z_new\n        z_new = r * inv_diag",
+        "new": "        # 真殘差僅供停止診斷；方向遞推繼續使用 r -= alpha * Ap。\n        # 每步強制替換 r 卻延續舊 p，並非上述標準 PCG 遞推。\n        z_new = r * inv_diag"
+      },
+      {
+        "chapter": 14,
+        "old": "        if rz_new <= 0:\n            return x, k + 1, norm_r_true, False, \"breakdown\"",
+        "new": "        if not np.isfinite(rz_new) or rz_new <= 0:\n            return x, k + 1, norm_r_true, False, \"breakdown\""
+      },
+      {
+        "chapter": 14,
+        "old": "# 預期: conv=True, nit < N, status=success, diff < 1e-10",
+        "new": "# 預期: conv=True、status=success；此對稱來源可能提早收斂。\n# diff 應以實際停止容差及問題尺度判讀，不把固定門檻當通用保證。"
+      },
+      {
+        "chapter": 14,
+        "old": "*   **驗證**：計算解析解 $u(x) = \\frac{x(1-x)}{2}$ 的離散值，比較誤差應在 $O(h^2)$ 量級。與直接解的差異應在機精度範圍內（$<10^{-10}$）。",
+        "new": "*   **驗證**：本題的二次解析解 $u(x)=x(1-x)/2$ 在內部節點由中心二階差分精確再現至浮點誤差；不能由此單一案例宣稱已觀測到二階收斂。另比較 PCG 與直接離散解，差異須依停止容差與 $\\lambda_{\\min}(A)$ 判讀，不保證任意設定都達機器精度。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   `niters < N`（通常小於 $N$）。",
+        "new": "    *   對此對稱常數來源，精確算術下可少於 $N$ 步收斂；一般右端不保證 `niters < N`，浮點步數亦依容差而定。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   **收斂**：PCG 應在幾十至幾百次迭代內收斂。",
+        "new": "    *   **收斂**：迭代數依網格、邊界值、預條件與停止容差而變；應記錄實際真殘差及迭代數，不預報未執行程式的效能。"
+      },
+      {
+        "chapter": 14,
+        "old": "考慮一個矩形養殖池，邊界溫度固定（Dirichlet 條件），內部無熱源（$f=0$）。求解穩態溫度分佈 $T(x,y)$。",
+        "new": "考慮純合成的矩形池域 $[0,L_x]\\times[0,L_y]$，例如 $L_x=8\\,\\mathrm m$、$L_y=4\\,\\mathrm m$；$X$ 向右、$Y$ 向上，$x,y$ 以公尺計，溫度 $T$ 以 K 計。四邊指定有限的 Dirichlet 溫度，域內熱源為零。若導熱係數 $k$ 為正常數，穩態熱傳為 $-\\nabla\\cdot(k\\nabla T)=0$，除以 $k$ 後才寫成 $-\\Delta T=0$。本例使用**節點中心**配置：$N_x,N_y$ 分別是 $X,Y$ 方向的內部未知節點數，內部陣列 `T[j,i]` 形狀為 `(Ny,Nx)`、展平索引 $k=jN_x+i$；物理邊界節點另行給定，不屬於未知直向量，其已知值對內部方程的貢獻移到右端。這與單元中心網格的半格邊界距離不同，組裝時不可混用。"
+      },
+      {
+        "chapter": 14,
+        "old": "若使用 Backward Euler 時間積分，得到系統 $(M/\\Delta t + L) \\phi^{n+1} = M \\phi^n / \\Delta t + \\dots$。若空間算子 $L$ 為半正定且 $M$ 正定，則 $(M/\\Delta t + L)$ 為 SPD，可用 CG。",
+        "new": "若某個線性化問題經完整推導得到 $(B/\\Delta t+K)\\phi^{n+1}=B\\phi^n/\\Delta t+\\dots$，且 $B$ 對稱正定、$K$ 對稱半正定，該係數矩陣才是 SPD，得以考慮 CG。此處 $K$ 表示該問題的非負剛度矩陣，不是本卷表示 Laplacian、通常負半定的 $L$；不能從「使用後向 Euler」直接推斷 Cahn–Hilliard 線性化系統必為 SPD。"
+      },
+      {
+        "chapter": 14,
+        "old": "並比較 PCG 解與直接法（`np.linalg.solve` 對於密集矩陣）的結果，計算 $L_2$ 誤差。",
+        "new": "並比較 PCG 解與直接離散解，定義求解差異 $E_{\\mathrm{solve}}=\\|x_{\\mathrm{PCG}}-x_{\\mathrm{direct}}\\|_2$。若另提供解析 PDE 解 $u_{\\mathrm{exact}}$，才計算內部節點的網格加權誤差 $E_{L_2,h}=\\sqrt{h_xh_y\\sum_{j,i}|u_{j,i}-u_{\\mathrm{exact}}(x_i,y_j)|^2}$；不得把求解差異當成 PDE 離散誤差。"
+      },
+      {
+        "chapter": 14,
+        "old": "$L_2$ 誤差應小於由殘差界 $\\|e\\|_2 \\le \\frac{1}{\\lambda_{\\min}} \\|r\\|_2$ 估計的值。",
+        "new": "若直接解作為同一離散系統的參考，$E_{\\mathrm{solve}}$ 應依殘差與直接解的捨入誤差判讀；以精確離散解為參考時，SPD 系統的誤差界為 $\\|e\\|_2\\le\\|r\\|_2/\\lambda_{\\min}(A)$。若另有解析 PDE 解，才可用網格加權 $E_{L_2,h}$ 檢查離散誤差，並須進行網格細化。"
+      },
+      {
+        "chapter": 14,
+        "old": "有 Jacobi 預條件：對於 1D 常係數 Poisson，$M=D=2/h^2 I$，預條件後條件數變為 $\\kappa(\\tilde{A}) \\approx \\kappa(A)$，改善有限。迭代次數可能略減或相同。",
+        "new": "有 Jacobi 預條件：本例 $M=D=(2/h^2)I$，對稱預條件後的矩陣只是 $A$ 的正純量倍數，故二範數條件數**恰好不變**。在精確算術及相同停止判準下，預條件不改善 Krylov 收斂，迭代次數應相同；浮點下若略有差異，須檢查捨入與停止判定，不得稱作此預條件改善了條件數。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   **修正**：在判斷停止前，重新計算 $r_{true} = b - A x$ 並檢查其範數。本實作在每次迭代後都計算真殘差並進行 Residual Replacement 以確保穩定性。",
+        "new": "    *   **修正**：在判斷停止前，重新計算 $r_{true}=b-Ax$ 並檢查其範數。本實作每輪計算真殘差作停止診斷，但保留遞推殘差更新 PCG 方向；這不保證浮點共軛性永不流失。若真殘差停滯而遞推殘差繼續減小，應記錄並考慮重新啟動或更適當的預條件，不得以遞推殘差冒充真殘差。"
+      },
+      {
+        "chapter": 14,
+        "old": "        # 檢查 SPD 條件 / Breakdown: p^T A p 必須為正",
+        "new": "        # 數值 breakdown 啟發式；只檢查此方向曲率，並非完整 SPD 檢驗。"
+      },
+      {
+        "chapter": 14,
+        "old": "    *   **修正**：使用相對容差檢查 $p^T A p > \\epsilon \\|p\\|_2 \\|Ap\\|_2$。若違反，回報 `breakdown` 而非除零。",
+        "new": "    *   **修正**：程式使用固定相對閾值比較 $p^TAp$ 與 $\\|p\\|_2\\|Ap\\|_2$，屬防止近零分母的**數值 breakdown 啟發式**，並非 SPD 的完整檢驗；極病態 SPD 矩陣也可能遭誤判。若要研究此類問題，應報告閾值並另檢查矩陣結構、縮放與條件估計。"
+      }
+    ],
+    "reason": "依證據保留標準 PCG 的遞推殘差，將真殘差限定為停止診斷；限定精確算術結論並更正 SGS 名稱。補齊無因次手算及 SI 池域的節點網格契約、分辨求解與 PDE 誤差，修正 Jacobi 此特例的確切效果與可定位的過度保證；增補必要診斷解說以補足正文。未執行程式。"
+  }
+}

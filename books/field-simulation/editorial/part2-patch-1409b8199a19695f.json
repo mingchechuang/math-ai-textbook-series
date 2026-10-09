@@ -1,0 +1,20 @@
+{
+  "key": "1409b8199a19695f8c3bbd751c8ff6acc79b7b8dd67eca61856ae3639491bb8e",
+  "person": {
+    "id": "v3_editor_02",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-sol",
+    "role": "author"
+  },
+  "call": 333,
+  "result": {
+    "patches": [
+      {
+        "chapter": 7,
+        "old": "此程式不會把 ghost 值當成物理未知量。`neumann_ghost_operator` 明確接受 $u_x$；若資料是外法向導數，呼叫端必須先依左右邊界轉換符號。",
+        "new": "此程式不會把 ghost 值當成物理未知量。`neumann_ghost_operator` 明確接受座標導數 $u_x$；若資料是外法向導數，呼叫端必須先依左右邊界轉換符號。函式回傳的 `c` 定義為已代入 ghost 關係後仍留在離散 Laplacian 左式中的加法項，因此離散方程應組裝為 `L @ u + c = f`，等價地使用 `rhs = f - c` 解 `L @ u = rhs`。例如線性場測試中的 `Ln @ u + c = 0` 正是取 $f=0$；不得把 `c` 直接加到右端，否則非零 Neumann 資料的符號會反轉。",
+        "reason": "跨章審稿確認 Neumann ghost 係數與測試本身正確，但原稿未明示回傳向量 `c` 應如何與來源 `f` 組裝，容易把右端符號用反。此補丁只澄清既有介面契約與等價方程，不改動正確的算子、程式或推導。"
+      }
+    ]
+  }
+}

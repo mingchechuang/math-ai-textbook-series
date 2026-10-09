@@ -1,0 +1,11 @@
+{
+  "key": "1ce5e47872dddae9a36814c65ac51abfc27eee8ecea012fd874ba6cf3b31ded0",
+  "person": {
+    "id": "v5_editor_01",
+    "provider": "gb10-2-vllm",
+    "model": "unsloth/Qwen3.8-27B-NVFP4",
+    "role": "reviewer"
+  },
+  "call": 500,
+  "result": "1. 自行重算：\n- 例題21.1：$N=4$。Batch1梯度總和$=0.2-0.4+0.6=0.4$，$g_1=0.4/3$；batch2總和$=1.0$，$g_2=1.0$。加權：$3/4(0.4/3)+1/4(1)=0.1+0.25=0.35$。直接：$1.4/4=0.35$。未加權：$(0.4/3+1)/2=0.5666667$。差$0.2166667$，約正確值$1.619$倍；文中1.62倍合理。\n- 例題21.2：正確$g=0.35$，$v_1=0.35$，$\\theta_1=0.965$。錯誤：step1 $v=0.133333$，$\\theta=0.986667$；step2 $v=0.9(0.133333)+1=1.12$，$\\theta=0.986667-0.112=0.874667$。差$0.090333$，正確步長$0.035$，$0.090333/0.035\\approx2.58$，文中2.6合理。\n- 程式：`valid=[T,T,F,T,T,T,F,T]`，`splits=[0,3),[3,8)`：第一段有效2，第二段有效4；`step_accum`累加`ce_sum_and_grad`回傳的總和梯度，最後除以全域$N=6$，與`step_full`數學等價；`dW_good=(W0-Wf)/lr`等於$dW/N$，與未加權比較有效。\n- RNG：`save_ckpt`深拷貝`bit_generator.state`，`load_ckpt`還原至`rng2`；`m1`來自`rng1`續接，`m2`來自還原後`rng2`，若同NumPy版本/執行緒/同RNG實作應逐位一致；文中限定「只檢查RNG續接」合理。\n\n2. 逐字原句、原因、最小修法：\n- 原句：「測試 9：若 checkpoint 只存權重、不存 RNG 狀態，便無法保證恢復後沿用未中斷訓練的抽樣軌跡；第一個 dropout 遮罩可能不同，也可能偶然相同。應核對保存與恢復的 RNG 狀態值，並比較後續抽樣序列；不能以單次遮罩相等或不等判定完整訓練是否可重建。本章程式未實作此故障測試。」  \n  原因：此段修正了先前可能過度主張「預期回傳False」的說法，邏輯更穩固且誠實說明未實作；不需修正。\n- 原句：「測試 3：checkpoint 的 RNG 狀態快照。程式將抽樣前的狀態值深拷貝保存，再還原至另一個 RNG；預期兩條路徑的下一個 dropout 遮罩一致。這只檢查 RNG 續接，不驗證參數、優化器或資料游標的完整訓練恢復。」  \n  原因：清楚限制測試範圍，避免宣稱完整checkpoint可恢復；不需修正。\n- 原句：「若換成 Adam，偏差修正的步數計數也會被多算 $K$ 倍，更難察覺。」  \n  原因：正確，因為每次micro-batch step會增加optimizer step count，使bias correction step count偏離；不需修正。\n- 原句：「本章程式只示範部分欄位的記憶體內快照，不是完整可恢復的訓練 checkpoint。」  \n  原因：誠實且符合程式實際範圍；不需修正。\n\n3. 核對定義條件與程式：\n- shape/broadcast：`X:(B,Din)`、`W:(Din,Dout)`、`Y=(B,)`、`valid:(B,)`；`logits=X@W+b`形狀$(B,Dout)$；`G[~valid]=0`正確避免padding貢獻；`dW=X.T@G`形狀$(Din,Dout)$；`db=G.sum(axis=0)`形狀$(Dout,)$。\n- reduction：`loss_sum`沿valid token求和；`db`沿batch軸求和；`step_accum`只累加sum，最後除以全域$N$一次；符合「有效token平均只除一次」。\n- gradient：`P-exp(logp)`，對valid行減1，無效行設0，是$-log p_y$對logits的梯度；正確。\n- 故障：無效標籤、非有限值、全無效token皆有`ValueError`；合理。\n- 可重現性：明確區分數學等價與逐位一致，並指出硬體/BLAS/執行緒/版本條件；合理。\n- 資料洩漏/評估：未使用測試集調參；習題也要求不接觸測試集；合理。\n- 自足程式：NumPy CPU、無外部資料、無pickle、無shell/網路；合理。\n\nVERDICT: APPROVE"
+}
